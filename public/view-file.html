@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>عرض الملف</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      background-color: #1c1c1c;
+      color: #f1f1f1;
+      font-family: 'Cairo', sans-serif;
+      padding: 30px;
+      max-width: 700px;
+      margin: auto;
+      direction: rtl;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 10px;
+      text-align: center;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .print-btn {
+      background-color: #8B0000;
+      color: #FFD700;
+    }
+    .excel-btn {
+      background-color: #444;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h2>📋 بيانات الملف لقسم "${fileId}"</h2>
+  <table id="fileData">
+    <thead>
+      <tr>
+        <th>السعر</th>
+        <th>الكود</th>
+        <th>الاسم</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Rows will be dynamically added here -->
+    </tbody>
+  </table>
+  <button class="print-btn" onclick="printTable()">🖨️ طباعة</button>
+  <button class="excel-btn" onclick="downloadExcel()">💾 تحميل Excel</button>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Fetch file data from the database
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileId = urlParams.get("fileId");
+
+    async function fetchFileData() {
+      try {
+        const doc = await db.collection("catalog").doc(fileId).get();
+        if (doc.exists) {
+          const fileData = doc.data();
+          const tableBody = document.querySelector("#fileData tbody");
+          const sectionTitle = document.querySelector("h2");
+          sectionTitle.textContent = `📋 بيانات الملف لقسم ${fileData.name || fileId}`;
+
+          for (const [key, value] of Object.entries(fileData)) {
+            if (key === "items" && Array.isArray(value)) {
+              value.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                  <td>${item.price || ""}</td>
+                  <td>${item.code || ""}</td>
+                  <td>${item.name || ""}</td>
+                `;
+                tableBody.appendChild(row);
+              });
+            } else {
+              const row = document.createElement("tr");
+              row.innerHTML = `<td colspan="3">${key}: ${value}</td>`;
+              tableBody.appendChild(row);
+            }
+          }
+        } else {
+          Swal.fire("خطأ", "الملف غير موجود في قاعدة البيانات", "error");
+        }
+      } catch (error) {
+        console.error(error);
+        Swal.fire("خطأ", "حدث خطأ أثناء تحميل البيانات", "error");
+      }
+    }
+
+    fetchFileData();
+
+    function printTable() {
+      const printWindow = window.open("", "_blank");
+      const tableHTML = document.querySelector("#fileData").outerHTML;
+      const sectionTitle = `بيانات الملف لقسم ${fileId}`;
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <title>طباعة الجدول</title>
+          <link rel="stylesheet" href="style.css">
+          <style>
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #444;
+              padding: 10px;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <h2>${sectionTitle}</h2>
+          ${tableHTML}
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+
+    function downloadExcel() {
+      const rows = Array.from(document.querySelectorAll("#fileData tbody tr"));
+      const data = [
+        ["السعر", "الكود", "الاسم"],
+        ...rows.map(row => [
+          row.cells[0].textContent,
+          row.cells[1].textContent,
+          row.cells[2].textContent
+        ])
+      ];
+      const worksheet = XLSX.utils.aoa_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `بيانات الملف لقسم ${fileId}`);
+      XLSX.writeFile(workbook, `بيانات_${fileId}.xlsx`);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>اقتراحات المستخدمين</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="style.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+  <style>
+    body{ padding:24px; text-align:right }
+    .container{ max-width:980px; margin:12px auto }
+    .meta-row{ display:flex; gap:12px; justify-content:flex-end; align-items:center; margin-bottom:10px }
+    .btn{ background:#ff2a4d; color:#fff; padding:8px 12px; border-radius:8px; border:none; cursor:pointer }
+    .reply-btn{ background:linear-gradient(135deg,#2aabff,#00d9ff); color:#fff; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700 }
+    .reply-meta{ margin-top:8px; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px; font-size:0.95rem; color:#dfeffd }
+    .reply-by{ font-size:0.8rem; color:#cfcfcf; margin-top:6px }
+  </style>
+  
+  <!-- Critical inline styles to ensure hosted appearance matches local live server -->
+  <style>
+    :root{ --bg-dark:#0b0b0b; --panel:#2b241e; --accent:#ffd166; --muted:#b4b4b4; --card-bg: rgba(255,255,255,0.02); }
+    html,body{ background: linear-gradient(180deg,#0b0b0b,#0f0f0f); color: #f1eede; font-family: Cairo, Tahoma, Arial, sans-serif; }
+    body{ padding:28px; }
+    .container{ max-width:980px; margin:24px auto; background: linear-gradient(180deg, rgba(255,230,180,0.03), rgba(0,0,0,0.18)); border-radius:20px; padding:28px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.03); }
+    h2{ color: var(--accent); font-size:28px; margin:0 0 6px 0 }
+    .tabs{ margin-top:14px }
+    .tab-btn{ background:transparent; border:none; color:var(--accent); padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:800 }
+    .tab-btn.active{ background: linear-gradient(90deg,#ffb74d,#ff6b6b); color:#000 }
+    .search-input{ background: rgba(0,0,0,0.25); color:var(--muted); border:1px solid rgba(255,255,255,0.04); padding:10px 12px; border-radius:8px; min-width:260px }
+    select#filterSel{ background: rgba(0,0,0,0.25); color:var(--muted); border:1px solid rgba(255,255,255,0.06); padding:10px 12px; border-radius:8px }
+    .btn{ background: linear-gradient(180deg,#ff4b5c,#c81b2f); color:#fff; padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.4); font-weight:800 }
+
+    /* suggestion cards */
+    .suggestions-grid{ margin-top:18px; display:block }
+    .suggestion-card{ background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.12)); padding:18px; border-radius:12px; margin-bottom:14px; border:1px solid rgba(255,255,255,0.03); }
+    .card-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px }
+    .card-user{ color: var(--accent); font-weight:900 }
+    .card-ts{ color: var(--muted); font-size:13px }
+    .card-body{ color:#ddd; padding:12px 0; font-size:15px }
+    .card-footer{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap }
+    .card-actions{ display:flex; gap:8px; align-items:center }
+    .card-actions .reply-btn{ background: linear-gradient(135deg,#2aabff,#00d9ff); color:#000; font-weight:800 }
+    .resolve-btn, .delete-btn{ background: linear-gradient(180deg,#2ad98a,#1a9b53); color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer }
+    .delete-btn{ background: linear-gradient(180deg,#ff6b6b,#c81b2f) }
+    .badge{ display:inline-block; padding:6px 8px; border-radius:8px; font-size:12px; background:rgba(0,0,0,0.2); color:var(--muted); border:1px solid rgba(255,255,255,0.02) }
+    .badge-priority{ background:linear-gradient(90deg,#ffd166,#ff6b6b); color:#000 }
+    .badge-unreplied{ background:#ff6b6b; color:#fff }
+    .badge-resolved{ background:#6bd78a; color:#000 }
+
+    /* responsive tweaks */
+    @media (max-width:720px){ .container{ padding:16px } .search-input{ min-width:140px } .card-footer{ flex-direction:column; align-items:flex-start } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2>📨 اقتراحات المستخدمين</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="searchInp" class="search-input" placeholder="ابحث باسم المستخدم أو بنص الاقتراح" />
+        <select id="filterSel">
+          <option value="all">الكل</option>
+          <option value="unreplied">غير مُجَاب عليها</option>
+          <option value="replied">مُجَاب عليها</option>
+          <option value="resolved">مغلقة</option>
+        </select>
+        <button id="refreshBtn" class="btn">تحديث</button>
+        <span id="countBadge" style="font-weight:800;margin-inline-start:6px"></span>
+      </div>
+    </div>
+
+    <nav class="tabs" aria-label="views" style="margin-top:12px">
+      <button class="tab-btn active" data-view="all">عرض الكل</button>
+      <button class="tab-btn" data-view="priority">قائمة التميز</button>
+    </nav>
+
+    <div id="tableWrap">
+      <div id="suggestionsList" class="suggestions-grid">
+        <div class="suggestions-empty">جارٍ التحميل...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function escapeForHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // Realtime subscription + search/filter + inline actions
+    let unsub = null;
+    let lastSnapshot = null;
+    const suggestionsList = document.getElementById('suggestionsList');
+    const countBadge = document.getElementById('countBadge');
+    const searchInp = document.getElementById('searchInp');
+    const filterSel = document.getElementById('filterSel');
+
+    function formatTs(v){
+      if (!v) return '-';
+      if (v.toDate) return v.toDate().toLocaleString();
+      if (v.seconds) return new Date(v.seconds*1000).toLocaleString();
+      return String(v);
+    }
+
+    let currentView = 'all';
+
+    function renderDocs(docs){
+      lastSnapshot = docs;
+      if (!docs || docs.length===0){
+        suggestionsList.innerHTML = `<div class="suggestions-empty">لا توجد اقتراحات حتى الآن</div>`;
+        countBadge.textContent = '';
+        return;
+      }
+      if (currentView === 'priority') return renderPriorityBoard(docs);
+      countBadge.textContent = `${docs.length} اقتراح`;
+      const q = (searchInp.value||'').trim().toLowerCase();
+      const filter = filterSel.value;
+      const rows = docs.map(doc => {
+        const data = doc.data() || {};
+        const created = formatTs(data.createdAt);
+        const uname = escapeForHtml(data.username || data.userCode || '-');
+        const sug = escapeForHtml(data.suggestion || '');
+        const replied = data.reply && data.reply.text;
+        const resolved = !!data.resolved;
+        // filtering
+        if (filter==='unreplied' && replied) return null;
+        if (filter==='replied' && !replied) return null;
+        if (filter==='resolved' && !resolved) return null;
+        if (q){
+          const hay = (uname + ' ' + sug).toLowerCase();
+          if (!hay.includes(q)) return null;
+        }
+        const replyHtml = replied ? `<div class="reply-meta"><strong>الرد:</strong> ${escapeForHtml(data.reply.text||'')}<div class="reply-by">بواسطة ${escapeForHtml(data.reply.adminName||data.reply.adminCode||'الادمن')} — ${formatTs(data.reply.repliedAt)}</div></div>` : `<button class="reply-btn" data-id="${doc.id}" data-username="${escapeForHtml(data.username||data.userCode||'-')}">رد</button>`;
+        const stateBadges = [];
+        if (!replied) stateBadges.push('<span class="badge badge-unreplied">غير مجاب</span>');
+        if (resolved) stateBadges.push('<span class="badge badge-resolved">مغلقة</span>');
+        // priority badge
+        const priority = data.priority || 'none';
+        const priorityLabels = { important:'مهم', 'not-important':'غير مهم', pending:'منتظر', immediate:'رد فوري', none:'بدون' };
+        if (priority && priority!=='none') stateBadges.push(`<span class="badge badge-priority">${priorityLabels[priority]||priority}</span>`);
+        return `
+          <article class="suggestion-card" data-id="${doc.id}">
+            <header class="card-head"><div class="card-user">${uname}</div><div class="card-ts">${created}</div></header>
+            <div class="card-body">${sug}</div>
+            <div class="card-footer">
+              <div class="card-actions">
+                <select class="priority-select" data-id="${doc.id}">
+                  <option value="none">تمييز</option>
+                  <option value="important" ${priority==='important'?'selected':''}>مهم</option>
+                  <option value="not-important" ${priority==='not-important'?'selected':''}>غير مهم</option>
+                  <option value="pending" ${priority==='pending'?'selected':''}>منتظر</option>
+                  <option value="immediate" ${priority==='immediate'?'selected':''}>رد فوري</option>
+                </select>
+                ${replyHtml}
+                <button class="resolve-btn" data-id="${doc.id}">${resolved? 'إعادة فتح':'إغلاق'}</button>
+                <button class="delete-btn" data-id="${doc.id}">حذف</button>
+              </div>
+              <div class="card-states">${stateBadges.join(' ')}</div>
+            </div>
+          </article>
+        `;
+      }).filter(Boolean);
+      suggestionsList.innerHTML = rows.join('') || `<div class="suggestions-empty">لا توجد اقتراحات مطابقة</div>`;
+    }
+
+    function subscribeRealtime(){
+      if (unsub) unsub();
+      unsub = db.collection('sug').orderBy('createdAt','desc').onSnapshot(snap => {
+        renderDocs(snap.docs);
+      }, err => {
+        console.error('Realtime error', err);
+        suggestionsList.innerHTML = `<div class="suggestions-empty">تعذر الاتصال بالقاعدة</div>`;
+        countBadge.textContent = '';
+      });
+    }
+
+    function updatePriority(id, value){
+      const adminName = localStorage.getItem('username') || localStorage.getItem('userCode') || 'الادمن';
+      return db.collection('sug').doc(id).update({ priority: value, priorityChangedAt: firebase.firestore.FieldValue.serverTimestamp(), priorityBy: adminName }).catch(err=>{ console.error('priority update failed', err); Swal.fire('خطأ','تعذر تحديث التمييز','error'); throw err; });
+    }
+
+    function renderPriorityBoard(docs){
+      // group by priority
+      const groups = { immediate:[], important:[], pending:[], 'not-important':[], none:[] };
+      docs.forEach(doc => { const p = (doc.data().priority||'none'); if (!groups[p]) groups[p]=[]; groups[p].push(doc); });
+      const order = ['immediate','important','pending','not-important','none'];
+      const labels = { immediate:'رد فوري', important:'مهم', pending:'منتظر', 'not-important':'غير مهم', none:'بدون تمييز' };
+      const sections = order.map(key => {
+        const arr = groups[key]||[];
+        if (!arr.length) return '';
+        const cards = arr.map(doc => {
+          // reuse card html generation by using renderDocs trick: produce single-card markup
+          const data = doc.data()||{};
+          const created = formatTs(data.createdAt);
+          const uname = escapeForHtml(data.username||data.userCode||'-');
+          const sug = escapeForHtml(data.suggestion||'');
+          const replied = data.reply && data.reply.text;
+          const resolved = !!data.resolved;
+          const replyHtml = replied ? `<div class="reply-meta"><strong>الرد:</strong> ${escapeForHtml(data.reply.text||'')}<div class="reply-by">بواسطة ${escapeForHtml(data.reply.adminName||data.reply.adminCode||'الادمن')} — ${formatTs(data.reply.repliedAt)}</div></div>` : `<button class="reply-btn" data-id="${doc.id}" data-username="${escapeForHtml(data.username||data.userCode||'-')}">رد</button>`;
+          const stateBadges = [];
+          if (!replied) stateBadges.push('<span class="badge badge-unreplied">غير مجاب</span>');
+          if (resolved) stateBadges.push('<span class="badge badge-resolved">مغلقة</span>');
+          const priority = data.priority || 'none';
+          const priorityLabels = { important:'مهم', 'not-important':'غير مهم', pending:'منتظر', immediate:'رد فوري', none:'بدون' };
+          if (priority && priority!=='none') stateBadges.push(`<span class="badge badge-priority">${priorityLabels[priority]||priority}</span>`);
+          return `
+            <article class="suggestion-card" data-id="${doc.id}">
+              <header class="card-head"><div class="card-user">${uname}</div><div class="card-ts">${created}</div></header>
+              <div class="card-body">${sug}</div>
+              <div class="card-footer">
+                <div class="card-actions">
+                  <select class="priority-select" data-id="${doc.id}">
+                    <option value="none">تمييز</option>
+                    <option value="important" ${priority==='important'?'selected':''}>مهم</option>
+                    <option value="not-important" ${priority==='not-important'?'selected':''}>غير مهم</option>
+                    <option value="pending" ${priority==='pending'?'selected':''}>منتظر</option>
+                    <option value="immediate" ${priority==='immediate'?'selected':''}>رد فوري</option>
+                  </select>
+                  ${replyHtml}
+                  <button class="resolve-btn" data-id="${doc.id}">${resolved? 'إعادة فتح':'إغلاق'}</button>
+                  <button class="delete-btn" data-id="${doc.id}">حذف</button>
+                </div>
+                <div class="card-states">${stateBadges.join(' ')}</div>
+              </div>
+            </article>
+          `;
+        }).join('');
+        return `<section class="priority-section"><h3>${labels[key]} — (${arr.length})</h3><div class="priority-group">${cards}</div></section>`;
+      }).filter(Boolean).join('');
+      suggestionsList.innerHTML = sections || `<div class="suggestions-empty">لا توجد اقتراحات مميزة حالياً</div>`;
+      return;
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // controls
+      document.getElementById('refreshBtn').addEventListener('click', subscribeRealtime);
+      let searchTimer = null;
+      searchInp.addEventListener('input', ()=>{ clearTimeout(searchTimer); searchTimer = setTimeout(()=>{ renderDocs(lastSnapshot||[]); }, 220); });
+      filterSel.addEventListener('change', ()=> renderDocs(lastSnapshot||[]));
+
+      // delegate actions in suggestionsList
+      suggestionsList.addEventListener('click', async (e)=>{
+        const replyBtn = e.target.closest('.reply-btn');
+        const resolveBtn = e.target.closest('.resolve-btn');
+        const deleteBtn = e.target.closest('.delete-btn');
+        const target = replyBtn || resolveBtn || deleteBtn;
+        if (!target) return;
+        const id = target.dataset.id;
+        const adminName = localStorage.getItem('username') || localStorage.getItem('userCode') || 'الادمن';
+
+        if (replyBtn){
+          const docSnap = await db.collection('sug').doc(id).get();
+          const data = docSnap.data()||{};
+          const targetUser = data.username || data.userCode || '-';
+          const { value: replyText } = await Swal.fire({
+            title: `من ${escapeForHtml(adminName)} إلى ${escapeForHtml(targetUser)}`,
+            html: `<textarea id="replyTxt" class="swal2-textarea" placeholder="اكتب ردك هنا...">${escapeForHtml(data.reply?.text||'')}</textarea>`,
+            showCancelButton: true,
+            focusConfirm: false,
+            confirmButtonText: 'إرسال',
+            preConfirm: () => {
+              const v = document.getElementById('replyTxt')?.value?.trim();
+              if (!v) { Swal.showValidationMessage('الرجاء كتابة الرد'); return false; }
+              return v;
+            }
+          });
+          if (!replyText) return;
+          try{
+            await db.collection('sug').doc(id).update({ reply: { text: replyText, adminName: adminName, adminCode: localStorage.getItem('userCode') || null, repliedAt: firebase.firestore.FieldValue.serverTimestamp() }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            Swal.fire('تم','تم إرسال الرد','success');
+          }catch(err){ console.error('reply failed', err); Swal.fire('خطأ','تعذر إرسال الرد. حاول لاحقاً','error'); }
+          return;
+        }
+
+        if (resolveBtn){
+          const doc = await db.collection('sug').doc(id).get();
+          const isResolved = !!(doc.data()||{}).resolved;
+          try{
+            await db.collection('sug').doc(id).update({ resolved: !isResolved, resolvedBy: adminName, resolvedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            Swal.fire('تم', isResolved? 'تم إعادة فتح الاقتراح' : 'تم إغلاق الاقتراح','success');
+          }catch(err){ console.error('resolve failed', err); Swal.fire('خطأ','تعذر الإجراء','error'); }
+          return;
+        }
+
+        if (deleteBtn){
+          const { isConfirmed } = await Swal.fire({ title: 'هل أنت متأكد؟', text: 'سيتم حذف الاقتراح نهائياً', icon:'warning', showCancelButton:true, confirmButtonText:'حذف' });
+          if (!isConfirmed) return;
+          try{ await db.collection('sug').doc(id).delete(); Swal.fire('تم','تم حذف الاقتراح','success'); }catch(err){ console.error('delete failed', err); Swal.fire('خطأ','تعذر الحذف','error'); }
+          return;
+        }
+      });
+
+      // priority select handling (delegated)
+      suggestionsList.addEventListener('change', async (e)=>{
+        const sel = e.target.closest('.priority-select');
+        if (!sel) return;
+        const id = sel.dataset.id;
+        const val = sel.value;
+        try{
+          await updatePriority(id, val);
+          // if immediate, open reply modal automatically
+          if (val === 'immediate'){
+            const adminName = localStorage.getItem('username') || localStorage.getItem('userCode') || 'الادمن';
+            const docSnap = await db.collection('sug').doc(id).get();
+            const data = docSnap.data()||{};
+            const targetUser = data.username || data.userCode || '-';
+            const { value: replyText } = await Swal.fire({
+              title: `من ${escapeForHtml(adminName)} إلى ${escapeForHtml(targetUser)}`,
+              html: `<textarea id="replyTxt" class="swal2-textarea" placeholder="اكتب ردك هنا..."></textarea>`,
+              showCancelButton: true,
+              focusConfirm: false,
+              confirmButtonText: 'إرسال',
+              preConfirm: () => {
+                const v = document.getElementById('replyTxt')?.value?.trim();
+                if (!v) { Swal.showValidationMessage('الرجاء كتابة الرد'); return false; }
+                return v;
+              }
+            });
+            if (replyText){
+              await db.collection('sug').doc(id).update({ reply: { text: replyText, adminName: adminName, adminCode: localStorage.getItem('userCode') || null, repliedAt: firebase.firestore.FieldValue.serverTimestamp() }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+              Swal.fire('تم','تم إرسال الرد','success');
+            }
+          }
+        }catch(err){ console.error(err); }
+      });
+
+      // tabs
+      document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', (ev)=>{
+        document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+        ev.target.classList.add('active');
+        const view = ev.target.dataset.view;
+        currentView = view==='priority' ? 'priority' : 'all';
+        renderDocs(lastSnapshot||[]);
+      }));
+
+      // start realtime
+      subscribeRealtime();
+    });
+  </script>
+</body>
+</html>

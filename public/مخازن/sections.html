@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الأقسام - مخازن</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow mb-4">
+          <div class="card-header bg-primary text-white">إنشاء قسم جديد</div>
+          <div class="card-body">
+            <form id="sectionForm" class="row g-3">
+              <div class="col-12">
+                <label class="form-label">اسم القسم</label>
+                <input id="sectionName" class="form-control" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label">كود القسم</label>
+                <input id="sectionCode" class="form-control" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label">المجموعة (سوف تسبق بكلمة <code>stock_</code>)</label>
+                <input id="sectionGroup" class="form-control" placeholder="مثال: main  → سيتم حفظه كـ stock_main">
+              </div>
+              <div class="col-12 text-end">
+                <button type="submit" class="btn btn-success">إنشاء القسم</button>
+              </div>
+            </form>
+            <div class="mt-3">
+              <button id="autoCreateSections" class="btn btn-outline-secondary btn-sm">إنشاء أقسام تلقائياً من الأصناف</button>
+              <div class="small text-muted mt-2">يمسح الحقول `section` في مجموعة `products` ويُنشئ مستندات أقسام مفقودة.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow">
+          <div class="card-header">الأقسام الحالية</div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover" id="sectionsTable">
+                <thead class="table-light"><tr><th>الكود</th><th>الاسم</th><th>المجموعة</th><th>إجراءات</th></tr></thead>
+                <tbody class="text-muted"><tr><td colspan="4">جارٍ التحميل…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+</body>
+</html>

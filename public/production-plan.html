@@ -1,0 +1,666 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🔧 خطة إنتاج مقترحة - LE DOUX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="notifications.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+    html, body { height: 100%; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; background: #04101b; color: #eef2ff; direction: rtl; }
+    body.production-plan { min-height: 100%; padding: 16px 0 28px; }
+    .production-plan h2 { margin: 0 auto 16px; text-align: center; font-size: 2rem; letter-spacing: 0.4px; color: #ffd96d; text-shadow: 0 0 18px rgba(255,217,109,0.3); max-width: 1040px; }
+    .production-plan .container { width: min(100%, 1480px); max-width: 1480px; margin: 0 auto; display: grid; gap: 18px; padding: 0 16px; }
+    .production-plan .controls { display: grid; grid-template-columns: 1fr auto; gap: 14px; padding: 22px; border-radius: 26px; background: rgba(9,20,38,0.95); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 30px 80px rgba(0,0,0,0.24); }
+    .production-plan .control-group { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: center; }
+    .production-plan .control-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .production-plan label { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; min-height: 42px; border-radius: 13px; background: rgba(255,255,255,0.05); color: #f8fafc; font-size: 1rem; }
+    .production-plan select, .production-plan input { width: 100%; min-width: 100px; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; background: rgba(255,255,255,0.05); color: #eef2ff; padding: 12px 14px; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
+    .production-plan select:focus, .production-plan input:focus { border-color: rgba(56,189,248,0.8); box-shadow: 0 0 0 4px rgba(56,189,248,0.12); }
+    .production-plan .btn { border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; background: rgba(255,255,255,0.06); color: #eef2ff; cursor: pointer; padding: 12px 18px; font-size: 0.95rem; transition: transform .15s ease, background .15s ease, border-color .15s ease; box-shadow: 0 16px 30px rgba(0,0,0,0.16); }
+    .production-plan .btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.14); border-color: rgba(59,130,246,0.8); }
+    .production-plan .btn.primary { background: linear-gradient(135deg, #6d28d9, #0891b2); border-color: rgba(14,165,233,0.9); color: #fff; }
+    .production-plan .btn.ghost { background: transparent; border-color: rgba(255,255,255,0.18); color: #cbd5e1; }
+    .production-plan .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .production-plan .tab { cursor: pointer; padding: 12px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1; transition: all .2s ease; }
+    .production-plan .tab.active { background: rgba(56,189,248,0.16); border-color: rgba(56,189,248,0.9); color: #fff; }
+    .production-plan .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+    .production-plan .panel, .production-plan .card { border-radius: 26px; background: rgba(9,20,38,0.96); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 28px 80px rgba(0,0,0,0.24); padding: 22px; backdrop-filter: blur(14px); }
+    .production-plan .panel h3, .production-plan .card h4 { margin: 0 0 14px; color: #7dd3fc; }
+    .production-plan table { width: 100%; border-collapse: collapse; margin-top: 14px; min-width: 100%; }
+    .production-plan th, .production-plan td { padding: 12px 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.92rem; }
+    .production-plan th { position: sticky; top: 0; background: rgba(9,20,38,0.98); color: #eef2ff; z-index: 1; }
+    .production-plan td.left { text-align: right; }
+    .production-plan .stat { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .production-plan .kpi { padding: 18px 16px; border-radius: 18px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: space-between; min-height: 100px; }
+    .production-plan .kpi strong { display: block; margin-bottom: 10px; color: #f8fafc; }
+    .production-plan .kpi .small { color: #94a3b8; }
+    .production-plan .top-row { display: flex; justify-content: space-between; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; align-items: center; }
+    .production-plan .pill { background: rgba(56,189,248,0.18); color: #dbeafe; padding: 6px 12px; border-radius: 999px; font-size: 0.9rem; }
+    .production-plan .small { font-size: 0.92rem; color: #cbd5e1; }
+    .production-plan .muted { color: #94a3b8; }
+    .production-plan .modal { display: none; position: fixed; inset: 0; background: rgba(4,12,24,0.92); justify-content: center; align-items: center; z-index: 1000; padding: 18px; }
+    .production-plan .modal .box { width: min(1080px, 100%); max-height: 90vh; background: rgba(9,20,38,0.98); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 24px; overflow: hidden; }
+    .production-plan .modal-body { padding-top: 12px; }
+    .production-plan .modal table th, .production-plan .modal table td { font-size: 0.85rem; }
+    .production-plan #loadingOverlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(4,12,24,0.88); z-index: 1100; backdrop-filter: blur(12px); }
+    .production-plan .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.14); border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+    .production-plan .panel.wide-table { overflow-x: auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1080px) { .production-plan .controls { grid-template-columns: 1fr; } .production-plan .tabs { justify-content: flex-start; } }
+    @media (max-width: 860px) { .production-plan .grid { grid-template-columns: 1fr; } .production-plan .control-group { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="production-plan">
+  <h2>🔧 خطة إنتاج مقترحة (آخر 30 يوم)</h2>
+  <div class="container">
+    <div class="controls">
+      <div class="left">
+        <div style="display:flex;gap:10px;align-items:center">
+          <label for="sheetSelector">🧾</label>
+          <select id="sheetSelector"><option disabled selected>— بيحمل... —</option></select>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <label for="endDate">📅</label>
+          <input type="date" id="endDate" />
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <label for="daysRange">🕒</label>
+          <select id="daysRange">
+            <option value="30" selected>30 يوم</option>
+            <option value="14">14 يوم</option>
+            <option value="7">7 يوم</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <label for="brandSelector">🏷️</label>
+          <select id="brandSelector">
+            <option value="all" selected>كل العلامات</option>
+            <option value="best_sweet">بيست سويت</option>
+            <option value="le_doux">ليدو</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <label for="branchSelector">🏬</label>
+          <select id="branchSelector">
+            <option value="all" selected>كل الفروع</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <label for="categorySelector">🗂️</label>
+          <select id="categorySelector">
+            <option value="all" selected>كل الأقسام</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="searchBox" placeholder="🔎 ابحث بصنف أو كود" style="min-width:220px;padding:8px;border-radius:8px;border:1px solid var(--glass);background:transparent;color:var(--text)" />
+        </div>
+      </div>
+        <!-- Full items modal -->
+        <div id="fullModal" class="modal" role="dialog" aria-hidden="true">
+          <div class="box">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <h3>قائمة الأصناف كاملة</h3>
+              <button class="btn ghost closeModal">قفل</button>
+            </div>
+            <div class="modal-body" style="max-height:70vh;overflow:auto"></div>
+          </div>
+        </div>
+
+      <div class="right">
+        <button class="btn primary" id="generateBtn">✅ عمل الخطة</button>
+        <button class="btn" id="exportCsv">📥 نزل CSV</button>
+        <button class="btn ghost" id="toggleAdvanced">⚙️ إعدادات</button>
+        <button class="btn" id="printBtn">🖨️ اطبع</button>
+      </div>
+    </div>
+
+    <div id="advancedOptions" style="margin-top:10px;display:none" class="panel">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center">
+          <label for="analysisModel">🧠 نوع التحليل</label>
+          <select id="analysisModel" style="min-width:180px;">
+            <option value="weighted">المرجح الحديث (أحسن دقة)</option>
+            <option value="moving_average">المتوسط المتوازن</option>
+            <option value="recent_7">آخر 7 أيام</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label for="leadTime">⏳ وقت التوريد</label>
+          <input type="number" id="leadTime" value="2" min="0" style="width:84px" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label for="reviewDays">📦 فترة المراجعة</label>
+          <input type="number" id="reviewDays" value="7" min="1" style="width:84px" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label for="safetyMul">⚖️ عامل الأمان</label>
+          <input type="number" id="safetyMul" value="1.5" step="0.1" style="width:84px" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label for="abcThreshold">ABC A ≤</label>
+          <input type="number" id="abcThreshold" value="70" min="50" max="90" style="width:84px" />
+          <span class="small">٪</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label for="urgentThreshold">🚨 حد العاجل</label>
+          <input type="number" id="urgentThreshold" value="80" min="10" max="100" style="width:84px" />
+          <span class="small">٪</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="onlyUrgent" />
+          <label for="onlyUrgent">عرض العناصر العاجلة بس</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="plan">خطة إنتاج</div>
+      <div class="tab" data-tab="progress">تقرير إنجاز الطلب</div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div id="planPanel" class="panel">
+          <div id="summaryKpis" class="stat" style="margin-bottom:8px"></div>
+          <div id="resultsArea">
+            <p class="small">استخدم فلاتر الفرع والعلامة وفئة المنتج قبل ما تضغط "عمل الخطة" عشان تحليل أحسن.</p>
+          </div>
+        </div>
+
+        <div id="progressPanel" class="panel" style="display:none;margin-top:12px">
+          <h3 style="margin-top:0;color:var(--accent)">تقرير إنجاز الطلب على الفرع</h3>
+          <div id="branchReport"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h4 style="margin:0 0 8px 0;color:var(--accent)">أعلى الطلبات</h4>
+          <div id="topItems"></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h4 style="margin:0 0 8px 0;color:var(--accent)">تلميحات</h4>
+          <ul class="small" style="margin:0;padding-left:14px;text-align:right">
+            <li>الخطة مبنية على متوسط الطلب اليومي في الفترة دي.</li>
+            <li>الحد الأدنى = متوسط × وقت التوريد + عامل الأمان.</li>
+            <li>الحد الأقصى = متوسط × فترة المخزون + عامل الأمان.</li>
+            <li>النسبة تُوضح كمية الطلب في الفترة بالنسبة للحد الأقصى المقترح.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+    authDomain: "ledoux-80b46.firebaseapp.com",
+    projectId: "ledoux-80b46",
+    storageBucket: "ledoux-80b46.appspot.com",
+    messagingSenderId: "1020769543389",
+    appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+    measurementId: "G-VJTW1W3D8D"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const BRANCH_DISPLAY = {
+    korba: 'كوربة',
+    dokki: 'دقي',
+    tagamo3: 'التجمع',
+    obour: 'العبور',
+    best_sweet_1: 'أول إجمال',
+    best_sweet_abbassia: 'العباسية',
+    best_sweet_helw_zaytoun: 'حلو منه فيه الزيتون',
+    best_sweet_market_zaytoun: 'الزيتون ماركت',
+    best_sweet_helwan: 'حلوان'
+  };
+  const BRAND_BRANCHES = {
+    le_doux: ['korba','dokki','tagamo3','obour'],
+    best_sweet: ['best_sweet_1','best_sweet_abbassia','best_sweet_helw_zaytoun','best_sweet_market_zaytoun','best_sweet_helwan']
+  };
+  const BRANCH_CANONICAL = {
+    'كوربة': 'korba', 'كربه': 'korba', 'korba': 'korba',
+    'دقي': 'dokki', 'دوكي': 'dokki', 'dokki': 'dokki',
+    'التجمع': 'tagamo3', 'تجمع': 'tagamo3', 'tagamo3': 'tagamo3',
+    'العبور': 'obour', 'عبور': 'obour', 'obour': 'obour',
+    'أول إجمال': 'best_sweet_1', 'اول اجمال': 'best_sweet_1', 'best_sweet_1': 'best_sweet_1',
+    'العباسية': 'best_sweet_abbassia', 'best_sweet_abbassia': 'best_sweet_abbassia',
+    'حلو منه فيه الزيتون': 'best_sweet_helw_zaytoun', 'best_sweet_helw_zaytoun': 'best_sweet_helw_zaytoun',
+    'الزيتون ماركت': 'best_sweet_market_zaytoun', 'best_sweet_market_zaytoun': 'best_sweet_market_zaytoun',
+    'حلوان': 'best_sweet_helwan', 'best_sweet_helwan': 'best_sweet_helwan'
+  };
+  const PRODUCT_TYPE_KEYWORDS = {
+    bakery: ['مخبوز','خبز','كرواسون','بريوش','فطير','باستري','كنافة بالجبن','معجنات','هلالي','مخبوزات'],
+    oriental: ['شرقي','كنافة','بقلاوة','عوامة','أم علي','مسقعة','مناقيش','أرز'],
+    halawany: ['حلواني','تشيز','مولتن','كريم','بسكوت','تورته','بسبوسة','سفتة','آيس كريم','تورتة']
+  };
+
+  let allData = [];
+
+  function normalizeText(text){ return String(text||'').toLowerCase().replace(/[\u064B-\u0652]/g,'').trim(); }
+  function canonicalBranch(branch){ return BRANCH_CANONICAL[normalizeText(branch||'')] || normalizeText(branch||''); }
+  function branchToBrand(branch){
+    const code = canonicalBranch(branch);
+    if (BRAND_BRANCHES.le_doux.includes(code)) return 'le_doux';
+    if (BRAND_BRANCHES.best_sweet.includes(code)) return 'best_sweet';
+    return 'best_sweet';
+  }
+  function branchDisplayName(branch){
+    const code = canonicalBranch(branch);
+    return BRANCH_DISPLAY[code] || String(branch || 'غير معروف');
+  }
+  function updateBranchOptions(){
+    const brand = document.getElementById('brandSelector').value;
+    const selector = document.getElementById('branchSelector');
+    selector.innerHTML = '<option value="all" selected>كل الفروع</option>';
+    const branches = brand === 'all' ? [...new Set([].concat(BRAND_BRANCHES.le_doux, BRAND_BRANCHES.best_sweet))] : BRAND_BRANCHES[brand] || [];
+    branches.forEach(code=>{
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = BRANCH_DISPLAY[code] || code;
+      selector.appendChild(option);
+    });
+  }
+  function updateCategoryOptions(){
+    const brand = document.getElementById('brandSelector').value;
+    const branch = document.getElementById('branchSelector').value;
+    const selector = document.getElementById('categorySelector');
+    selector.innerHTML = '<option value="all" selected>كل الأقسام</option>';
+    let filteredSheets = [...new Set(allData.map(d=>d.sheet).filter(s=>s&&s!=='main'))];
+    if (brand !== 'all') {
+      filteredSheets = filteredSheets.filter(s => {
+        const brandSheets = allData.filter(d => d.sheet === s && branchToBrand(d.branch) === brand);
+        return brandSheets.length > 0;
+      });
+    }
+    if (branch !== 'all') {
+      filteredSheets = filteredSheets.filter(s => {
+        const branchSheets = allData.filter(d => d.sheet === s && canonicalBranch(d.branch) === branch);
+        return branchSheets.length > 0;
+      });
+    }
+    filteredSheets.sort().forEach(s=>{
+      const option = document.createElement('option');
+      option.value = s;
+      option.textContent = s;
+      selector.appendChild(option);
+    });
+  }
+  function detectProductType(item){
+    const text = normalizeText([item.name, item.code, item.sheet].join(' '));
+    if (PRODUCT_TYPE_KEYWORDS.bakery.some(keyword=> text.includes(normalizeText(keyword)))) return 'bakery';
+    if (PRODUCT_TYPE_KEYWORDS.oriental.some(keyword=> text.includes(normalizeText(keyword)))) return 'oriental';
+    if (PRODUCT_TYPE_KEYWORDS.halawany.some(keyword=> text.includes(normalizeText(keyword)))) return 'halawany';
+    if (normalizeText(item.sheet).includes('حلواني')) return 'halawany';
+    if (normalizeText(item.sheet).includes('مخبوز')) return 'bakery';
+    if (normalizeText(item.sheet).includes('شرقي')) return 'oriental';
+    return 'other';
+  }
+  function getShelfLifeDays(item, reviewDays){
+    const type = detectProductType(item);
+    if (type==='bakery') return Math.min(15, Number(reviewDays) || 15);
+    if (type==='oriental') return Math.min(7, Number(reviewDays) || 7);
+    if (type==='halawany') return Math.min(3, Number(reviewDays) || 3);
+    return Number(reviewDays) || 7;
+  }
+
+  async function showLoading(on){ document.getElementById('loadingOverlay').style.display = on ? 'flex' : 'none'; }
+
+  function showMessage(msg, isError){
+    const area = document.getElementById('resultsArea');
+    area.innerHTML = `<div style="padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);">${isError?'<strong style="color:var(--danger)">خطأ:</strong> ':''}${msg}</div>`;
+  }
+
+  async function fetchAll(){
+    document.getElementById('sheetSelector').innerHTML = '<option disabled selected>— جاري التحميل... —</option>';
+    try{
+      showLoading(true);
+      const snap = await db.collection('orders').get();
+      allData = [];
+      snap.forEach(doc=>{
+        const d = doc.data();
+        if (!d || d.isDeleted) return;
+        allData.push({...d, id: doc.id});
+      });
+      const sheets = [...new Set(allData.map(d=>d.sheet).filter(s=>s&&s!=='main'))].sort();
+      const sel = document.getElementById('sheetSelector'); sel.innerHTML = '<option disabled selected>— اختار القسم —</option>';
+      sheets.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+
+      updateBranchOptions();
+      const brandSelector = document.getElementById('brandSelector');
+      brandSelector.addEventListener('change', updateBranchOptions);
+
+      showLoading(false);
+      showMessage('✅ البيانات اتحملت. اختار القسم وحدد نهاية الفترة وبعدين اضغط عمل الخطة.');
+      try{ if (window.activityLogger) activityLogger.logActivity('load_data','/production-plan.html',{count:allData.length}); }catch(e){}
+    }catch(err){
+      showLoading(false);
+      console.error('fetchAll error', err);
+      showMessage('فشل تحميل البيانات من Firestore. اتأكد من إعدادات Firebase / اتصال النت أو صلاحيات CORS. (' + (err && err.message? err.message : 'خطأ مش معروف') + ')', true);
+    }
+  }
+
+  function isoDate(d){ return d.toISOString().slice(0,10); }
+  function parseDateStr(s){ if(!s) return null; return new Date(s + 'T00:00:00'); }
+  function formatDDMMYYYY(d){ if(!d) return ''; const dt = new Date(d); const dd = String(dt.getDate()).padStart(2,'0'); const mm = String(dt.getMonth()+1).padStart(2,'0'); const yy = String(dt.getFullYear()); return dd + '-' + mm + '-' + yy; }
+
+  function groupBy(items, keyFn){ const map={}; items.forEach(it=>{ const k=keyFn(it); if(!map[k]) map[k]=[]; map[k].push(it); }); return map; }
+
+  function computePlan(sheet, endDateStr, days, leadTime, reviewDays, safetyMul){
+    const end = parseDateStr(endDateStr);
+    if (!end) return {items:[], meta:{}};
+    const start = new Date(end); start.setDate(end.getDate() - (days-1));
+    const branchFilter = document.getElementById('branchSelector').value;
+    const brandFilter = document.getElementById('brandSelector').value;
+    const categoryFilter = document.getElementById('categorySelector').value;
+    const analysisModel = document.getElementById('analysisModel').value;
+    const onlyUrgent = document.getElementById('onlyUrgent').checked;
+    const urgentThreshold = Number(document.getElementById('urgentThreshold').value) || 80;
+
+    const filtered = allData.filter(d=>{
+      if (!d.sheet || d.sheet !== sheet) return false;
+      const dateValue = d.orderDate || d.deliveryDate;
+      if (!dateValue) return false;
+      if (dateValue < isoDate(start) || dateValue > isoDate(end)) return false;
+      const branch = canonicalBranch(d.branch || 'غير محدد');
+      if (branchFilter !== 'all' && branch !== branchFilter) return false;
+      if (brandFilter !== 'all' && branchToBrand(branch) !== brandFilter) return false;
+      if (categoryFilter !== 'all' && detectProductType(d) !== categoryFilter) return false;
+      return true;
+    });
+
+    const keyFor = d=> (String(d.code||'').trim()||'') + '||' + (String(d.name||'').trim());
+    const map = {};
+    filtered.forEach(d=>{
+      const key = keyFor(d);
+      if(!map[key]) map[key] = { code:d.code||'', name:d.name||'', perDay:{} , total:0, byBranch:{}, sample:d };
+      const day = (d.orderDate && d.orderDate>=isoDate(start) && d.orderDate<=isoDate(end)) ? d.orderDate : (d.deliveryDate||isoDate(end));
+      const qty = Number(d.qty)||0;
+      map[key].total += qty;
+      map[key].perDay[day] = (map[key].perDay[day]||0) + qty;
+      const br = branchDisplayName(d.branch || 'غير محدد');
+      map[key].byBranch[br] = (map[key].byBranch[br]||0) + qty;
+    });
+
+    const items = Object.values(map).map(it=>{
+      const daysArr = [];
+      for (let dt = new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
+        daysArr.push(it.perDay[isoDate(new Date(dt))]||0);
+      }
+      const n = daysArr.length || 1;
+      const sum = daysArr.reduce((a,b)=>a+b,0);
+      const avg30 = sum / n;
+      const recent14 = daysArr.slice(-14).reduce((a,b)=>a+b,0) / Math.max(1, Math.min(14, daysArr.length));
+      const recent7 = daysArr.slice(-7).reduce((a,b)=>a+b,0) / Math.max(1, Math.min(7, daysArr.length));
+      const forecastDaily = Math.max(1, Math.round(
+        analysisModel === 'recent_7' ? recent7 :
+        analysisModel === 'moving_average' ? (avg30 + recent14 + recent7) / 3 :
+        (avg30 * 0.25 + recent14 * 0.30 + recent7 * 0.45)
+      ));
+      const variance = daysArr.reduce((a,b)=> a + Math.pow(b - avg30, 2), 0) / Math.max(1, n);
+      const stdDev = Math.sqrt(variance);
+      const safetyStock = Math.ceil(1.65 * stdDev * Math.sqrt(Math.max(1, Number(leadTime))));
+      const reorderPoint = Math.max(1, Math.ceil(forecastDaily * Number(leadTime) + safetyStock));
+      const productType = detectProductType(it.sample);
+      const shelfLifeDays = getShelfLifeDays(it.sample, reviewDays);
+      const effectiveReviewDays = Math.min(Number(reviewDays), shelfLifeDays);
+      const suggestedStock = Math.max(Math.ceil(forecastDaily * (Number(leadTime) + effectiveReviewDays) * Number(safetyMul)) + safetyStock, reorderPoint + Math.ceil(forecastDaily * 1.5));
+      const coverDays = Math.round(forecastDaily ? suggestedStock / forecastDaily : 0);
+      const urgent = coverDays <= 2 || (forecastDaily > 0 && (suggestedStock / forecastDaily) <= 3) || (100 - Math.min(100, Math.round((coverDays / shelfLifeDays) * 100)) >= urgentThreshold);
+      return {
+        code: it.code,
+        name: it.name,
+        total: sum,
+        dailyDemand: Math.round(avg30),
+        forecastDaily,
+        reorderPoint,
+        safetyStock,
+        minDaily: Math.max(0, Math.round(forecastDaily * 0.75)),
+        maxDaily: Math.round(forecastDaily * 1.25),
+        suggestedStock,
+        byBranch: it.byBranch,
+        productType,
+        shelfLifeDays,
+        coverDays,
+        urgent,
+        recMax: suggestedStock,
+      };
+    });
+
+    items.sort((a,b)=> b.total - a.total);
+    const totalDemand = items.reduce((sum,it)=> sum + it.total, 0) || 1;
+    let cumulative = 0;
+    items.forEach(it=>{
+      cumulative += it.total;
+      const share = cumulative / totalDemand;
+      it.abcClass = share <= 0.7 ? 'A' : share <= 0.9 ? 'B' : 'C';
+      it.urgent = it.urgent || (it.abcClass === 'A' && it.coverDays <= 5);
+    });
+
+    const urgentItems = items.filter(it => it.urgent).length;
+    const aItems = items.filter(it => it.abcClass === 'A').length;
+
+    const resultItems = onlyUrgent ? items.filter(it=>it.urgent) : items;
+    const grand = resultItems.reduce((a,b)=> ({total:(a.total||0)+(b.total||0)}), {total:0});
+    return {
+      items: resultItems,
+      meta: {
+        filteredCount: filtered.length,
+        itemsCount: resultItems.length,
+        totalOrders: grand.total || 0,
+        start: isoDate(start),
+        end: isoDate(end),
+        startDisplay: formatDDMMYYYY(start),
+        endDisplay: formatDDMMYYYY(end),
+        branchCount: [...new Set(filtered.map(d=> canonicalBranch(d.branch || 'غير محدد')))].length,
+        urgentItems,
+        aItems,
+        analysisModel,
+      }
+    };
+  }
+
+  function renderPlan(res){
+    const area = document.getElementById('resultsArea'); area.innerHTML = '';
+    const insights = document.createElement('div'); insights.className = 'stat';
+    insights.innerHTML = `
+      <div class="kpi"><strong>نموذج التحليل</strong><span class="small">${res.meta.analysisModel === 'recent_7' ? 'آخر 7 أيام' : res.meta.analysisModel === 'moving_average' ? 'المتوسط المتوازن' : 'المرجح الحديث'}</span></div>
+      <div class="kpi"><strong>الأصناف العاجلة</strong><span class="small">${res.meta.urgentItems || 0}</span></div>
+      <div class="kpi"><strong>أكثر A</strong><span class="small">${res.meta.aItems || 0}</span></div>
+      <div class="kpi"><strong>عدد الفروع</strong><span class="small">${res.meta.branchCount}</span></div>
+    `;
+    area.appendChild(insights);
+
+    const tbl = document.createElement('table');
+    tbl.innerHTML = `<thead><tr><th>🔢 الكود</th><th>📦 الصنف</th><th>الفئة</th><th>صلاحية</th><th>متوسط الطلب</th><th>التوقع</th><th>نقطة إعادة الطلب</th><th>أمان</th><th>الاقتراح</th><th>تغطية</th><th>ABC</th><th>عاجل</th><th>الفترة</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    res.items.forEach(it=>{
+      const typeLabel = it.productType==='bakery' ? 'مخبوزات' : it.productType==='oriental' ? 'شرقي' : it.productType==='halawany' ? 'حلواني' : 'عام';
+      const urgentLabel = it.urgent ? 'نعم' : 'لا';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(it.code)}</td><td class="left">${escapeHtml(it.name)}</td><td>${typeLabel}</td><td>${it.shelfLifeDays} يوم</td><td>${it.dailyDemand}</td><td>${it.forecastDaily}</td><td>${it.reorderPoint}</td><td>${it.safetyStock}</td><td><strong style="color:#7dd3fc">${it.suggestedStock}</strong></td><td>${it.coverDays}</td><td>${it.abcClass}</td><td>${urgentLabel}</td><td>${it.total}</td>`;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody); area.appendChild(tbl);
+
+    const kdiv = document.getElementById('summaryKpis'); kdiv.innerHTML = '';
+    const k1 = document.createElement('div'); k1.className='kpi'; k1.innerHTML = `<strong>صفوف مقيّدة</strong><span class="small">${res.meta.filteredCount} صف</span>`;
+    const k2 = document.createElement('div'); k2.className='kpi'; k2.innerHTML = `<strong>منتجات معروضة</strong><span class="small">${res.meta.itemsCount}</span>`;
+    const k3 = document.createElement('div'); k3.className='kpi'; k3.innerHTML = `<strong>إجمالي الطلب</strong><span class="small">${res.meta.totalOrders}</span>`;
+    const k4 = document.createElement('div'); k4.className='kpi'; k4.innerHTML = `<strong>العناصر العاجلة</strong><span class="small">${res.meta.urgentItems || 0}</span>`;
+    kdiv.appendChild(k1); kdiv.appendChild(k2); kdiv.appendChild(k3); kdiv.appendChild(k4);
+
+    const period = document.createElement('div'); period.style.marginTop = '8px'; period.className = 'small muted'; period.innerHTML = `الفترة: ${res.meta.startDisplay} → ${res.meta.endDisplay}`;
+    kdiv.appendChild(period);
+
+    const top = document.getElementById('topItems'); top.innerHTML = '';
+    res.items.slice(0,8).forEach(it=>{
+      const typeLabel = it.productType==='bakery' ? 'مخبوزات' : it.productType==='oriental' ? 'شرقي' : it.productType==='halawany' ? 'حلواني' : 'عام';
+      const box = document.createElement('div'); box.className='top-row';
+      box.innerHTML = `<div style="display:flex;flex-direction:column;align-items:flex-end"><strong>${escapeHtml(it.name)}</strong><span class="small muted">${escapeHtml(it.code)} • ${typeLabel}</span></div><div class="pill">${it.urgent ? 'عاجل' : 'طبيعي'} • <strong>${it.total}</strong></div>`;
+      top.appendChild(box);
+    });
+    const more = document.createElement('div'); more.style.textAlign='center'; more.style.marginTop='8px'; more.innerHTML = `<button class="btn" id="showAllBtn">عرض المزيد</button>`; top.appendChild(more);
+    document.getElementById('showAllBtn').addEventListener('click', ()=> showAllItemsModal(res.items));
+  }
+
+  function formatNum(n){ return Number.isFinite(n) ? (Number.isInteger(n)? n : n.toFixed(2)) : 0; }
+  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  document.getElementById('generateBtn').addEventListener('click', async ()=>{
+    const sheet = document.getElementById('sheetSelector').value;
+    const endDate = document.getElementById('endDate').value;
+    const days = Number(document.getElementById('daysRange').value);
+    const leadTime = Number(document.getElementById('leadTime').value) || 2;
+    const reviewDays = Number(document.getElementById('reviewDays').value) || 7;
+    const safetyMul = Number(document.getElementById('safetyMul').value) || 1.5;
+    if (!sheet || !endDate) { alert('الرجاء اختيار القسم وتحديد نهاية الفترة'); return; }
+    try{
+      // small UX: show loading
+      const btn = document.getElementById('generateBtn'); btn.disabled = true; btn.textContent = '... جارٍ التحليل';
+      await new Promise(r=>setTimeout(r,120)); // allow UI update
+      const res = computePlan(sheet, endDate, days, leadTime, reviewDays, safetyMul);
+      renderPlan(res);
+      renderBranchReport(res);
+      try{ if (window.activityLogger) activityLogger.logActivity('generate_plan','/production-plan.html',{sheet:sheet,days:days}); }catch(e){}
+    }catch(err){ console.error(err); showMessage('حصل خطأ أثناء توليد الخطة: '+ (err.message||err), true); }
+    finally{ const btn = document.getElementById('generateBtn'); btn.disabled = false; btn.textContent = '✅ توليد الخطة'; }
+  });
+
+  function renderBranchReport(res){
+    const branchMap = {};
+    const brandMap = {};
+    res.items.forEach(it=>{
+      Object.entries(it.byBranch||{}).forEach(([branch,q])=>{
+        const ratio = it.total ? q / it.total : 0;
+        const suggestedShare = Math.round(it.suggestedStock * ratio);
+        branchMap[branch] = branchMap[branch] || { ordered:0, suggested:0, brand: branchToBrand(branch) };
+        branchMap[branch].ordered += q;
+        branchMap[branch].suggested += suggestedShare;
+        const brand = branchMap[branch].brand;
+        brandMap[brand] = brandMap[brand] || { ordered:0, suggested:0 };
+        brandMap[brand].ordered += q;
+        brandMap[brand].suggested += suggestedShare;
+      });
+    });
+
+    const container = document.getElementById('branchReport'); container.innerHTML = '';
+    const tbl = document.createElement('table');
+    tbl.innerHTML = `<thead><tr><th>الفرع / العلامة</th><th>الطلب (الفترة)</th><th>الاقتراح</th><th>نسبة التغطية</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    Object.entries(branchMap).sort((a,b)=> b[1].ordered - a[1].ordered).forEach(([branch,rec])=>{
+      const pct = rec.suggested > 0 ? Math.min(100, Math.round((rec.ordered/rec.suggested)*100)) : 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(branch)} <span class="small muted">(${escapeHtml(rec.brand==='le_doux'?'ليدو':'بيست سويت')})</span></td><td>${rec.ordered}</td><td>${rec.suggested}</td><td>${pct}%</td>`;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    container.appendChild(tbl);
+
+    const brandDiv = document.createElement('div');
+    brandDiv.style.marginTop = '14px';
+    brandDiv.innerHTML = `<h4>ملخص العلامات التجارية</h4>`;
+    const btbl = document.createElement('table');
+    btbl.innerHTML = `<thead><tr><th>العلامة</th><th>الطلب</th><th>مقترح</th><th>التغطية</th></tr></thead>`;
+    const bbody = document.createElement('tbody');
+    Object.entries(brandMap).forEach(([brand,rec])=>{
+      const pct = rec.suggested > 0 ? Math.min(100, Math.round((rec.ordered/rec.suggested)*100)) : 0;
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${brand==='le_doux'?'ليدو':'بيست سويت'}</td><td>${rec.ordered}</td><td>${rec.suggested}</td><td>${pct}%</td>`;
+      bbody.appendChild(row);
+    });
+    btbl.appendChild(bbody);
+    brandDiv.appendChild(btbl);
+    container.appendChild(brandDiv);
+  }
+
+  // Show modal with full sorted items (desc)
+  function showAllItemsModal(items){
+    const modal = document.getElementById('fullModal');
+    if (!modal) return;
+    const body = modal.querySelector('.modal-body');
+    body.innerHTML = '';
+    const tbl = document.createElement('table');
+    tbl.innerHTML = `<thead><tr><th>🔢</th><th>📦 الصنف</th><th>الفئة</th><th>صلاحية</th><th>متوسط الطلب</th><th>التوقع</th><th>نقطة إعادة الطلب</th><th>أمان</th><th>اقتراح</th><th>تغطية</th><th>ABC</th><th>عاجل</th><th>مطلوب (الفترة)</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    items.forEach(it=>{
+      const typeLabel = it.productType==='bakery' ? 'مخبوزات' : it.productType==='oriental' ? 'شرقي' : it.productType==='halawany' ? 'حلواني' : 'عام';
+      const urgentLabel = it.urgent ? 'نعم' : 'لا';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(it.code)}</td><td class="left">${escapeHtml(it.name)}</td><td>${typeLabel}</td><td>${it.shelfLifeDays} يوم</td><td>${it.dailyDemand}</td><td>${it.forecastDaily}</td><td>${it.reorderPoint}</td><td>${it.safetyStock}</td><td>${it.suggestedStock}</td><td>${it.coverDays}</td><td>${it.abcClass}</td><td>${urgentLabel}</td><td>${it.total}</td>`;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    body.appendChild(tbl);
+    modal.style.display = 'flex';
+    // close handlers
+    modal.querySelector('.closeModal').addEventListener('click', ()=> modal.style.display='none');
+    modal.addEventListener('click', (e)=>{ if (e.target === modal) modal.style.display='none'; });
+  }
+
+  // tabs
+  document.querySelectorAll('.tab').forEach(t=> t.addEventListener('click', e=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); e.currentTarget.classList.add('active');
+    const tab = e.currentTarget.getAttribute('data-tab');
+    document.getElementById('planPanel').style.display = (tab==='plan') ? 'block' : 'none';
+    document.getElementById('progressPanel').style.display = (tab==='progress') ? 'block' : 'none';
+  }));
+
+  document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+
+  // search box filter
+  document.getElementById('searchBox').addEventListener('input', function(e){
+    const q = (this.value||'').trim().toLowerCase();
+    const rows = document.querySelectorAll('#resultsArea table tbody tr');
+    rows.forEach(r=>{
+      const text = r.innerText.toLowerCase(); r.style.display = (!q || text.indexOf(q)!==-1) ? '' : 'none';
+    });
+  });
+
+  // toggle advanced
+  document.getElementById('toggleAdvanced').addEventListener('click', ()=>{
+    const el = document.getElementById('advancedOptions'); el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
+  });
+
+  document.getElementById('exportCsv').addEventListener('click', ()=>{
+    const sheet = document.getElementById('sheetSelector').value; const endDate = document.getElementById('endDate').value; if(!sheet||!endDate){ alert('اختر القسم والتاريخ أولاً'); return; }
+    const days = Number(document.getElementById('daysRange').value);
+    const leadTime = Number(document.getElementById('leadTime').value) || 2;
+    const reviewDays = Number(document.getElementById('reviewDays').value) || 7;
+    const safetyMul = Number(document.getElementById('safetyMul').value) || 1.5;
+    const res = computePlan(sheet, endDate, days, leadTime, reviewDays, safetyMul);
+    const rows = [['code','name','type','shelfLifeDays','dailyDemand','forecastDaily','reorderPoint','safetyStock','suggestedStock','coverDays','abcClass','urgent','total']];
+    res.items.forEach(it=> rows.push([it.code, it.name, it.productType, it.shelfLifeDays, it.dailyDemand, it.forecastDaily, it.reorderPoint, it.safetyStock, it.suggestedStock, it.coverDays, it.abcClass, it.urgent ? 'نعم' : 'لا', it.total]));
+    const csv = rows.map(r=> r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `production-plan-${sheet}-${endDate}.csv`; a.click(); URL.revokeObjectURL(url);
+  });
+
+  // init defaults: endDate = today
+  document.getElementById('endDate').value = isoDate(new Date());
+  // create loading overlay element
+  const overlay = document.createElement('div'); overlay.id='loadingOverlay'; overlay.innerHTML = '<div style="text-align:center;color:var(--text)"><div class="spinner"></div><div class="small" style="margin-top:10px">جارٍ تحميل البيانات...</div></div>';
+  document.body.appendChild(overlay);
+  fetchAll();
+
+  // expose computePlan for debugging
+  window.computePlan = computePlan;
+  </script>
+  <script src="activity-logger.js"></script>
+</body>
+</html>
+
+

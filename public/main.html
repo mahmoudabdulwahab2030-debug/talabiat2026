@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>نظام تسجيل الطلبات</title>
+  <link href="style.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background: linear-gradient(120deg, #23232a 60%, #2c2c2c 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Cairo', Arial, sans-serif;
+      color: #eee;
+    }
+    h2 {
+      text-align: center;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      color: #ff2a4d;
+      font-weight: 700;
+      text-shadow: 0 1px 8px #222;
+    }
+
+    /* Page title: polished pill + entrance animation (disabled on small screens) */
+    .page-title{
+      display:inline-block;
+      padding:8px 14px;
+      border-radius:12px;
+      background: linear-gradient(90deg, rgba(255,107,122,0.06), rgba(255,212,166,0.03));
+      color: var(--accent-2, #ffd4a6);
+      font-weight:800;
+      letter-spacing: .6px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.03);
+      transform-origin: center;
+      animation: titleEntrance 520ms cubic-bezier(.2,.9,.2,1) both;
+    }
+
+    @keyframes titleEntrance{
+      from{ opacity:0; transform: translateY(-8px) scale(.985); filter: blur(2px); }
+      to  { opacity:1; transform: translateY(0) scale(1); filter: none; }
+    }
+
+    @media (max-width:600px){
+      /* Respect preference to avoid movement on mobile */
+      .page-title{ animation:none !important; transform:none !important; }
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 18px auto 0;
+      max-width: 600px;
+    }
+    .button-group a,
+    .button-group button {
+      background: #23232a;
+      border: 1px solid #444;
+      border-radius: 9px;
+      padding: 10px 18px;
+      font-size: 15px;
+      color: #eee;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      margin-bottom: 6px;
+      min-width: 120px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .button-group a:hover,
+    .button-group button:hover {
+      background: #ff2a4d;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(255,42,77,0.18);
+      border-color: #ff2a4d;
+    }
+    /* Active state for sheet filter buttons inside modals */
+    .button-group .sheet-filter-btn.active {
+      background: #ff2a4d;
+      color: #fff;
+      border-color: #ff2a4d;
+      box-shadow: 0 4px 16px rgba(255,42,77,0.18);
+    }
+      /* Advanced slider: crossfade + zoom + blur exit for smooth transitions */
+      :root{ --slider-duration: 1000ms; --slider-ease: cubic-bezier(.2,.9,.2,1); --slider-shine: 1300ms; }
+      .slider-container {
+        max-width: 760px;
+        margin: 18px auto 6px;
+        position: relative;
+        background: transparent;
+        border-radius: 14px;
+        padding: 6px 6px 6px 6px;
+        display: block;
+        overflow: hidden; /* ensure clean clipping for transitions */
+      }
+      .slider {
+        position: relative;
+        width: 100%;
+        min-height: 160px;
+        height: auto;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.04));
+        box-sizing: border-box;
+        overflow: hidden;
+        perspective: 1000px;
+      }
+
+      /* slides stacked absolute for smooth crossfade/zoom */
+      .slide{
+        position: absolute; inset: 0; display:block; width:100%; height:100%; box-sizing:border-box; opacity:0; transform: scale(1.04) translateY(6px); transition: opacity var(--slider-duration) var(--slider-ease), transform var(--slider-duration) var(--slider-ease), filter var(--slider-duration) var(--slider-ease);
+        z-index:1; pointer-events:none;
+      }
+      .slide.active{ opacity:1; transform: scale(1) translateY(0); pointer-events:auto; z-index:2; }
+
+      /* incoming/outgoing classes for nuanced effects */
+      .slide.incoming{ opacity:1; transform: scale(1.03) translateY(4px); filter: blur(4px) brightness(.98); animation: sliderIncoming var(--slider-duration) var(--slider-ease) both }
+      .slide.outgoing{ opacity:0; transform: scale(.98) translateY(-6px); filter: blur(6px) saturate(.85); animation: sliderOutgoing calc(var(--slider-duration) * .9) var(--slider-ease) both }
+
+      .slide .card{ position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); box-shadow: 0 8px 30px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.03); }
+      .slide .card img{ display:block; width:100%; height:100%; object-fit:cover; max-height:420px; }
+
+      /* neon pulse frame (pseudo-element) */
+      .slide .card::before{ content:''; position:absolute; inset: -2px; border-radius: inherit; pointer-events:none; z-index:0; background: linear-gradient(90deg, rgba(255,42,77,0.05), rgba(255,212,166,0.05)); filter: blur(8px); opacity:0.75; mix-blend-mode: screen; animation: neonPulse 2200ms ease-in-out infinite; }
+
+      /* shine sweep per image when it arrives */
+      .slide .card::after{ content:''; position:absolute; left:-40%; top:0; height:100%; width:40%; background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.32), rgba(255,255,255,0.06)); transform: skewX(-20deg); z-index:3; pointer-events:none; opacity:0 }
+      .slide.incoming .card::after{ animation: shineOnce var(--slider-shine) linear forwards; opacity:1 }
+
+      @keyframes shineOnce{ 0%{ left:-40%; opacity:0 } 10%{ opacity:0.6 } 50%{ left:120%; opacity:0.9 } 100%{ left:140%; opacity:0 } }
+      @keyframes neonPulse{ 0%{ box-shadow: 0 0 6px rgba(255,42,77,0.05); transform: scale(1) } 50%{ box-shadow: 0 0 18px rgba(255,107,122,0.12); transform: scale(1.01) } 100%{ box-shadow: 0 0 6px rgba(255,42,77,0.05); transform: scale(1) } }
+
+      @keyframes sliderIncoming{ from{ opacity:0; transform: scale(1.06) translateY(12px); filter: blur(6px) } to{ opacity:1; transform: scale(1) translateY(0); filter: none } }
+      @keyframes sliderOutgoing{ from{ opacity:1; transform: scale(1) translateY(0); filter: none } to{ opacity:0; transform: scale(.98) translateY(-8px); filter: blur(8px) saturate(.8) } }
+
+      /* smaller screens: keep images contained and disable perspective exaggeration */
+      @media (max-width:600px){
+        .slider-container{ max-width: 100%; border-radius:10px }
+        .slide .card img{ object-fit: contain; max-height:220px }
+        .slide, .slide.incoming, .slide.outgoing{ transition: none; animation: none; transform:none; opacity:1 }
+        .slide .card::before, .slide .card::after{ display:none }
+      }
+
+      /* Respect user preference for reduced motion */
+      @media (prefers-reduced-motion: reduce){
+        :root{ --slider-duration: 0ms; --slider-shine: 0ms }
+        .slide .card::after, .slide .card::before, .slide, .slide.incoming, .slide.outgoing{ animation: none !important; transition: none !important; }
+      }
+    .slider-dots {
+      position: absolute; /* place directly under card */
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 8px;
+      text-align: center;
+      display: flex;
+      gap: 8px;
+      z-index: 5;
+    }
+      /* Styled scrollbar for slider-container if it ever becomes scrollable */
+      .slider-container::-webkit-scrollbar{ height:8px }
+      .slider-container::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.06); border-radius:6px }
+      .slider-container { scrollbar-color: rgba(255,255,255,0.06) transparent; scrollbar-width: thin }
+    .slider-dot {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin: 0 3px;
+      background: linear-gradient(135deg, #444 60%, #23232a 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+      border: 2px solid #444;
+      transition: background 0.2s, border 0.2s;
+      vertical-align: middle;
+    }
+    .slider-dot.active {
+      background: linear-gradient(135deg, #ff2a4d 60%, #b71c3b 100%);
+      border: 2px solid #ff2a4d;
+      box-shadow: 0 2px 8px rgba(255,42,77,0.18);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98);}
+      to { opacity: 1; transform: scale(1);}
+    }
+    @media (max-width: 600px) {
+      body {
+        background: linear-gradient(135deg, #23232a 80%, #2c2c2c 100%);
+        padding-bottom: 30px;
+        padding-left: 12px;
+        padding-right: 12px;
+        box-sizing: border-box;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin-top: 12px;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+      }
+      .button-group {
+        flex-direction: column;
+        gap: 10px;
+        max-width: 98vw;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 12px auto;
+      }
+      .button-group a,
+      .button-group button {
+        font-size: 14px;
+        padding: 10px 12px;
+        min-width: unset;
+        width: calc(100% - 24px);
+        max-width: 720px;
+        border-radius: 13px;
+        margin: 8px auto;
+        box-shadow: 0 2px 8px rgba(255,42,77,0.10);
+        text-align: center;
+        box-sizing: border-box;
+      }
+      .slider-container {
+        max-width: 92vw;
+        margin: 14px auto;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(255,42,77,0.10);
+      }
+      .slider {
+        min-height: 60px;
+      }
+      .slide img {
+        max-height: 160px;
+      }
+      #newsContainer {
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+        margin: 12px auto !important;
+        width: min(92vw, 720px) !important;
+        max-width: 92vw !important;
+      }
+    }
+    .news-item {
+      background: #2c2c2c;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 10px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .news-item h4 {
+      margin: 0 0 6px 0;
+      font-size: 1.1rem;
+      color: #ff2a4d;
+    }
+    .news-item p {
+      margin: 0 0 8px 0;
+      font-size: 0.9rem;
+      color: #ddd;
+    }
+    .news-item small {
+      font-size: 0.8rem;
+      color: #bbb;
+    }
+
+    /* New: news sidebar on left (desktop) and full-width block on mobile */
+    #newsContainer {
+      /* modern glass-like panel that matches the app dark theme */
+      position: fixed;
+      left: 16px;
+      top: 20px;
+      width: 320px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      padding: 12px;
+      background: var(--panel-bg);
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px) saturate(1.05);
+      z-index: 999;
+      /* hide scrollbar until hover */
+      scrollbar-width: none; /* firefox */
+      -ms-overflow-style: none; /* ie */
+    }
+    #newsContainer::-webkit-scrollbar{ width:0; height:0 }
+    #newsContainer:hover { scrollbar-width: thin }
+    #newsContainer:hover::-webkit-scrollbar{ width:10px }
+    #newsContainer:hover::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.06); border-radius:6px }
+
+    /* On small screens, make news container a normal block at the end of the page */
+    @media (max-width: 600px) {
+      #newsContainer {
+        position: static;
+        width: 100%;
+        max-height: none;
+        overflow: visible;
+        padding: 10px;
+        margin-top: 18px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #272424 60%, #2c2c2c 100%);
+        border: 1px solid rgba(255,255,255,0.03);
+      }
+      /* restore body padding */
+      body { padding-left: 0; padding-bottom: 18px; }
+    }
+
+    /* Modern visual tweak for individual news items (dark glass + soft elevation) */
+    #newsContainer .news-item {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+      border: 1px solid rgba(255,255,255,0.03);
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(36, 27, 27, 0.35);
+      position: relative;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 360ms cubic-bezier(.2,.9,.2,1), transform 360ms cubic-bezier(.2,.9,.2,1);
+    }
+
+    /* 'in' class triggers entrance animation */
+    #newsContainer .news-item.in{ opacity: 1; transform: translateY(0); animation: slideUpFade 380ms cubic-bezier(.2,.9,.2,1) both }
+
+    /* Typing effect helpers: typed/untyped spans and final text class */
+    #newsContainer .typed-part{ color: var(--accent-2); font-weight:800; display:inline }
+    #newsContainer .untyped-part{ color: rgba(255,255,255,0.28); display:inline }
+    #newsContainer .news-item h4.final-text{ color: var(--accent) }
+    #newsContainer .news-item p.final-text{ color: var(--muted) }
+
+    /* reduce motion: respect user preference */
+    @media (prefers-reduced-motion: reduce){
+      #newsContainer .typed-part, #newsContainer .untyped-part{ transition:none !important; }
+    }
+    /* Staggered text transitions inside news item for nicer entrance */
+    #newsContainer .news-item{
+      overflow: hidden;
+    }
+    #newsContainer .news-item h4, #newsContainer .news-item p, #newsContainer .news-item small, #newsContainer .news-item .close-btn{
+      opacity: 0; transform: translateY(6px); transition: opacity 340ms cubic-bezier(.2,.9,.2,1), transform 340ms cubic-bezier(.2,.9,.2,1);
+    }
+    #newsContainer .news-item.in h4{ opacity:1; transform: translateY(0); transition-delay: 80ms; }
+    #newsContainer .news-item.in p{ opacity:1; transform: translateY(0); transition-delay: 140ms; }
+    #newsContainer .news-item.in small{ opacity:1; transform: translateY(0); transition-delay: 200ms; }
+    #newsContainer .news-item.in .close-btn{ opacity:1; transform: translateY(0); transition-delay: 220ms; }
+
+    /* small pulse/shimmer for headings when they appear */
+    @keyframes headingPulse {
+      0% { filter: drop-shadow(0 0 0 rgba(0,0,0,0)); transform: translateY(0) scale(1); }
+      50%{ filter: drop-shadow(0 10px 20px rgba(0,0,0,0.08)); transform: translateY(-1px) scale(1.01); }
+      100%{ filter: none; transform: translateY(0) scale(1); }
+    }
+    #newsContainer .news-item.in h4{ animation: headingPulse 640ms cubic-bezier(.2,.9,.2,1) 1 both; }
+
+    /* ensure style fallback if JavaScript is disabled */
+    #newsContainer .news-item h4, #newsContainer .news-item p, #newsContainer .news-item small{ opacity:1; transform:none }
+
+    /* Avoid running these motion effects on small screens (user requested static mobile) */
+    @media (max-width:600px){
+      #newsContainer .news-item h4, #newsContainer .news-item p, #newsContainer .news-item small, #newsContainer .news-item .close-btn{ opacity:1 !important; transform:none !important; transition:none !important; animation:none !important }
+    }
+
+    /* subtle hover highlight for desktop headline */
+    @media (hover: hover) and (min-width:601px){
+      /* subtle container 'zoom' via pseudo-element while preserving text scaling */
+      #newsContainer .news-item{ position:relative; overflow:visible; transition: transform 260ms cubic-bezier(.2,.9,.2,1), box-shadow 260ms, background 260ms; will-change: transform; }
+      #newsContainer .news-item::before{ content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06)); z-index: 0; transform: scale(1); transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 260ms; pointer-events:none }
+      #newsContainer .news-item > * { position: relative; z-index: 1 }
+      #newsContainer .news-item:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+      #newsContainer .news-item:hover::before{ transform: scale(1.04); opacity:1; }
+      /* color shift and slight horizontal nudge only; keep font-sizes constant */
+      #newsContainer .news-item:hover h4{ color: var(--accent-2); transform: translateX(2px); }
+      #newsContainer .news-item:hover p{ color: #fff; }
+      #newsContainer .news-item:hover small{ color: #e8e8e8; }
+    }
+
+    /* Respect reduced-motion preference: disable transform/transition effects */
+    @media (prefers-reduced-motion: reduce){
+      #newsContainer .news-item, #newsContainer .news-item *{ transition: none !important; transform: none !important; animation: none !important; }
+    }
+
+    /* simple close button (non-persistent) */
+    #newsContainer .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.25);
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: transform 160ms, background 160ms;
+    }
+    #newsContainer .close-btn:hover { background: rgba(255,42,77,0.08); transform: scale(1.02); }
+
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translateY(8px) scale(.995); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    /* Visual treatment for items the user does not have permission to use.
+       Keep them in the DOM but dimmed; on hover show a not-allowed cursor. */
+    .perm-locked {
+      opacity: 0.36;
+      filter: grayscale(60%) brightness(0.85);
+      transition: opacity 160ms, transform 160ms, filter 160ms;
+      /* allow hover so cursor can change; clicks will be intercepted by JS */
+      pointer-events: auto;
+    }
+    .perm-locked:hover {
+      opacity: 0.9;
+      filter: grayscale(0%) brightness(1);
+      cursor: not-allowed;
+      transform: translateY(-1px);
+    }
+
+    /* small lock badge shown in the top-right of locked icon cards */
+    .icon-card .lock-badge{ display:none; position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.45); color:var(--accent-2); padding:4px 6px; border-radius:8px; font-size:12px; border:1px solid rgba(255,255,255,0.04); gap:6px; align-items:center; display:inline-flex }
+    .icon-card.perm-locked .lock-badge{ display:inline-flex }
+
+    /* transient top toast shown when a locked element is activated */
+    .perm-toast { position: fixed; top: 12px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(0,0,0,0.88); color: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.45); font-weight:700; z-index:2200; opacity:0; transition: transform 240ms cubic-bezier(.2,.9,.2,1), opacity 240ms; pointer-events: none }
+    .perm-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .perm-toast .label { color: #ffd; margin-left:6px }
+
+    /* upload news bar styling - ticker */
+    #uploadNewsBar { pointer-events: none; overflow: hidden; height:48px; display:flex; align-items:center; justify-content:center }
+    .upload-news { pointer-events: none; }
+    .upload-news .ticker{ position:relative; width:100%; height:100%; display:block }
+    .upload-news .ticker-item{ position:absolute; left:50%; transform: translateX(-50%) translateY(100%); transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms; opacity:0; white-space:nowrap; background: linear-gradient(90deg, rgba(255,42,77,0.95), rgba(183,28,59,0.95)); color: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.45); font-weight:800; display:inline-block }
+    .upload-news .ticker-item.show{ transform: translateX(-50%) translateY(0); opacity:1 }
+    .upload-news .ticker-item.up{ transform: translateX(-50%) translateY(-100%); opacity:0 }
+
+    .trial-notice {
+      margin: 18px auto 8px auto;
+      padding: 14px 18px;
+      max-width: 760px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,107,122,0.14), rgba(43,43,58,0.26));
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+      opacity: 1;
+      transition: transform 220ms ease, opacity 220ms ease;
+    }
+    .trial-notice.expired { background: linear-gradient(180deg, rgba(239,71,111,0.22), rgba(126,34,74,0.28)); border-color: rgba(239,71,111,0.35); }
+    .trial-notice span.highlight { color: #ffd86b; }
+
+
+  </style>
+</head>
+<body>
+  <h2 class="page-title">📦 نظام إدارة الطلبيات من الفروع</h2>
+  <div id="trialNotice" class="trial-notice" style="display:none"></div>
+
+  <!-- floating welcome card (bottom, above all content) -->
+  <style>
+    .floating-user-card{
+      position:fixed; right:18px; left:auto; transform:none; bottom:18px;
+      z-index:1200; display:flex; align-items:center; gap:8px; padding:8px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));
+      border:1px solid rgba(255,255,255,0.04); border-radius:999px; backdrop-filter: blur(6px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.45); color:#ffd4a6; font-weight:700;
+      min-width:180px; max-width:90%;
+    }
+
+    /* top-right container for welcome + upload widget */
+    .top-right-widgets{ position:fixed; right:18px; bottom:18px; z-index:1200; display:flex; gap:8px; align-items:center; }
+    .top-right-widgets .floating-user-card{ position:static; }
+    .upload-widget{ cursor:pointer; min-width:220px; justify-content:center; }
+    .upload-widget .badge{ background:#ff2a4d; color:#fff; border-radius:999px; padding:4px 8px; font-weight:800; margin-left:8px; display:inline-flex; align-items:center; }
+
+    /* Smooth text transition for upload widget label */
+    .upload-widget #uploadWidgetLabel{ display:inline-block; transition: opacity 260ms ease, transform 260ms ease; opacity:1; transform: translateY(0); }
+    .upload-widget #uploadWidgetLabel.label-fade-out{ opacity:0; transform: translateY(-6px); }
+    .upload-widget #uploadWidgetLabel.label-fade-in{ opacity:1; transform: translateY(0); }
+
+    @media (max-width:600px){ .top-right-widgets{ left:50%; right:auto; transform:translateX(-50%); bottom:12px; } }
+
+    /* modal to show full list of upload notifications */
+    #uploadModal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:2000; }
+    #uploadModal.open{ display:flex; }
+    #uploadModal .panel{ width:640px; max-width:96%; max-height:80vh; overflow:auto; background:#0f1213; border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+    #uploadModal .panel h3{ margin:0 0 8px 0; color:#ff6b7a }
+    #uploadModal .upload-list-item{ padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    #uploadModal .upload-list-item .meta{ color:#cfcfcf; font-size:0.95rem; }
+    #uploadModal .edited-badge{ background:#ff6b7a; color:#fff; padding:4px 8px; border-radius:8px; font-size:0.85rem; margin-inline-start:8px; font-weight:700 }
+
+    #uploadModal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
+    #uploadModal .clear-btn{ background:rgba(255,42,77,0.08); border:1px solid rgba(255,42,77,0.12); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer }
+    #uploadModal .close-btn{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer }
+
+    /* view file button and data modal */
+    .view-file-btn{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:6px 8px; border-radius:8px; cursor:pointer; font-size:0.95rem }
+    #uploadDataModal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:2100; }
+    #uploadDataModal.open{ display:flex; }
+    #uploadDataModal .panel{ width:900px; max-width:96%; max-height:80vh; overflow:auto; background:#0f1213; border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+    #uploadDataModal .panel h3{ margin:0 0 8px 0; color:#ff6b7a }
+    #uploadDataModal table{ width:100%; border-collapse:collapse; font-size:0.95rem }
+    #uploadDataModal th, #uploadDataModal td{ padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.03); text-align:left }
+    #uploadDataModal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
+    .floating-user-card .welcome-name{ color:#ffd4a6; font-weight:800 }
+    .perm-btn{ background:transparent; border:1px solid rgba(255,255,255,0.06); padding:6px 8px; height:36px; width:36px; border-radius:10px; cursor:pointer; font-size:16px; display:inline-flex; align-items:center; justify-content:center }
+    .perm-btn:hover{ background:rgba(255,42,77,0.08); border-color:rgba(255,42,77,0.18) }
+
+    /* Dark theme variables for icon grid */
+    :root{
+      --app-bg: #0b0f11;
+      --panel-bg: linear-gradient(180deg,#0f1315 0%, #0b0f11 100%);
+      --muted: #9aa4a8;
+      --accent: #ff6b7a;
+      --accent-2: #ffd4a6;
+      --card-bg: rgba(255,255,255,0.02);
+      --glass: rgba(255,255,255,0.03);
+    }
+
+
+
+    .icon-grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap:12px; align-items:start; margin:14px 0; }
+    .icon-card{ display:flex; flex-direction:column; align-items:center; gap:8px; text-decoration:none; color:var(--muted); background:var(--card-bg); padding:12px; border-radius:12px; transition: transform 360ms cubic-bezier(.2,.9,.2,1), box-shadow 360ms, background 360ms; border:1px solid rgba(255,255,255,0.03); box-shadow:0 8px 24px rgba(0,0,0,0.45); min-height:98px; justify-content:center; position:relative }
+    /* classic (old) theme for single card or entire app */
+    .classic-card{ background:#0b0b0b !important; border:1px solid rgba(255,255,255,0.06) !important; color:#fff !important }
+    .classic-card .icon-svg{ filter: none !important; opacity:0.95 }
+    .classic-theme{ --card-bg: #0b0b0b; --muted: #d7d7d7; --accent: #ff6b7a; --accent-2: #ffd4a6 }    .icon-card:focus{ outline: 2px solid rgba(255,255,255,0.05); outline-offset:3px }
+    .icon-card:hover{ transform: translateY(-6px) scale(1.02); box-shadow: 0 18px 40px rgba(0,0,0,0.6); color:var(--accent-2); border-color: rgba(255,255,255,0.06); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+    .icon-svg{ width:44px; height:44px; display:block; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6)); }
+    .icon-label{ font-size:0.82rem; color:var(--muted); display:block; text-align:center; margin-top:6px }
+    .icon-card .infographic{ width:100%; height:6px; border-radius:6px; background: linear-gradient(90deg,var(--accent),var(--accent-2)); margin-top:6px; box-shadow: inset 0 -6px 18px rgba(0,0,0,0.25);} 
+
+    /* entrance animation */
+    .icon-card{ opacity:0; transform: translateY(10px) scale(0.99); }
+    .icon-card.in{ opacity:1; transform: translateY(0) scale(1); transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms; }
+
+    @media (max-width: 600px) {
+      /* center the floating card on small screens for better layout */
+      .floating-user-card{ left:50%; right:auto; transform:translateX(-50%); bottom:12px; }
+      .icon-grid{ grid-template-columns: repeat(3,1fr); gap:8px }
+      .icon-card{ min-height:84px; padding:10px }
+      .icon-svg{ width:36px; height:36px }
+    }
+  </style>
+
+  <div id="topRightWidgets" class="top-right-widgets" aria-live="polite">
+    <div id="userHeader" class="floating-user-card">
+      <span id="welcomeMsg" class="welcome-name">مرحبا، زائر</span>
+      <button id="viewPermBtn" class="perm-btn" title="عرض صلاحياتي">👁️</button>
+    </div>
+    <div id="uploadNewsWidget" class="floating-user-card upload-widget" role="button" aria-label="إشعارات الرفع" title="اضغط لعرض كل الإشعارات">
+      <span id="uploadWidgetLabel">🔔 لا توجد إشعارات حديثة</span>
+      <span id="uploadWidgetBadge" class="badge" style="display:none;">0</span>
+    </div>
+  </div>
+
+  <!-- Icon grid navigation (dark theme) -->
+  <nav id="appIconGrid" class="icon-grid" role="navigation" aria-label="التنقل الرئيسي">
+
+    <a id="btnKorba" class="icon-card" href="korba.html" title="فرع الكوربة" aria-label="فرع الكوربة">
+      <!-- infographic/warehouse -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#ff6b7a"/><stop offset="1" stop-color="#ffd4a6"/></linearGradient></defs><rect x="6" y="20" width="52" height="30" rx="3" fill="url(#g1)" opacity="0.14"/><path d="M8 24 L32 12 L56 24" stroke="url(#g1)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="icon-label">فرع الكوربة</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnDokki" class="icon-card" href="dokki.html" title="فرع الدقي" aria-label="فرع الدقي">
+      <!-- office icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="8" y="12" width="48" height="40" rx="4" fill="url(#g1)" opacity="0.12"/><path d="M20 24h24M20 32h24M20 40h8" stroke="#ffd4a6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="icon-label">فرع الدقي</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnTagamo3" class="icon-card" href="tagamo3.html" title="فرع التجمع" aria-label="فرع التجمع">
+      <!-- city icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="10" y="18" width="10" height="22" rx="1" fill="#ffd4a6"/><rect x="26" y="12" width="10" height="28" rx="1" fill="#ff6b7a"/><rect x="42" y="22" width="10" height="18" rx="1" fill="#ffd4a6"/></svg>
+      <span class="icon-label">فرع التجمع</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnObour" class="icon-card" href="obour.html" title="فرع العبور" aria-label="فرع العبور">
+      <!-- factory icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="6" y="28" width="40" height="22" rx="2" fill="#ffd4a6"/><path d="M46 30 L58 22 L58 50" stroke="#ff6b7a" stroke-width="2" fill="none"/></svg>
+      <span class="icon-label">فرع العبور</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnAll" class="icon-card" href="all-orders.html" title="تجميع طلبيات ليدو" aria-label="تجميع طلبيات ليدو">
+      <!-- chart icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 44h40" stroke="#ffd4a6" stroke-width="2" stroke-linecap="round"/><path d="M18 36 v8M30 28 v16M42 20 v24" stroke="url(#g1)" stroke-width="4" stroke-linecap="round"/></svg>
+      <span class="icon-label">تجميع طلبيات ليدو</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnSendToBranches" class="icon-card" href="send-to-branches.html" title="إرسال الطلبات للفروع" aria-label="إرسال الطلبات للفروع">
+      <!-- send icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 44 L56 28 L8 12 L20 28 L8 44" fill="url(#g1)" opacity="0.14" stroke="#ffd4a6" stroke-width="1.4"/></svg>
+      <span class="icon-label">إرسال الطلبات للفروع</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnUpload" class="icon-card" href="upload-catalog.html" title="إدارة الأصناف" aria-label="إدارة الأصناف">
+      <!-- upload icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M32 14 v20" stroke="#ffd4a6" stroke-width="2" stroke-linecap="round"/><path d="M20 30 L32 18 L44 30" stroke="url(#g1)" stroke-width="2" fill="none"/></svg>
+      <span class="icon-label">إدارة الأصناف</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnStorage" class="icon-card" href="مخازن/index.html" title="إدارة المخازن" aria-label="إدارة المخازن">
+      <!-- storage/warehouse icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="6" y="18" width="52" height="30" rx="3" fill="#ffd4a6" opacity="0.12"/><path d="M8 22 L32 10 L56 22" stroke="#ff6b7a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="icon-label">إدارة المخازن</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnDelivery" class="icon-card" href="delivery-orders.html" title="عرض أوردرات التسليم" aria-label="عرض أوردرات التسليم">
+      <!-- delivery box -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="10" y="18" width="44" height="28" rx="4" fill="#ff6b7a" opacity="0.12"/><path d="M10 28 L32 18 L54 28" stroke="#ffd4a6" stroke-width="1.6"/></svg>
+      <span class="icon-label"> أوردرات التسليم</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnReservation" class="icon-card" href="reservation.html" title="صفحة الحجوزات" aria-label="صفحة الحجوزات">
+      <!-- calendar icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="10" y="14" width="44" height="40" rx="4" fill="#ffd4a6" opacity="0.08"/><path d="M18 24h28M26 34h12" stroke="#ff6b7a" stroke-width="1.6"/></svg>
+      <span class="icon-label">صفحة الحجوزات</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnAdmin" class="icon-card" href="admin-dashboard.html" title="إدارة المستخدمين" aria-label="إدارة المستخدمين">
+      <!-- users icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="24" cy="26" r="6" fill="#ffd4a6"/><circle cx="42" cy="26" r="6" fill="#ff6b7a"/><path d="M10 46c4-6 10-8 20-8s16 2 20 8" stroke="#ffd4a6" stroke-width="1.4" fill="none"/></svg>
+      <span class="icon-label">إدارة المستخدمين</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnQuality" class="icon-card" href="quality.html" title="قسم الجودة" aria-label="قسم الجودة">
+      <!-- lab icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M20 12h24v12l-6 10v10H26V34l-6-10V12z" fill="#ffd4a6" opacity="0.14"/><path d="M32 46v6" stroke="#ff6b7a" stroke-width="2" stroke-linecap="round"/></svg>
+      <span class="icon-label">قسم الجودة</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnBestSweet" class="icon-card" href="best-sweet.html" title="بيست سويت" aria-label="بيست سويت">
+      <!-- cake icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="12" y="28" width="40" height="18" rx="6" fill="#ff6b7a" opacity="0.14"/><path d="M24 28a8 8 0 0 1 16 0" stroke="#ffd4a6" stroke-width="1.6" fill="none"/></svg>
+      <span class="icon-label">بيست سويت</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <a id="btnMoled" class="icon-card" href="moled/index.html" title="المولد النبوي" aria-label="المولد النبوي">
+      <!-- celebration icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="32" cy="32" r="10" fill="#ff6b7a" opacity="0.2"/><path d="M32 8 L32 20 M32 44 L32 56 M8 32 L20 32 M44 32 L56 32 M18 18 L26 26 M38 38 L46 46 M18 46 L26 38 M38 26 L46 18" stroke="#ffd4a6" stroke-width="2" stroke-linecap="round"/></svg>
+      <span class="icon-label">المولد النبوي</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </a>
+
+    <button id="btnLogout" class="icon-card" title="تسجيل خروج" aria-label="تسجيل خروج" onclick="logout()">
+      <!-- logout icon -->
+      <svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M20 20h16v16H20z" fill="#ff6b7a" opacity="0.14"/><path d="M24 24h8v8H24z" fill="none" stroke="#ffd4a6" stroke-width="1.6"/><path d="M40 32h8M44 28l4 4-4 4" stroke="#ff6b7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="icon-label">تسجيل خروج</span>
+      <div class="infographic" aria-hidden="true"></div>
+    </button>
+  </nav>
+
+
+
+  <script>
+    // staggered entrance for icon cards
+    (function(){
+      const cards = document.querySelectorAll('#appIconGrid .icon-card');
+      cards.forEach((c,i)=> setTimeout(()=> c.classList.add('in'), 120 + i*70));
+      // accessibility: add keyboard hover/focus effect
+      cards.forEach(c=>{ c.addEventListener('keydown', e=>{ if(e.key === 'Enter' || e.key === ' ') c.click(); }); });
+
+      // theme persistence
+      const STORAGE_KEY = 'defaultTheme';
+      function applyDefaultTheme(){
+        const t = localStorage.getItem(STORAGE_KEY);
+        if (t === 'classic') document.body.classList.add('classic-theme'); else document.body.classList.remove('classic-theme');
+      }
+
+      // title controls removed (reverted)
+
+      // apply persisted theme on load
+      applyDefaultTheme();
+    })();
+  </script>
+
+  <div id="newsContainer">
+      <div class="slider-container">
+        <div class="slider">
+          <div class="slide active"><div class="card"><img src="images/logo1.jpg" alt="شعار 1" /></div></div>
+          <div class="slide"><div class="card"><img src="images/logo2.jpg" alt="شعار 2" /></div></div>
+          <div class="slide"><div class="card"><img src="images/logo3.jpg" alt="شعار 3" /></div></div>
+        </div>
+        <div class="slider-dots" id="sliderDots"></div>
+      </div>
+  </div>
+
+  <!-- Upload news bar (bottom center) -->
+  <div id="uploadNewsBar" aria-live="polite" role="status" style="position:fixed; left:50%; transform:translateX(-50%) translateY(30px); bottom:18px; z-index:2200; pointer-events:none"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // early fallback so other pages calling addUploadNotification won't throw
+    window.addUploadNotification = function(n){
+      try{
+        const key = 'upload_notifications_v1';
+        const raw = localStorage.getItem(key) || '[]';
+        const arr = JSON.parse(raw || '[]');
+        n = n || {};
+        if (!n.id) n.id = 'i_' + Math.random().toString(36).slice(2,9);
+        n.ts = n.ts || Date.now();
+        if (!arr.find(x => x.id === n.id)) arr.unshift(n);
+        const now = Date.now();
+        const filtered = arr.filter(x => x.ts && (now - x.ts) < 24*60*60*1000).slice(0,200);
+        localStorage.setItem(key, JSON.stringify(filtered));
+        try{ if (typeof updateWidgetFromStorage === 'function') updateWidgetFromStorage(); }catch(e){}
+      }catch(e){ console.warn('addUploadNotification fallback', e); }
+    };
+
+    // Local helper to escape text safely for insertion
+    function escapeForHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const newsContainer = document.getElementById('newsContainer');
+      if(!newsContainer) return;
+
+      // Typing animation helper (character by character)
+      function typeText(el, fullText, opts){
+        opts = Object.assign({ speed: 48 }, opts || {});
+        if (!el) return Promise.resolve();
+        // Respect mobile static mode and user reduced-motion preference
+        const isMobile = window.matchMedia('(max-width:600px)').matches;
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (isMobile || reduced) { el.textContent = fullText || ''; el.classList.add('final-text'); return Promise.resolve(); }
+
+        const text = String(fullText || el.textContent || '');
+        el.textContent = '';
+        const typedSpan = document.createElement('span'); typedSpan.className = 'typed-part';
+        const untypedSpan = document.createElement('span'); untypedSpan.className = 'untyped-part';
+        el.appendChild(typedSpan); el.appendChild(untypedSpan);
+        let i = 0;
+        return new Promise(resolve => {
+          function step(){
+            i++;
+            typedSpan.textContent = text.slice(0, i);
+            untypedSpan.textContent = text.slice(i);
+            if (i < text.length) setTimeout(step, opts.speed);
+            else {
+              // finalize: replace with plain text and mark final
+              setTimeout(()=> { try{ el.textContent = text; el.classList.add('final-text'); }catch(e){} resolve(); }, 90);
+            }
+          }
+          step();
+        });
+      }
+
+      db.collection('urgentNews').where('visibility', '==', 'visible').get()
+        .then(snapshot => {
+          if (!snapshot || snapshot.empty) {
+            const empty = document.createElement('div');
+            empty.className = 'news-item';
+            empty.innerHTML = `<p style="color:#cfcfcf;">لا توجد أخبار حالياً</p>`;
+            const sliderEl = newsContainer.querySelector('.slider-container');
+            if (sliderEl) sliderEl.parentNode.insertBefore(empty, sliderEl); else newsContainer.appendChild(empty);
+            // entrance animation
+            setTimeout(()=> empty.classList.add('in'), 30);
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const news = doc.data() || {};
+            const newsItem = document.createElement('div');
+            newsItem.className = 'news-item';
+            newsItem.innerHTML = `\n              <h4>${escapeForHtml(news.title)}</h4>\n              <p>${escapeForHtml(news.content)}</p>\n              <small>${escapeForHtml(news.date)}</small>\n            `;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.setAttribute('aria-label', 'إخفاء هذا الخبر');
+            closeBtn.innerText = '✕';
+            closeBtn.onclick = (e) => {
+              e.stopPropagation();
+              // play exit animation then remove
+              newsItem.classList.remove('in');
+              setTimeout(()=> { try{ newsItem.remove(); }catch(e){ newsItem.style.display='none'; } }, 320);
+            };
+
+            newsItem.appendChild(closeBtn);
+            const sliderEl = newsContainer.querySelector('.slider-container');
+            if (sliderEl) sliderEl.parentNode.insertBefore(newsItem, sliderEl); else newsContainer.appendChild(newsItem);
+            // entrance animation + typing effect for text (title then content)
+            setTimeout(()=>{
+              newsItem.classList.add('in');
+              try{
+                const canAnimate = !window.matchMedia('(max-width:600px)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (canAnimate){
+                  const h = newsItem.querySelector('h4');
+                  const p = newsItem.querySelector('p');
+                  Promise.resolve()
+                    .then(()=> typeText(h, news.title, {speed: 48}))
+                    .then(()=> typeText(p, news.content, {speed: 36}))
+                    .catch(()=>{});
+                }
+              }catch(e){}
+            }, 40);
+          });
+        })
+        .catch(err => {
+          console.error('Failed to load news', err);
+          const empty = document.createElement('div');
+          empty.className = 'news-item';
+          empty.innerHTML = `<p style="color:#cfcfcf;">فشل جلب الأخبار</p>`;
+          const sliderEl = newsContainer.querySelector('.slider-container');
+          if (sliderEl) newsContainer.insertBefore(empty, sliderEl); else newsContainer.appendChild(empty);
+        });
+    });
+  </script>
+
+  <!-- slider init (restores slider functionality) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const dotsContainer = document.getElementById('sliderDots');
+      const prevCircle = document.querySelector('.bg-circle.prev');
+      const nextCircle = document.querySelector('.bg-circle.next');
+      const sliderEl = document.querySelector('.slider');
+      if (!slides || slides.length === 0) return;
+
+      let currentSlide = -1; const SLIDE_ANIM_MS = 1100;
+
+      function setBgImages(idx) {
+        if (!prevCircle || !nextCircle) return;
+        const prevIdx = (idx - 1 + slides.length) % slides.length;
+        const nextIdx = (idx + 1) % slides.length;
+        const prevImg = slides[prevIdx].querySelector('img')?.src || '';
+        const nextImg = slides[nextIdx].querySelector('img')?.src || '';
+        prevCircle.style.backgroundImage = prevImg ? `url('${prevImg}')` : 'none';
+        nextCircle.style.backgroundImage = nextImg ? `url('${nextImg}')` : 'none';
+        prevCircle.style.opacity = prevImg ? '1' : '0';
+        nextCircle.style.opacity = nextImg ? '1' : '0';
+      }
+
+      function adjustSliderHeight() {
+        // Let the card/image determine the height naturally. Clear any inline heights.
+        try { document.querySelectorAll('.card').forEach(c => c.style.minHeight = ''); } catch(e){}
+        try { if (sliderEl) sliderEl.style.minHeight = ''; } catch(e){}
+      }
+
+      function showSlide(idx) {
+        if (!slides || slides.length === 0) return;
+        if (idx === currentSlide) return;
+        const prev = (currentSlide >=0 && slides[currentSlide]) ? slides[currentSlide] : null;
+        const next = slides[idx];
+
+        try{
+          // mark outgoing
+          if (prev){ prev.classList.remove('incoming'); prev.classList.add('outgoing'); prev.classList.remove('active'); }
+          // prepare next
+          if (next){ next.classList.remove('outgoing'); next.classList.add('incoming'); next.classList.add('active'); }
+
+          if (dotsContainer) Array.from(dotsContainer.children).forEach((dot, i) => dot.classList.toggle('active', i === idx));
+          setBgImages(idx);
+          setTimeout(adjustSliderHeight, 60);
+
+          // cleanup after animation finishes
+          setTimeout(()=>{
+            if (prev) prev.classList.remove('outgoing');
+            if (next) next.classList.remove('incoming');
+          }, SLIDE_ANIM_MS + 60);
+
+          // add subtle tilt to bg circles for motion
+          try {
+            if (prevCircle) prevCircle.style.transform = 'translateY(-6%) scale(1.04) rotate(-4deg)';
+            if (nextCircle) nextCircle.style.transform = 'translateY(-6%) scale(1.04) rotate(4deg)';
+            if (prevCircle) prevCircle.style.filter = 'blur(10px) saturate(1.05) opacity(.6)';
+            if (nextCircle) nextCircle.style.filter = 'blur(10px) saturate(1.05) opacity(.6)';
+          } catch(e) { /* ignore */ }
+        }catch(e){ console.warn('showSlide failed', e); }
+
+        currentSlide = idx;
+      }
+
+      if (dotsContainer && dotsContainer.children.length === 0) {
+        slides.forEach((_, i) => {
+          const dot = document.createElement('span');
+          dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
+          dot.onclick = () => showSlide(i);
+          dotsContainer.appendChild(dot);
+        });
+      }
+
+      // ensure images trigger height adjustment when they load
+      slides.forEach((s, i) => {
+        const img = s.querySelector('img');
+        if (img) img.addEventListener('load', () => { if (i === currentSlide) adjustSliderHeight(); });
+      });
+
+      // show first slide with animation
+      showSlide(0);
+      // automatic rotation with pause-on-hover
+      let sliderPaused = false;
+      let sliderAuto = setInterval(() => showSlide((currentSlide + 1) % slides.length), 4200);
+      if (sliderEl) {
+        sliderEl.addEventListener('mouseenter', ()=> { sliderPaused = true; clearInterval(sliderAuto); });
+        sliderEl.addEventListener('mouseleave', ()=> { if (!sliderPaused) return; sliderPaused = false; clearInterval(sliderAuto); sliderAuto = setInterval(() => showSlide((currentSlide + 1) % slides.length), 4200); });
+      }
+
+      // apply slider visibility from settings (Firestore -> settings/ui.sliderVisible)
+      (async function applySliderSetting(){
+        try {
+          if (typeof db === 'undefined') return;
+          const doc = await db.collection('settings').doc('ui').get();
+          const visible = !(doc.exists && doc.data() && doc.data().sliderVisible === false);
+          const container = document.querySelector('.slider-container');
+          if (!visible && container) container.style.display = 'none';
+        } catch (e) {
+          console.warn('Could not read slider setting', e);
+        }
+      })();
+
+      // Listen for branch upload events and show live news bar
+      (function branchUploadListener(){
+        try{
+          if (typeof db === 'undefined') return;
+          const map = { korba: 'فرع الكوربة', dokki: 'فرع الدقي', tagamo3: 'فرع التجمع', obour: 'فرع العبور' };
+          const bar = document.getElementById('uploadNewsBar');
+          if (!bar) return;
+          let initial = true;
+          // NOTE: removed server-side filter to avoid requiring a composite Firestore index.
+          // We order by timestamp and filter action client-side so the listener works immediately.
+          db.collection('activity_logs').orderBy('timestamp','desc').limit(20).onSnapshot(snap => {
+            try{
+              if (initial) { initial = false; return; }
+              snap.docChanges().forEach(ch => {
+                if (ch.type !== 'added') return;
+                const d = ch.doc.data() || {};
+                // client-side filter for upload events (avoids needing a composite index)
+                if (d.action !== 'upload_all') return;
+                const details = d.details || {};
+                let branch = details.branch || '';
+                if (!branch && d.page) {
+                  if (d.page.includes('korba')) branch = 'korba';
+                  else if (d.page.includes('dokki')) branch = 'dokki';
+                  else if (d.page.includes('tagamo3')) branch = 'tagamo3';
+                  else if (d.page.includes('obour')) branch = 'obour';
+                }
+                const orderDate = details.orderDate || '';
+                const ts = (d.timestamp && d.timestamp.toMillis) ? d.timestamp.toMillis() : ((d.timestamp && d.timestamp.toDate) ? d.timestamp.toDate().getTime() : Date.now());
+                // add to local storage & show (manages TTL and cycling)
+                try{ addUploadNotification({ id: ch.doc.id, branch: branch, orderDate: orderDate, rows: details.rows||0, ts }); }catch(e){ console.warn('addUploadNotification failed', e); }
+              });
+            }catch(e){ console.warn('upload news onSnapshot failed', e); }
+          });
+        }catch(e){ console.warn('branchUploadListener failed', e); }
+      })();
+      // realtime updates: listen for changes to sliderVisible and apply immediately
+      try {
+        if (typeof db !== 'undefined') {
+          db.collection('settings').doc('ui').onSnapshot(doc => {
+            try {
+              const visible = !(doc.exists && doc.data() && doc.data().sliderVisible === false);
+              const container = document.querySelector('.slider-container');
+              if (container) container.style.display = visible ? '' : 'none';
+            } catch (e) { console.warn('onSnapshot slider update failed', e); }
+          });
+        }
+      } catch (e) { console.warn('Could not attach realtime slider listener', e); }
+    });
+  </script>
+
+  <script src="activity-logger.js"></script>
+
+    <!-- Welcome + permissions modal (radial reveal from the perm button) -->
+    <style>
+      .perm-overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:1100; pointer-events:none; }
+      .perm-overlay::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,0.6); clip-path:circle(0 at var(--cx,50%) var(--cy,90%)); transition:clip-path 420ms cubic-bezier(.2,.9,.2,1), opacity 260ms; opacity:0 }
+      .perm-overlay.open{ pointer-events:auto }
+      .perm-overlay.open::before{ clip-path:circle(200% at var(--cx,50%) var(--cy,90%)); opacity:1 }
+      .perm-modal{ position:relative; width:420px; max-width:92%; background:#0f1213; color:#eee; border-radius:12px; padding:16px; border:1px solid rgba(255,255,255,0.04); transform: translateY(12px) scale(.98); opacity:0; transition: transform 360ms cubic-bezier(.2,.9,.2,1), opacity 260ms }
+      .perm-overlay.open .perm-modal{ transform: translateY(0) scale(1); opacity:1 }
+      .perm-close{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer }
+      .perm-title{ margin:0 0 8px 0; color:#ff6b7a; font-size:1.05rem }
+    </style>
+
+    <div id="viewPermModal" class="perm-overlay" aria-hidden="true">
+      <div class="perm-modal" role="dialog" aria-modal="true" aria-labelledby="permTitle">
+        <h3 id="permTitle" class="perm-title">صلاحيات المستخدم</h3>
+        <div id="permList" style="min-height:80px; max-height:360px; overflow:auto; padding:6px; display:flex; gap:8px; flex-wrap:wrap;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+          <button class="perm-close" id="permCloseBtn">إغلاق</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // utility: read roles from either localStorage keys used by login or URL
+      function getCurrentRoles() {
+        try {
+          const raw = localStorage.getItem('userRoles') || localStorage.getItem('roles') || localStorage.getItem('userRoles');
+          if (!raw) return [];
+          if (raw.startsWith('[') || raw.startsWith('{')) return JSON.parse(raw);
+          return String(raw).split(',').map(s => s.trim()).filter(Boolean);
+        } catch (e) { return []; }
+      }
+
+      function getCurrentUserName() {
+        return localStorage.getItem('username') || localStorage.getItem('userCode') || 'زائر';
+      }
+
+      const labelMap = {
+        korba_page: 'فرع الكوربة', dokki_page: 'فرع الدقي', tagamo3_page: 'فرع التجمع',
+        delivery_page: 'تسليم الحجوزات', reservation_page: 'الحجوزات', all_orders_page: 'تجميع الطلبيات',
+        upload_page: 'إدارة الاصناف', admin_page: 'إدارة المستخدمين', all_reservations_page: 'فواتير الحجوزات الكاملة',
+          all: 'كافة الصلاحيات', obour_page: 'فرع العبور', send_to_branches_page: 'إرسال الطلبات للفروع',
+          storage_page: 'إدارة المخازن',
+        manage_invoices_page: 'إدارة الفواتير', summary_page: 'تحليلات الانتاج', quality_page: 'صفحة الجودة',
+        view_quality_reports: 'عرض التقارير المخزنة', best_sweet_page: 'بيست سويت'
+      };
+
+      function openPermModal() {
+        const roles = getCurrentRoles();
+        const permList = document.getElementById('permList');
+        permList.innerHTML = '';
+        if (!roles || roles.length === 0) {
+          permList.innerHTML = '<div style="color:#cfcfcf">لا توجد صلاحيات مسجلة</div>';
+        } else {
+          roles.forEach(r => {
+            const label = labelMap[r] || r;
+            const el = document.createElement('div');
+            el.style.padding = '8px 10px';
+            el.style.background = 'linear-gradient(180deg,#111 0%, #1b1b1b 100%)';
+            el.style.border = '1px solid rgba(255,255,255,0.03)';
+            el.style.borderRadius = '999px';
+            el.style.fontWeight = '700';
+            el.style.color = '#ffd';
+            el.textContent = label;
+            permList.appendChild(el);
+          });
+        }
+        // set modal title to include first name if available
+        try{
+          const titleEl = document.getElementById('permTitle');
+          const uname = getCurrentUserName() || '';
+          const first = (uname && uname.split && uname.split(' ')[0]) ? uname.split(' ')[0] : uname;
+          if (titleEl) titleEl.textContent = 'صلاحياتك في المشروع يا ' + (first || 'زائر');
+            } catch(e) { /* ignore */ }
+            try{
+              const overlay = document.getElementById('viewPermModal');
+              const btn = document.getElementById('viewPermBtn');
+              if (overlay && btn){
+                // compute center of the button for radial origin
+                const r = btn.getBoundingClientRect();
+                const cx = (r.left + r.width/2) + 'px';
+                const cy = (r.top + r.height/2) + 'px';
+                overlay.style.setProperty('--cx', cx);
+                overlay.style.setProperty('--cy', cy);
+                overlay.classList.add('open');
+                overlay.setAttribute('aria-hidden','false');
+              } else if (overlay) {
+                overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
+              }
+            }catch(e){ document.getElementById('viewPermModal').classList.add('open'); }
+      }
+
+      function closePermModal() {
+        const overlay = document.getElementById('viewPermModal');
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden','true');
+      }
+
+      // wire the close button inside modal (and allow clicking overlay to close)
+      document.addEventListener('DOMContentLoaded', ()=>{
+        const overlay = document.getElementById('viewPermModal');
+        const closeBtn = document.getElementById('permCloseBtn');
+        if (closeBtn) closeBtn.addEventListener('click', closePermModal);
+        if (overlay) overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closePermModal(); });
+      });
+
+      // initialize header welcome and button; ensure we show username (not code)
+      function setWelcomeText(name){
+        const welcome = document.getElementById('welcomeMsg');
+        if (welcome) welcome.textContent = 'مرحبا، ' + (name || 'زائر');
+      }
+
+      async function resolveAndSetWelcome(){
+        // first prefer stored username
+        let name = localStorage.getItem('username');
+        if (name) { setWelcomeText(name); return; }
+
+        // next try to resolve via stored userUid (document id)
+        const uid = localStorage.getItem('userUid');
+        if (uid && typeof db !== 'undefined') {
+          try {
+            const doc = await db.collection('users').doc(uid).get();
+            if (doc && doc.exists) {
+              const d = doc.data();
+              name = d.name || d.code || uid;
+              try { localStorage.setItem('username', name); } catch(e){}
+              setWelcomeText(name);
+              return;
+            }
+          } catch (e) { console.warn('Could not resolve username by uid', e); }
+        }
+
+        // then try to resolve from stored userCode by querying Firestore
+        const code = localStorage.getItem('userCode');
+        if (code && typeof db !== 'undefined') {
+          try {
+            const q = await db.collection('users').where('code', '==', code).limit(1).get();
+            if (!q.empty) {
+              const d = q.docs[0].data();
+              name = d.name || code;
+              try { localStorage.setItem('username', name); } catch(e){}
+              setWelcomeText(name);
+              return;
+            }
+          } catch (e) { console.warn('Could not resolve username by code', e); }
+        }
+
+        // final fallback
+        setWelcomeText('زائر');
+      }
+
+      let trialInterval = null;
+      let trialExpiredHandled = false;
+
+      function formatTrialDuration(ms) {
+        if (!ms || ms <= 0) return 'انتهت';
+        const days = Math.floor(ms / 86400000);
+        const hours = Math.floor((ms % 86400000) / 3600000);
+        const minutes = Math.floor((ms % 3600000) / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        return `${days} يوم ${hours} س ${minutes} د ${seconds} ث`;
+      }
+
+      function showTrialNotice(text, expired) {
+        const notice = document.getElementById('trialNotice');
+        if (!notice) return;
+        notice.style.display = 'block';
+        notice.classList.toggle('expired', !!expired);
+        notice.innerHTML = text;
+      }
+
+      function hideTrialNotice() {
+        const notice = document.getElementById('trialNotice');
+        if (!notice) return;
+        notice.style.display = 'none';
+        notice.classList.remove('expired');
+        notice.innerHTML = '';
+      }
+
+      function logoutDueToTrial() {
+        if (trialExpiredHandled) return;
+        trialExpiredHandled = true;
+        clearInterval(trialInterval);
+        showTrialNotice('انتهت فترة تجربتك. سيتم تسجيل الخروج الآن.', true);
+        setTimeout(() => {
+          localStorage.removeItem('userCode');
+          localStorage.removeItem('username');
+          localStorage.removeItem('userUid');
+          localStorage.removeItem('userRoles');
+          window.location.href = 'index.html';
+        }, 2600);
+      }
+
+      async function initTrialCountdown() {
+        const userCode = localStorage.getItem('userCode');
+        const username = localStorage.getItem('username');
+        if (!userCode || typeof db === 'undefined') return;
+
+        try {
+          let doc = await db.collection('users').doc(userCode).get();
+          if (!doc.exists && username) {
+            const q = await db.collection('users').where('name', '==', username).limit(1).get();
+            if (!q.empty) doc = q.docs[0];
+          }
+          if (!doc.exists) return;
+
+          const data = doc.data() || {};
+          const expiresAt = data.trialExpiresAt ? (data.trialExpiresAt.toDate ? data.trialExpiresAt.toDate() : new Date(data.trialExpiresAt.seconds * 1000)) : null;
+          if (!expiresAt) return;
+
+          const updateCountdown = () => {
+            const diff = expiresAt.getTime() - Date.now();
+            if (diff <= 0) {
+              showTrialNotice('انتهت فترة التجربة الخاصة بك.', true);
+              logoutDueToTrial();
+              return;
+            }
+            showTrialNotice(`تبقى في فترة التجربة: <span class="highlight">${formatTrialDuration(diff)}</span>`, false);
+          };
+
+          updateCountdown();
+          clearInterval(trialInterval);
+          trialInterval = setInterval(updateCountdown, 1000);
+        } catch (err) {
+          console.warn('initTrialCountdown failed', err);
+        }
+      }
+
+      async function checkForcedLogout() {
+        const userCode = localStorage.getItem('userCode');
+        if (!userCode || typeof db === 'undefined') return;
+
+        try {
+          let userRef = db.collection('users').doc(userCode);
+          let doc = await userRef.get();
+          if (!doc.exists) {
+            const q = await db.collection('users').where('code', '==', userCode).limit(1).get();
+            if (q.empty) return;
+            userRef = q.docs[0].ref;
+            doc = q.docs[0];
+          }
+
+          const data = doc.data() || {};
+          if (!data.forceLogoutAt) return;
+
+          await userRef.update({ forceLogoutAt: firebase.firestore.FieldValue.delete() });
+          try{ if (window.activityLogger) activityLogger.logActivity('forced_logout', '/main.html', {}); } catch(e){}
+
+          Swal.fire({
+            icon: 'warning',
+            title: 'تم تسجيل خروجك بواسطة المسؤول',
+            text: 'يرجى تسجيل الدخول مرة أخرى.',
+            showConfirmButton: false,
+            timer: 2600,
+            allowOutsideClick: false,
+            allowEscapeKey: false
+          });
+
+          setTimeout(() => logout(), 2800);
+        } catch (err) {
+          console.warn('checkForcedLogout failed', err);
+        }
+      }
+
+      // logout function
+      function logout() {
+        try{ if (window.activityLogger) activityLogger.logActivity('logout', '/main.html', {}); } catch(e){}
+        localStorage.removeItem('userCode');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userUid');
+        localStorage.removeItem('userRoles');
+        window.location.href = 'index.html';
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        resolveAndSetWelcome();
+        initTrialCountdown();
+        checkForcedLogout();
+        const btn = document.getElementById('viewPermBtn');
+        if (btn) btn.addEventListener('click', openPermModal);
+
+        // initialize upload notifications UI
+        try { initUploadNotifications(); } catch(e) { console.warn('initUploadNotifications failed', e); }
+      });
+    </script>
+
+    <script>
+      // Mark icon cards the user is not authorized to open; provides visual lock and toast
+      (function(){
+        const MAP = { btnKorba:'korba_page', btnDokki:'dokki_page', btnTagamo3:'tagamo3_page', btnObour:'obour_page', btnAll:'all_orders_page', btnSendToBranches:'send_to_branches_page', btnUpload:'upload_page', btnStorage:'storage_page', btnDelivery:'delivery_page', btnReservation:'reservation_page', btnAdmin:'admin_page', btnQuality:'quality_page', btnBestSweet:'best_sweet_page' };
+
+        function hasRoleFor(role, roles){ if(!roles || roles.length===0) return false; if (roles.includes('all')) return true; return roles.includes(role); }
+
+        function applyIconPermissions(){
+          const roles = getCurrentRoles() || [];
+          Object.keys(MAP).forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const required = MAP[id];
+            const allowed = hasRoleFor(required, roles);
+            // remove existing handlers to avoid duplicates
+            el.removeEventListener('click', lockedClickHandler);
+            el.removeEventListener('keydown', lockedKeyHandler);
+
+            if (!allowed){
+              el.classList.add('perm-locked');
+              el.setAttribute('aria-disabled','true');
+              el.setAttribute('tabindex','0');
+              if (!el.querySelector('.lock-badge')){
+                const b = document.createElement('span'); b.className='lock-badge'; b.innerHTML='🔒'; el.appendChild(b);
+              }
+              el.addEventListener('click', lockedClickHandler);
+              el.addEventListener('keydown', lockedKeyHandler);
+            } else {
+              el.classList.remove('perm-locked');
+              el.removeAttribute('aria-disabled');
+              el.removeAttribute('tabindex');
+              const b = el.querySelector('.lock-badge'); if (b) b.remove();
+            }
+          });
+        }
+
+        function lockedClickHandler(e){
+          try{ e.preventDefault(); e.stopPropagation(); }catch(e){}
+          const target = e.currentTarget || e.target;
+          const id = target && target.id;
+          const required = MAP[id] || '';
+          const label = labelMap[required] || 'هذه الصفحة';
+          showPermToast('لا تملك صلاحية الوصول إلى ' + label);
+        }
+        function lockedKeyHandler(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); lockedClickHandler(e); } }
+
+        // simple transient toast (uses existing .perm-toast styles)
+        function showPermToast(msg){
+          let t = document.getElementById('permToast');
+          if (!t){ t = document.createElement('div'); t.id = 'permToast'; t.className = 'perm-toast'; t.innerHTML = '<span class="label"></span>'; document.body.appendChild(t); }
+          t.querySelector('.label').textContent = msg;
+          t.classList.add('show');
+          clearTimeout(t._hideTimeout);
+          t._hideTimeout = setTimeout(()=> t.classList.remove('show'), 2200);
+        }
+
+        // run on load and when storage (roles) changes
+        document.addEventListener('DOMContentLoaded', applyIconPermissions);
+        window.addEventListener('storage', applyIconPermissions);
+        // also expose for manual refresh
+        window.applyIconPermissions = applyIconPermissions;
+      })();
+    </script>
+
+    <!-- Upload notifications: local storage + UI (24h TTL, cycling, expand on click) -->
+    <script>
+      const UPLOAD_NOTIF_KEY = 'upload_notifications_v1';
+      const UPLOAD_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+      let _cycleTimer = null; let _cycleIndex = 0; let _newsBarTimer = null; let _barIndex = 0;
+
+      // Arabic labels for branches
+      const BRANCH_LABELS = { korba: 'الكوربة', dokki: 'الدقي', tagamo3: 'التجمع', obour: 'العبور' };
+
+      function loadStoredNotifs(){
+        try{
+          const raw = localStorage.getItem(UPLOAD_NOTIF_KEY) || '[]';
+          let arr = JSON.parse(raw);
+          const now = Date.now();
+          arr = (arr||[]).filter(n=> (n.ts && (now - n.ts) < UPLOAD_TTL_MS));
+          arr.sort((a,b)=> b.ts - a.ts);
+          localStorage.setItem(UPLOAD_NOTIF_KEY, JSON.stringify(arr));
+          return arr;
+        }catch(e){ console.warn('loadStoredNotifs failed', e); return []; }
+      }
+
+      function saveNotifs(arr){ try{ localStorage.setItem(UPLOAD_NOTIF_KEY, JSON.stringify(arr)); }catch(e){console.warn(e);} }
+
+      function getBranchLabel(code){ try{ if (!code) return 'فرع غير معروف'; if (BRANCH_LABELS[code]) return 'فرع ' + BRANCH_LABELS[code]; return 'فرع ' + code; }catch(e){return code||'فرع غير معروف';} }
+
+      function addUploadNotification(n){
+        try{
+          if (!n || !n.id) n.id = 'i_' + Math.random().toString(36).slice(2,9);
+          n.ts = n.ts || Date.now();
+          // load and dedupe per branch: keep latest per branch; if exists -> mark edited
+          let arr = loadStoredNotifs();
+          const existingIndex = arr.findIndex(x => x.branch && n.branch && x.branch === n.branch);
+          let wasEdited = false;
+          if (existingIndex !== -1){
+            // update existing entry with latest info and mark as edited
+            const existing = arr[existingIndex];
+            const merged = Object.assign({}, existing, n, { edited: true, ts: n.ts, orderDate: n.orderDate || existing.orderDate });
+            // remove old instance and put merged at front
+            arr.splice(existingIndex, 1);
+            arr.unshift(merged);
+            wasEdited = true;
+            n = merged;
+          } else {
+            arr.unshift(n);
+          }
+
+          // enforce TTL and unique-by-branch and max length
+          const now = Date.now();
+          const filtered = [];
+          for (const x of arr){
+            if (!(x.ts && (now - x.ts) < UPLOAD_TTL_MS)) continue;
+            if (!filtered.find(u => u.branch === x.branch)) filtered.push(x);
+            if (filtered.length >= 200) break;
+          }
+          saveNotifs(filtered);
+          updateWidgetFromStorage();
+          // show transient bar only for newly added or updated notifications
+          const display = getBranchLabel(n.branch);
+          const text = `قام ${display} بتحميل طلبيته ليوم ${n.orderDate || formatDate(n.ts)}`;
+          showTransientUploadBar(text);
+        }catch(e){ console.warn('addUploadNotification', e); }
+      }
+
+      function formatDate(ts){ try{ const d = new Date(ts); return d.toLocaleString('ar-EG'); }catch(e){ return ''; } }
+
+      // helper to animate label text changes
+      function animateLabelText(label, newText){
+        if (!label) return;
+        if (label.textContent === newText) return; // nothing to do
+        // if already animating, just set text after a short timeout to avoid queues
+        if (label._animating){ setTimeout(()=>{ label.textContent = newText; }, 300); return; }
+        label._animating = true;
+        label.classList.add('label-fade-out');
+        const onEnd = (ev)=>{
+          if (ev.propertyName !== 'opacity') return;
+          label.removeEventListener('transitionend', onEnd);
+          label.classList.remove('label-fade-out');
+          label.textContent = newText;
+          // small frame then animate back in
+          requestAnimationFrame(()=>{
+            label.classList.add('label-fade-in');
+            // remove class after next frame so future transitions work
+            requestAnimationFrame(()=>{ label.classList.remove('label-fade-in'); label._animating = false; });
+          });
+        };
+        label.addEventListener('transitionend', onEnd);
+      }
+
+      function updateWidgetFromStorage(){
+        const arr = loadStoredNotifs();
+        const label = document.getElementById('uploadWidgetLabel');
+        const badge = document.getElementById('uploadWidgetBadge');
+        if (!label || !badge) return;
+        if (!arr || arr.length===0){ animateLabelText(label, '🔔 لا توجد إشعارات حديثة'); badge.style.display='none'; stopCycling(); return; }
+        badge.textContent = String(arr.length); badge.style.display='inline-flex';
+        // show the first (or current index) item
+        _cycleIndex = _cycleIndex % arr.length;
+        const cur = arr[_cycleIndex] || arr[0];
+        const display = getBranchLabel(cur.branch);
+        const odLabel = cur.orderDate || formatDate(cur.ts);
+        animateLabelText(label, `🔔 قام ${display} بتحميل طلبيته ليوم ${odLabel}`);
+        // start cycling if many (widget)
+        if (arr.length > 1) startCycling(); else stopCycling();
+        // start/stop the bottom news bar cycle (show each stored notification transiently)
+        if (arr.length > 0) startNewsBarCycle(); else stopNewsBarCycle();
+      }
+
+      function startCycling(){ stopCycling(); _cycleTimer = setInterval(()=>{ const arr = loadStoredNotifs(); if (!arr || arr.length<=1) { stopCycling(); return; } _cycleIndex = (_cycleIndex + 1) % arr.length; updateWidgetFromStorage(); }, 3000); }
+      function stopCycling(){ if (_cycleTimer){ clearInterval(_cycleTimer); _cycleTimer = null; } }
+
+      function startNewsBarCycle(){ stopNewsBarCycle(); const arr = loadStoredNotifs(); if (!arr || arr.length===0) return; _barIndex = _barIndex % arr.length; _newsBarTimer = setInterval(()=>{ const a = loadStoredNotifs(); if (!a || a.length===0) { stopNewsBarCycle(); return; } _barIndex = (_barIndex + 1) % a.length; const cur = a[_barIndex] || a[0]; const od = cur.orderDate || formatDate(cur.ts); showTransientUploadBar(`قام ${getBranchLabel(cur.branch)} بتحميل طلبيته ليوم ${od}`); }, 3000); }
+      function stopNewsBarCycle(){ if (_newsBarTimer){ clearInterval(_newsBarTimer); _newsBarTimer = null; } }
+
+      // Expand modal
+      function renderUploadModal(){
+        let modal = document.getElementById('uploadModal');
+        if (!modal){ modal = document.createElement('div'); modal.id = 'uploadModal'; modal.innerHTML = `<div class="panel" role="dialog" aria-modal="true"><h3>الإشعارات خلال 24 ساعة</h3><div id="uploadList"></div><div class="actions"><button class="clear-btn" id="clearUploadNotifs">مسح</button><button class="close-btn" id="closeUploadModal">إغلاق</button></div></div>`; document.body.appendChild(modal);
+          modal.addEventListener('click', (ev)=>{ if (ev.target === modal) closeUploadModal(); });
+          modal.querySelector('#closeUploadModal').addEventListener('click', closeUploadModal);
+          modal.querySelector('#clearUploadNotifs').addEventListener('click', ()=>{ saveNotifs([]); updateWidgetFromStorage(); renderUploadList(); });
+        }
+        renderUploadList();
+        return modal;
+      }
+
+      function renderUploadList(){
+        const listEl = document.getElementById('uploadList');
+        if (!listEl) return;
+        const arr = loadStoredNotifs();
+        listEl.innerHTML = '';
+        if (!arr || arr.length===0) { listEl.innerHTML = '<p style="color:#cfcfcf">لا توجد إشعارات</p>'; return; }
+        arr.forEach(n => {
+          const item = document.createElement('div'); item.className = 'upload-list-item';
+          const left = document.createElement('div');
+          const branchLabel = escapeForHtml(getBranchLabel(n.branch));
+          left.innerHTML = `<div class="caption"><strong>قام ${branchLabel} بتحميل طلبيته</strong></div><div class="meta">${escapeForHtml(formatDate(n.ts))}</div>`;
+          const right = document.createElement('div'); right.innerHTML = `<div class="actions"><button class="view-file-btn" aria-label="عرض الملف لفرع ${escapeForHtml(n.branch||'')} بتاريخ ${escapeForHtml(n.orderDate||'')}" data-branch="${escapeForHtml(n.branch||'')}" data-order="${escapeForHtml(n.orderDate||'')}">عرض الملف</button></div>`;
+          item.appendChild(left); item.appendChild(right); listEl.appendChild(item);
+          const btn = item.querySelector('.view-file-btn'); if (btn){ btn.addEventListener('click', ()=>{ showUploadDataModal(btn.dataset.branch, btn.dataset.order); }); }
+        });
+      }
+
+      function showUploadDataModal(branch, orderDate){
+        let modal = document.getElementById('uploadDataModal');
+        if (!modal){
+          modal = document.createElement('div'); modal.id = 'uploadDataModal'; modal.innerHTML = `<div class="panel" role="dialog" aria-modal="true"><h3>عرض محتوى ملف الإكسيل</h3><div id="uploadDataContainer">جارٍ التحميل...</div><div class="actions"><button class="close-btn" id="closeUploadDataModal">إغلاق</button><button class="view-file-export" id="exportUploadData" disabled>تحميل CSV</button></div></div>`; document.body.appendChild(modal);
+          modal.addEventListener('click', (ev)=>{ if (ev.target === modal) { const m = document.getElementById('uploadDataModal'); if (m) m.classList.remove('open'); } });
+          modal.querySelector('#closeUploadDataModal').addEventListener('click', ()=>{ const m = document.getElementById('uploadDataModal'); if (m) m.classList.remove('open'); });
+        }
+        const container = modal.querySelector('#uploadDataContainer'); if (!container) return; container.innerHTML = `<p>جارٍ استرجاع بيانات الفرع ${escapeForHtml(getBranchLabel(branch))} لتاريخ ${escapeForHtml(orderDate||'—')}</p>`;
+        modal.classList.add('open');
+        try{
+          if (typeof db === 'undefined') { container.innerHTML = '<p style="color:#f88">Firestore غير مهيأ</p>'; return; }
+          db.collection('orders').where('branch','==',branch).where('orderDate','==',orderDate).limit(1000).get().then(snap=>{
+            if (!snap || snap.empty){ container.innerHTML = '<p style="color:#cfcfcf">لا توجد بيانات محفوظة لهذا التاريخ</p>'; return; }
+
+            // gather rows (preserve original id but we will not show it)
+            const rows = snap.docs.map(d=> ({ id: d.id, ...d.data() }));
+            // determine if there's a SHEET column (case-insensitive)
+            const sheetKey = Object.keys(rows[0]||{}).find(k => k.toLowerCase() === 'sheet');
+            const sheets = sheetKey ? Array.from(new Set(rows.map(r => r[sheetKey]).filter(Boolean))) : [];
+
+            // build list of available keys excluding metadata and id/sheet
+            const allKeys = Object.keys(rows[0]).filter(k=>k!=='branch' && k!=='orderDate' && k!=='timestamp' && k!=='id' && k!==sheetKey);
+
+            // prefer showing only NAME, CODE, QTY (case-insensitive matches)
+            const desired = ['NAME','CODE','QTY'];
+            const colKeys = desired.map(d => allKeys.find(k => k.toLowerCase() === d.toLowerCase())).filter(Boolean);
+
+            let html = '<div style="overflow:auto">';
+
+            // if we have sheet names, render them as buttons (these replace the old ID column)
+            if (sheets.length > 0) {
+              html += '<div class="button-group" style="margin-bottom:10px; justify-content:flex-start;">' +
+                sheets.map(s => `<button type="button" class="sheet-filter-btn" data-sheet="${escapeForHtml(s)}">${escapeForHtml(s)}</button>`).join('') +
+                '</div>';
+            }
+
+            // if we don't detect the desired columns, fall back to showing all available columns (excluding id and meta)
+            if (colKeys.length === 0) {
+              html += '<table><thead><tr>' + allKeys.map(k=>`<th>${escapeForHtml(k)}</th>`).join('') + '</tr></thead><tbody>';
+              rows.forEach(r => { html += '<tr>' + allKeys.map(k=>`<td>${escapeForHtml(String(r[k]===undefined?'':r[k]))}</td>`).join('') + '</tr>'; });
+              html += '</tbody></table></div>';
+              container.innerHTML = html;
+              const exportBtn = modal.querySelector('#exportUploadData'); if (exportBtn){ exportBtn.disabled = false; exportBtn.onclick = ()=> exportOrdersToCSV(rows, branch, orderDate); }
+              return;
+            }
+
+            // build table header for NAME, CODE, QTY (only the ones that exist)
+            html += `<div id="sheetTableContainer"><table><thead><tr>${colKeys.map(k=>`<th>${escapeForHtml(k)}</th>`).join('')}</tr></thead><tbody>`;
+
+            // helper to render a set of rows for a given sheet
+            const renderRowsFor = (selectedSheet) => {
+              const filtered = selectedSheet ? rows.filter(r => String(r[sheetKey]) === selectedSheet) : rows;
+              return filtered.map(r => '<tr>' + colKeys.map(k=>`<td>${escapeForHtml(String(r[k]===undefined?'':r[k]))}</td>`).join('') + '</tr>').join('');
+            };
+
+            // default: show first sheet if available
+            const defaultSheet = sheets.length > 0 ? sheets[0] : null;
+            html += renderRowsFor(defaultSheet);
+            html += '</tbody></table></div></div>';
+
+            container.innerHTML = html;
+
+            // enable export button
+            const exportBtn = modal.querySelector('#exportUploadData'); if (exportBtn){ exportBtn.disabled = false; exportBtn.onclick = ()=> exportOrdersToCSV(rows, branch, orderDate); }
+
+            // wire up sheet buttons to filter displayed rows
+            setTimeout(()=>{
+              const btns = modal.querySelectorAll('.sheet-filter-btn');
+              btns.forEach(b => {
+                b.addEventListener('click', ()=>{
+                  const sel = b.dataset.sheet;
+                  const tbody = modal.querySelector('#sheetTableContainer tbody');
+                  if (!tbody) return;
+                  tbody.innerHTML = renderRowsFor(sel);
+                  btns.forEach(x=> x.classList.toggle('active', x === b));
+                });
+              });
+              // activate first button by default if exists
+              const first = modal.querySelector('.sheet-filter-btn'); if (first) { first.classList.add('active'); first.click(); }
+            }, 20);
+
+          }).catch(e=>{ container.innerHTML = `<p style="color:#f88">حدث خطأ أثناء جلب البيانات</p>`; console.warn('fetch upload data failed', e); });
+        }catch(e){ container.innerHTML = '<p style="color:#f88">خطأ داخلي</p>'; }
+      }
+
+      function exportOrdersToCSV(rows, branch, orderDate){
+        if (!rows || !rows.length) return; const keys = Object.keys(rows[0]).filter(k=>k!=='branch'&&k!=='orderDate'&&k!=='timestamp');
+        const csv = [keys.join(',')].concat(rows.map(r=> keys.map(k=> `"${String((r[k]===undefined?'':r[k])).replace(/"/g,'""')}"`).join(',')).join('\n'));
+        // fix: the above concat was wrong, build properly
+        const csvBody = [keys.join(',')].concat(rows.map(r=> keys.map(k=> `"${String((r[k]===undefined?'':r[k])).replace(/"/g,'""')}"`).join(','))).join('\n');
+        const blob = new Blob([csvBody], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `upload_${branch}_${orderDate||'date'}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 2000);
+      }
+
+      function showTransientUploadBar(text){
+        try{
+          const bar = document.getElementById('uploadNewsBar'); if (!bar) return;
+          bar.classList.add('upload-news');
+          let ticker = bar.querySelector('.ticker');
+          if (!ticker){ ticker = document.createElement('div'); ticker.className = 'ticker'; bar.appendChild(ticker); }
+          const newItem = document.createElement('div'); newItem.className = 'ticker-item'; newItem.textContent = text;
+          const current = ticker.querySelector('.ticker-item.show');
+          ticker.appendChild(newItem);
+          // force layout then animate
+          newItem.getBoundingClientRect();
+          requestAnimationFrame(()=>{
+            newItem.classList.add('show');
+            if (current){ current.classList.remove('show'); current.classList.add('up'); setTimeout(()=>{ try{ current.remove(); }catch(e){} }, 460); }
+          });
+          // schedule removal after 3s (unless replaced earlier)
+          clearTimeout(bar._hideTimer);
+          bar._hideTimer = setTimeout(()=>{
+            try{ newItem.classList.remove('show'); newItem.classList.add('up'); setTimeout(()=>{ try{ newItem.remove(); }catch(e){} }, 460); }catch(e){}
+          }, 3000);
+        }catch(e){ console.warn('showTransientUploadBar failed', e); }
+      }
+
+      function openUploadModal(){ stopNewsBarCycle(); const m = renderUploadModal(); m.classList.add('open'); renderUploadList(); }
+      function closeUploadModal(){ const m = document.getElementById('uploadModal'); if (m) m.classList.remove('open'); // resume cycling after closing
+        try{ updateWidgetFromStorage(); }catch(e){} }
+
+      function initUploadNotifications(){
+        // hydrate from local storage
+        updateWidgetFromStorage();
+        const widget = document.getElementById('uploadNewsWidget'); if (widget) { widget.addEventListener('click', ()=>{ openUploadModal(); }); }
+
+        // initial fetch of recent upload_all events (client-side filter) to populate history
+        try{
+          if (typeof db !== 'undefined'){
+            db.collection('activity_logs').orderBy('timestamp','desc').limit(100).get().then(snap=>{
+              snap.docs.forEach(d=>{
+                const dd = d.data()||{};
+              if (dd.action !== 'upload_all') return;
+              const details = dd.details || {};
+              let branch = details.branch || '';
+              if (!branch && dd.page) {
+                if (dd.page.includes('korba')) branch = 'korba';
+                else if (dd.page.includes('dokki')) branch = 'dokki';
+                else if (dd.page.includes('tagamo3')) branch = 'tagamo3';
+                else if (dd.page.includes('obour')) branch = 'obour';
+              }
+              if (!branch) branch = 'غير معروف';
+              const ts = (dd.timestamp && dd.timestamp.toMillis) ? dd.timestamp.toMillis() : ((dd.timestamp && dd.timestamp.toDate) ? dd.timestamp.toDate().getTime() : Date.now());
+              addUploadNotification({ id: d.id, branch, orderDate: details.orderDate||'', rows: details.rows||0, ts });
+              });
+            }).catch(e=>{ /* ignore fetch errors */ });
+          }
+        }catch(e){/* ignore */}
+      }
+    </script>
+    </script>
+
+  <!-- permissions handling: persist roles, hide buttons, attach roles to links/buttons -->
+  <script>
+    // Persist roles from URL to localStorage so other pages keep the same context
+    const rolesParamMain = new URLSearchParams(window.location.search).get("roles");
+    if (rolesParamMain) localStorage.setItem('roles', rolesParamMain);
+
+    // Roles array from URL (used to hide buttons immediately)
+    const rolesFromUrl = new URLSearchParams(window.location.search).get("roles")?.split(",") || [];
+
+    const roleMap = {
+      btnKorba: "korba_page",
+      btnDokki: "dokki_page",
+      btnTagamo3: "tagamo3_page",
+      btnObour: "obour_page",
+      btnAll: "all_orders_page",
+      btnUpload: "upload_page",
+      btnStorage: "storage_page",
+      btnDelivery: "delivery_page",
+      btnReservation: "reservation_page",
+      btnAdmin: "admin_page",
+      btnSendToBranches: "send_to_branches_page",
+      btnAllReservations: "all_reservations_page",
+      btnQuality: "quality_page", // زر صفحة الجودة الجديد
+      btnBestSweet: "best_sweet_page" // زر بيست سويت الجديد
+    };
+
+    // Hide buttons on load if roles do not include required permission
+    window.addEventListener('load', () => {
+      // If rolesFromUrl is empty, hide all permissioned buttons
+      const hasRoles = rolesFromUrl.length > 0 && rolesFromUrl[0] !== "";
+      // Some buttons should be available always regardless of roles
+      const alwaysEnabled = ['btnObour'];
+      Object.entries(roleMap).forEach(([id, role]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // keep always-enabled items active
+        if (alwaysEnabled.includes(id)) { el.classList.remove('perm-locked'); el.removeAttribute('aria-disabled'); return; }
+        if (!hasRoles || (!rolesFromUrl.includes('all') && !rolesFromUrl.includes(role))) {
+          // mark element as visually locked rather than removing it from layout
+          el.classList.add('perm-locked');
+          el.setAttribute('aria-disabled', 'true');
+          // make it unfocusable by keyboard and store original tabindex if present
+          try { el.dataset._origTabindex = el.getAttribute('tabindex'); } catch(e){}
+          try { el.setAttribute('tabindex', '-1'); } catch(e){}
+
+          // prevent navigation or activation via click, auxclick (middle click), or keyboard
+          const preventer = (ev) => { try{ ev.preventDefault(); ev.stopImmediatePropagation(); }catch(e){}; showNoPermissionToastFor(el); };
+          const keyPreventer = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { try{ ev.preventDefault(); ev.stopImmediatePropagation(); }catch(e){}; showNoPermissionToastFor(el); } };
+          const auxPreventer = (ev) => { try{ ev.preventDefault(); ev.stopImmediatePropagation(); }catch(e){}; showNoPermissionToastFor(el); };
+
+          // ensure we don't attach multiple handlers by attaching named functions once
+          // attach in capture phase to run before other listeners and stop other handlers
+          el.addEventListener('click', preventer, { passive: false, capture: true });
+          el.addEventListener('auxclick', auxPreventer, { passive: false, capture: true });
+          el.addEventListener('keydown', keyPreventer, { passive: false, capture: true });
+
+          // neutralize inline onclick handlers (store original for debugging or future restore)
+          if (el.hasAttribute && el.hasAttribute('onclick')) {
+            try { el.dataset.originalOnclick = el.getAttribute('onclick'); } catch(e){}
+            try { el.setAttribute('onclick', 'return false;'); } catch(e){}
+          }
+
+          // neutralize title to give quick hint and preserve original title
+          try{ let hadTitle = false; if (el.hasAttribute && el.hasAttribute('title')) { el.dataset.originalTitle = el.getAttribute('title'); hadTitle = true; } if (hadTitle) { try{ el.setAttribute('title', 'غير مصرح'); }catch(e){} } }catch(e){}
+
+          // If it's an anchor, preserve the original href then neutralize it so that
+          // right-click/context-copy still works (original preserved in dataset)
+          if (el.tagName === 'A' && el.hasAttribute('href')) {
+            try { el.dataset.originalHref = el.getAttribute('href'); } catch(e){}
+            try { el.setAttribute('href', '#'); } catch(e){}
+          }
+        }
+      });
+    });
+
+    // Append roles query param to internal links and buttons that use location.href
+    function attachRolesToNavLinks() {
+      const stored = localStorage.getItem('roles');
+      if (!stored) return;
+      document.querySelectorAll('a').forEach(a => {
+        if (a.classList && a.classList.contains('perm-locked')) return;
+        const href = a.getAttribute('href');
+        if (!href) return;
+        if (/^https?:\/\//i.test(href) || href.includes('roles=')) return;
+        const sep = href.includes('?') ? '&' : '?';
+        a.setAttribute('href', href + sep + 'roles=' + encodeURIComponent(stored));
+      });
+      document.querySelectorAll('button[onclick]').forEach(btn => {
+        if (btn.classList && btn.classList.contains('perm-locked')) return;
+        const onclick = btn.getAttribute('onclick');
+        const m = onclick && onclick.match(/location\\.href\s*=\s*['"]([^'"]+)['"]/);
+        if (!m) return;
+        let url = m[1];
+        if (/^https?:\/\//i.test(url) || url.includes('roles=')) return;
+        const sep = url.includes('?') ? '&' : '?';
+        const newUrl = url + sep + 'roles=' + encodeURIComponent(stored);
+        btn.setAttribute('onclick', `location.href='${newUrl}'`);
+      });
+    }
+
+    // Show a simple temporary toast when a locked element is activated
+    function showNoPermissionToastFor(el){
+      try{
+        // prefer preserved original title (if we saved it), then aria-label, then visible text, then title, then id
+        let rawLabel = '';
+        try{ rawLabel = (el && el.dataset && el.dataset.originalTitle) || ''; }catch(e){}
+        try{
+          if (!rawLabel && el && el.getAttribute){
+            const aria = el.getAttribute('aria-label');
+            const text = (el.textContent || el.innerText || '').trim();
+            const titleAttr = el.getAttribute('title');
+            rawLabel = aria || (text && text.length ? text : '') || titleAttr || el.id || '';
+          }
+        }catch(e){}
+        const label = rawLabel || 'هذا العنصر';
+        const msg = `ليس لديك صلاحية الدخول إلى ${label}`;
+        let toast = document.querySelector('.perm-toast');
+        if (!toast){ toast = document.createElement('div'); toast.className = 'perm-toast'; document.body.appendChild(toast); }
+        toast.innerHTML = `<span>${escapeForHtml(msg)}</span>`;
+        requestAnimationFrame(()=> toast.classList.add('show'));
+        clearTimeout(toast._hideTimer);
+        toast._hideTimer = setTimeout(()=> { toast.classList.remove('show'); }, 2600);
+      }catch(e){ console.warn('showNoPermissionToastFor failed', e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', attachRolesToNavLinks);
+  </script>
+
+  <script>
+    // attach activity logging to main navigation buttons
+    document.addEventListener('DOMContentLoaded', () => {
+      const map = {
+        btnKorba: 'korba.html', btnDokki: 'dokki.html', btnTagamo3: 'tagamo3.html', btnObour: 'obour.html',
+        btnAll: 'all-orders.html', btnSendToBranches: 'send-to-branches.html', btnUpload: 'upload-catalog.html', btnStorage: 'مخازن/index.html',
+        btnDelivery: 'delivery-orders.html', btnReservation: 'reservation.html', btnAdmin: 'admin-dashboard.html',
+        btnQuality: 'quality.html', btnBestSweet: 'best-sweet.html'
+      };
+      Object.keys(map).forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', () => {
+          try{ if (window.activityLogger) activityLogger.logActivity('navigate','/main.html',{ to: map[id] }); } catch(e){}
+        });
+      });
+    });
+  </script>
+
+  <!-- end permissions handling -->
+
+  <script>
+    // Suggestion button anchored under #newsContainer + SweetAlert2 modal (saves to Firestore collection "sug")
+    (function(){
+      function getFirstName(){
+        const raw = localStorage.getItem('username') || localStorage.getItem('userCode') || 'مستخدم';
+        return (String(raw||'مستخدم').split(/\s+/)[0]) || 'مستخدم';
+      }
+
+      function openSuggestModal(){
+        const first = escapeForHtml(getFirstName());
+        Swal.fire({
+          title: `اكتب اقتراحك يا ${first}`,
+          html: `
+            <textarea id="sugTxt" class="swal2-textarea" placeholder="اكتب اقتراحك هنا..." style="width:100%;min-height:120px;resize:vertical;"></textarea>
+            <div class="swal2-sug-note">اقتراحك يا ${first} هيفدنا في تطوير المشروع اكتر وكمان هتاخد تجربه احلي بعد منفذ اقتراحك</div>
+            <div style="display:flex;justify-content:center;margin-top:10px">
+              <button id="viewMessagesBtn" class="view-messages-btn" type="button">رسائل لك <span id="msgCount" style="margin-inline-start:8px;font-weight:800;color:#ffd">0</span></button>
+            </div>
+          `,
+          showCancelButton: true,
+          focusConfirm: false,
+          confirmButtonText: 'إرسال',
+          customClass: { popup: 'no-scroll-swal smooth-swal' },
+          heightAuto: false,
+          didOpen: () => { const t = document.getElementById('sugTxt'); if (t) t.focus();
+            // wire the view messages button
+            const vb = document.getElementById('viewMessagesBtn');
+            const mc = document.getElementById('msgCount');
+            if (mc) mc.textContent = (window._sug_unread_docs && window._sug_unread_docs.length) ? window._sug_unread_docs.length : '0';
+            if (vb){ vb.addEventListener('click', async ()=>{
+              const user = (localStorage.getItem('userCode') || localStorage.getItem('username') || null);
+              if (!user) return Swal.fire('تنبيه','لم يتم العثور على هوية المستخدم','info');
+              // fetch latest user suggestions and replies (avoid composite index: fetch and sort client-side)
+              try{
+                const snap = await db.collection('sug').where('userCode','==', user).get();
+                const docs = [];
+                snap.forEach(doc => docs.push({ id: doc.id, data: doc.data() }));
+                function tsVal(d){ if (!d || !d.createdAt) return 0; try{ if (typeof d.createdAt.toDate === 'function') return d.createdAt.toDate().getTime(); if (d.createdAt && d.createdAt.seconds) return d.createdAt.seconds*1000; }catch(e){} return 0; }
+                docs.sort((a,b)=> tsVal(b.data) - tsVal(a.data));
+                const seen = getSeenSet();
+                const unread = [];
+                docs.forEach(item=>{ const d = item.data; if (d && d.reply && d.reply.text && !seen.has(item.id)) unread.push({ id: item.id, data: d }); });
+                if (unread.length === 0) return Swal.fire('لا توجد رسائل جديدة');
+                const html = unread.map(u=>{
+                  const admin = escapeForHtml(u.data.reply.adminName || u.data.reply.adminCode || 'الادمن');
+                  const first = escapeForHtml(getFirstName());
+                  const text = escapeForHtml(u.data.reply.text || '');
+                  return `<div class="msg-card"><div>قام "${admin}" بالرد علي مقترحك يا "${first}"</div><div class="msg-body" style="margin-top:8px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.02)">${text}</div></div>`;
+                }).join('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.04);margin:12px 0">');
+
+                await Swal.fire({ title:'رسائلك', html, customClass:{popup:'no-scroll-swal smooth-swal'}, confirmButtonText:'إغلاق', width:640, heightAuto:false });
+                // mark as seen locally
+                const s = getSeenSet(); unread.forEach(u=> s.add(u.id)); setSeenSet(s); updateSuggestBadge(0);
+                if (mc) mc.textContent = '0';
+              }catch(err){ console.error('viewMessages failed', err); Swal.fire('خطأ','تعذر جلب الرسائل','error'); }
+            }); }
+          },
+          preConfirm: () => {
+            const v = document.getElementById('sugTxt')?.value?.trim();
+            if (!v) { Swal.showValidationMessage('الرجاء كتابة المقترح'); return false; }
+            return v;
+          }
+        }).then(async (res) => {
+          if (!res.isConfirmed) return;
+          const suggestion = res.value;
+          const username = localStorage.getItem('username') || null;
+          const userCode = localStorage.getItem('userCode') || null;
+          try{
+            await db.collection('sug').add({ suggestion, username, userCode, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await Swal.fire('تم','تم إرسال الاقتراح إلى الادمن، شكراً لك','success');
+          }catch(err){
+            console.error('sug add failed', err);
+            Swal.fire('خطأ','تعذر إرسال الاقتراح. حاول لاحقاً','error');
+          }
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        const btn = document.createElement('button');
+        btn.id = 'suggestBtn';
+        btn.className = 'suggest-floating-btn';
+        btn.title = 'أرسل اقتراح';
+        btn.setAttribute('aria-label', 'أرسل اقتراح');
+        // Compact Telegram-like circular SVG (white plane on blue gradient)
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" width="24" height="24">
+            <defs>
+              <linearGradient id="tg1" x1="0" x2="1"><stop offset="0" stop-color="#2aabff"/><stop offset="1" stop-color="#00d9ff"/></linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="12" fill="url(#tg1)"></circle>
+            <path d="M19 5L5 11l4 1 1 4 3-3 5 2-9-10z" fill="#fff" opacity="0.98"></path>
+          </svg>
+        `;
+        btn.addEventListener('click', openSuggestModal);
+
+        // Insert next to upload widget label if present, otherwise append to body (fixed fallback)
+        const label = document.getElementById('uploadWidgetLabel');
+        const news = document.getElementById('newsContainer');
+        // Always append to body and use fixed bottom-left placement
+        document.body.appendChild(btn);
+        // ensure the button can host an unread badge
+        btn.style.position = 'fixed';
+        btn.style.left = '18px';
+        btn.style.bottom = '18px';
+        btn.style.right = 'auto';
+        btn.style.top = 'auto';
+        // small unread badge placeholder
+        const _badge = document.createElement('span'); _badge.className = 'unread-count'; btn.appendChild(_badge);
+
+        // Create chat button (next to suggest button)
+        const chatBtn = document.createElement('button'); chatBtn.id = 'chatBtn'; chatBtn.title = 'تواصل مع المستخدمين'; chatBtn.setAttribute('aria-label','تواصل مع المستخدمين');
+        chatBtn.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><path d="M2 21l1.5-5.5C3.9 14 5 13 6.5 13H7V7C7 5.3 8.3 4 10 4h4c1.7 0 3 1.3 3 3v6c0 1.1-.9 2-2 2h-1l-4 4H6c-1.1 0-2-.9-2-2z" fill="#fff" opacity="0.98"/></svg><span class="unread-count"></span>`;
+        document.body.appendChild(chatBtn);
+        chatBtn.style.position = 'fixed'; chatBtn.style.left = '86px'; chatBtn.style.bottom = '18px';
+
+        // Local helpers for seen/unread state (client-side per user)
+        const _seenKey = 'seenSugReplies';
+        window.getUserCode = function(){ return localStorage.getItem('userCode') || localStorage.getItem('username') || null; };
+        window.getSeenSet = function(){ try{ return new Set(JSON.parse(localStorage.getItem(_seenKey) || '[]')); }catch(e){ return new Set(); } };
+        window.setSeenSet = function(s){ try{ localStorage.setItem(_seenKey, JSON.stringify([...s])); }catch(e){} };
+        window.updateSuggestBadge = function(count){ if (!btn) return; const span = btn.querySelector('.unread-count'); if (!span) return; span.textContent = count>99? '99+' : String(count); if (count>0) btn.classList.add('has-unread'); else btn.classList.remove('has-unread'); };
+
+        // Chat unread subscription: listens for messages addressed to current user that are not read
+        function updateChatBadge(count){ if (!chatBtn) return; const s = chatBtn.querySelector('.unread-count'); if (!s) return; s.textContent = count>99? '99+' : String(count); if (count>0) chatBtn.classList.add('has-unread'); else chatBtn.classList.remove('has-unread'); }
+        function subscribeChatUnread(){ const me = window.getUserCode(); if (!me) return; try{ db.collection('chat_messages').where('to','==', me).where('read','==', false).onSnapshot(snap => { updateChatBadge(snap.size || 0); }, e => console.warn('chat unread sub failed', e)); }catch(e){ console.warn('subscribeChatUnread failed', e); } }
+        subscribeChatUnread();
+
+        // click navigates to chat page
+        chatBtn.addEventListener('click', ()=>{ window.location.href = 'conversation.html'; });
+
+        // keep it visible/positioned after layout changes
+        window.addEventListener('resize', ()=>{ btn.style.left = '18px'; btn.style.bottom = '18px'; });
+
+        // Expose for manual/testing use and provide an opt-in automated test when ?testSuggest=1
+        try{ window.openSuggestModal = openSuggestModal; }catch(e){};
+
+        function subscribeToReplies(){ const u = getUserCode(); if (!u) return; try{ db.collection('sug').where('userCode','==',u).onSnapshot(snap=>{ const seen = getSeenSet(); const unread = []; snap.forEach(doc=>{ const d = doc.data(); if (d && d.reply && d.reply.text && !seen.has(doc.id)) unread.push({ id: doc.id, data: d }); }); window._sug_unread_docs = unread; updateSuggestBadge(unread.length); }, e=> console.warn('subscribeToReplies failed', e)); }catch(e){ console.warn('subscribeToReplies init failed', e); } }
+        // start subscription (if user authenticated info exists in localStorage)
+        subscribeToReplies();
+
+        // keep it visible/positioned after layout changes
+        window.addEventListener('resize', ()=>{ btn.style.left = '18px'; btn.style.bottom = '18px'; });
+
+        // Expose for manual/testing use and provide an opt-in automated test when ?testSuggest=1
+        try{ window.openSuggestModal = openSuggestModal; }catch(e){}
+        (function maybeAutoTest(){
+          try{
+            const params = new URLSearchParams(location.search);
+            if (params.get('testSuggest') === '1'){
+              console.log('[suggest] test mode enabled: opening modal and auto-submitting a test suggestion');
+              openSuggestModal();
+              setTimeout(()=>{
+                const ta = document.getElementById('sugTxt');
+                if (ta){
+                  ta.value = 'اختبار تلقائي: هذا اقتراح تجريبي للتحقق من وظيفة الاقتراحات.';
+                  const confirmBtn = document.querySelector('.swal2-confirm');
+                  if (confirmBtn){
+                    // click confirm to trigger preConfirm + submit
+                    confirmBtn.click();
+                    console.log('[suggest] auto-submitted the test suggestion (check Firestore /suggestions.html)');
+                  } else console.warn('[suggest] could not find confirm button');
+                } else console.warn('[suggest] could not find textarea to auto-fill');
+              }, 520);
+            }
+          }catch(e){ console.warn('auto-test failed', e); }
+        })();
+      });
+    })();
+  </script>
+
+</body>
+</html>

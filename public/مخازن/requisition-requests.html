@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلبات الصرف - مخازن غذائية</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-4">
+    <h4 class="mb-3">طلب صرف مخزني</h4>
+    <div class="card shadow-sm p-3 mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small">رقم الطلب</label>
+          <input id="reqNumber" class="form-control form-control-sm" value="REQ-2026-001">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">تاريخ الطلب</label>
+          <input id="reqDate" type="date" class="form-control form-control-sm" value="2026-01-03">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">مقدم الطلب</label>
+          <input id="reqApplicant" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">القسم</label>
+          <select id="reqSection" class="form-select form-select-sm section-select"><option value="">جارٍ تحميل الأقسام...</option></select>
+          <div class="form-text small">اضغط F1 لفتح قائمة الأقسام</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <table class="table table-bordered table-sm exportable-table">
+          <thead class="table-secondary">
+            <tr>
+              <th>اسم الصنف</th>
+              <th>كود الصنف</th>
+              <th style="width: 12%;">الكمية المطلوبة</th>
+              <th style="width: 12%;">رصيد المادة</th>
+              <th style="width: 5%;">#</th>
+            </tr>
+          </thead>
+          <tbody id="reqRows">
+            <tr>
+              <td class="d-flex gap-2 align-items-center"><input type="text" class="form-control form-control-sm product-name-input" placeholder="اسم الصنف"><button type="button" class="btn btn-light btn-sm open-picker-btn" title="فتح منتقي"><i class="bi bi-search"></i></button></td>
+              <td><input type="text" class="form-control form-control-sm product-code-input" placeholder="كود الصنف"></td>
+              <td><input type="number" class="form-control form-control-sm qty-input" value="1" min="0"></td>
+              <td><input type="text" class="form-control form-control-sm balance-input" readonly></td>
+              <td><button class="btn btn-outline-danger btn-sm remove-row">حذف</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <button id="addReqRow" class="btn btn-outline-primary btn-sm">إضافة صنف</button>
+      </div>
+      <div class="card-footer d-flex justify-content-end">
+        <button id="submitReq" class="btn btn-primary">إرسال طلب الصرف</button>
+      </div>
+    </div>
+  </div>
+  <!-- Requisition success modal -->
+  <div class="modal fade" id="reqSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">تم إنشاء طلب الصرف</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="reqSuccessBody"></div>
+        <div class="modal-footer">
+          <button id="printReqBtn" type="button" class="btn btn-outline-primary">طباعة</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+  <!-- SweetAlert2 for nicer notifications -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="requisition-requests.js"></script>
+  
+  <!-- Product picker handled by central component (productPicker) -->
+</body>
+</html>

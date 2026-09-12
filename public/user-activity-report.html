@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>تقرير حركة المستخدمين</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    body{direction:rtl;font-family:'Cairo',sans-serif;background:#2c2c2c;color:#f1f1f1;padding:16px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+    select,input{padding:8px;border-radius:6px;border:1px solid #555;background:#444;color:#fff}
+    button{background:#8B0000;color:#fff;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border:1px solid #555;text-align:center;background:#3a3a3a}
+    thead th{background:#444;color:#ffd700}
+    .small{font-size:13px;color:#ccc}
+  </style>
+</head>
+<body>
+  <h2>📈 تقرير حركة المستخدمين</h2>
+
+  <div class="controls">
+    <label class="small">المستخدم:
+      <select id="userFilter"><option value="">كل المستخدمين</option></select>
+    </label>
+    <label class="small">من:
+      <input type="date" id="fromDate">
+    </label>
+    <label class="small">إلى:
+      <input type="date" id="toDate">
+    </label>
+    <label class="small">صفحة / نص:
+      <input type="text" id="pageFilter" placeholder="مثال: send-to-branches">
+    </label>
+    <button id="loadBtn">🔍 تحميل</button>
+    <button id="exportBtn">⬇️ تصدير CSV</button>
+    <button onclick="history.back()">↩️ رجوع</button>
+  </div>
+
+  <div id="status" class="small">اختر فلاتر ثم اضغط تحميل</div>
+
+  <div style="overflow:auto">
+    <table id="logsTable">
+      <thead>
+        <tr><th>الوقت</th><th>المستخدم</th><th>الصفحة</th><th>الفعل</th><th>تفاصيل</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const userFilter = document.getElementById('userFilter');
+    const fromDate = document.getElementById('fromDate');
+    const toDate = document.getElementById('toDate');
+    const pageFilter = document.getElementById('pageFilter');
+    const loadBtn = document.getElementById('loadBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const status = document.getElementById('status');
+    const tbody = document.querySelector('#logsTable tbody');
+
+    // جلب قائمة المستخدمين لفلتر الاختيار (من مجموعة users)
+    async function populateUsers() {
+      try {
+        const snap = await db.collection('users').get();
+        snap.forEach(doc => {
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = doc.id;
+          userFilter.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // تحميل السجلات مع الفلتر
+    async function loadLogs() {
+      status.textContent = '⏳ جاري التحميل...';
+      tbody.innerHTML = '';
+      try {
+        let query = db.collection('activity_logs').orderBy('timestamp','desc').limit(1000);
+        // تطبيق فلتر المستخدم
+        if (userFilter.value) query = query.where('user','==', userFilter.value);
+        // تطبيق فلتر الصفحة (جزئي)
+        const pageText = pageFilter.value.trim();
+        // للتصفية الجزئية سنجلب ثم نفلتر محليًا لأن Firestore لا يدعم contains بسهولة
+        const snap = await query.get();
+        const rows = [];
+        snap.forEach(doc => {
+          const d = doc.data();
+          rows.push({...d, id: doc.id});
+        });
+
+        // فلتر التاريخ محلي
+        const fromTs = fromDate.value ? new Date(fromDate.value + 'T00:00:00').getTime() : null;
+        const toTs = toDate.value ? new Date(toDate.value + 'T23:59:59').getTime() : null;
+
+        const filtered = rows.filter(r => {
+          const t = r.timestamp ? (typeof r.timestamp === 'number' ? r.timestamp : (r.timestamp.seconds ? r.timestamp.seconds*1000 : 0)) : 0;
+          if (fromTs && t < fromTs) return false;
+          if (toTs && t > toTs) return false;
+          if (pageText) {
+            const pageVal = (r.page||'').toString().toLowerCase();
+            if (!pageVal.includes(pageText.toLowerCase()) && !(JSON.stringify(r).toLowerCase().includes(pageText.toLowerCase()))) return false;
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          status.textContent = 'ℹ️ لا توجد سجلات وفق الفلاتر المحددة.';
+          return;
+        }
+
+        // عرض النتائج
+        filtered.forEach(r => {
+          const tr = document.createElement('tr');
+          const t = r.timestamp ? (typeof r.timestamp === 'number' ? new Date(r.timestamp) : (r.timestamp.seconds ? new Date(r.timestamp.seconds*1000) : new Date())) : new Date();
+          tr.innerHTML = `<td>${t.toLocaleString('ar-EG')}</td>
+                          <td>${r.user || ''}</td>
+                          <td>${r.page || ''}</td>
+                          <td>${r.action || ''}</td>
+                          <td>${r.details ? (typeof r.details === 'string' ? r.details : JSON.stringify(r.details)) : ''}</td>`;
+          tbody.appendChild(tr);
+        });
+
+        status.textContent = `✅ عرض ${filtered.length} سجل.`;
+      } catch (err) {
+        console.error(err);
+        status.textContent = '❌ خطأ أثناء جلب السجلات.';
+        Swal.fire('خطأ','فشل جلب سجلات النشاط. تأكد من وجود مجموعة activity_logs في Firestore.','error');
+      }
+    }
+
+    // تصدير CSV من الجدول
+    function exportCSV() {
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      if (rows.length === 0) { Swal.fire('تنبيه','لا توجد بيانات للتصدير','info'); return; }
+      const csv = [];
+      csv.push(['الوقت','المستخدم','الصفحة','الفعل','تفاصيل'].join(','));
+      rows.forEach(r => {
+        const cols = Array.from(r.children).map(td => `"${td.textContent.replace(/"/g,'""')}"`);
+        csv.push(cols.join(','));
+      });
+      const blob = new Blob([csv.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `activity_report_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    loadBtn.addEventListener('click', loadLogs);
+    exportBtn.addEventListener('click', exportCSV);
+
+    // التهيئة
+    populateUsers();
+  </script>
+</body>
+</html>

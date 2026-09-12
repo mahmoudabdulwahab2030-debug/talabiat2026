@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>استعلام عن الفواتير</title>
+  <link href="style.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <h2>📜 استعلام عن الفواتير</h2>
+  <form id="searchInvoiceForm">
+    <label for="branch">اختر الفرع:</label>
+    <select id="branch" name="branch">
+      <option value="korba">فرع الكوربة</option>
+      <option value="dokki">فرع الدقي</option>
+      <option value="tagamo3">فرع التجمع</option>
+      <option value="obour">فرع العبور</option>
+    </select>
+
+    <label for="invoiceDate">تاريخ الفاتورة:</label>
+    <input type="date" id="invoiceDate" name="invoiceDate">
+
+    <label for="section">اختر القسم:</label>
+    <select id="section" name="section">
+      <option value="">-- اختر القسم --</option>
+    </select>
+
+    <button type="submit">بحث</button>
+  </form>
+
+  <table id="invoiceDataTable" border="1">
+    <thead>
+      <tr>
+        <th>كود الصنف</th>
+        <th>الصنف</th>
+        <th>الكمية المطلوبة</th>
+        <th>الكمية المرسلة</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- سيتم ملء البيانات هنا ديناميكياً -->
+    </tbody>
+  </table>
+
+  <button onclick="printTable()">🖨️ طباعة</button>
+  <button onclick="exportToExcel()">📤 تحميل كـ Excel</button>
+  <button onclick="exportToPDF()">📄 تحميل كـ PDF</button>
+<button onclick="openInvoiceManagement()">🔍 إدارة الفواتير</button>
+
+<script>
+  function openInvoiceManagement() {
+    const branch = document.getElementById('branch').value;
+    const invoiceDate = document.getElementById('invoiceDate').value;
+    const section = document.getElementById('section').value;
+
+    if (!branch || !invoiceDate || !section) {
+      Swal.fire({
+        icon: 'error',
+        title: 'خطأ',
+        text: 'يرجى اختيار الفرع والتاريخ والقسم قبل فتح إدارة الفواتير.',
+      });
+      return;
+    }
+
+    const url = `manage-invoices.html?branch=${branch}&date=${invoiceDate}&section=${section}`;
+    window.open(url, '_blank');
+  }
+</script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    document.getElementById('searchInvoiceForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const branch = document.getElementById('branch').value;
+      const invoiceDate = document.getElementById('invoiceDate').value;
+      const section = document.getElementById('section').value;
+
+      if (!branch || !invoiceDate || !section) {
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ',
+          text: 'يرجى اختيار الفرع والتاريخ والقسم لإجراء البحث.',
+        });
+        return;
+      }
+
+      let query = db.collection('invoices')
+        .where('branch', '==', branch)
+        .where('orderDate', '==', invoiceDate)
+        .where('section', '==', section);
+
+      query.get().then((snapshot) => {
+        const invoiceDataTable = document.getElementById('invoiceDataTable').querySelector('tbody');
+        invoiceDataTable.innerHTML = '';
+
+        if (snapshot.empty) {
+          Swal.fire({
+            icon: 'info',
+            title: 'لا توجد بيانات',
+            text: 'لا توجد فواتير مطابقة للبحث.',
+          });
+          return;
+        }
+
+        snapshot.forEach((doc) => {
+          const invoice = doc.data();
+          invoice.products.forEach((product) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${product.code}</td>
+              <td>${product.name}</td>
+              <td>${product.requestedQuantity}</td>
+              <td>${product.sentQuantity}</td>
+            `;
+            invoiceDataTable.appendChild(row);
+          });
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: 'تم البحث بنجاح',
+          text: 'تم عرض الفواتير المطابقة للبحث.',
+        });
+      }).catch((error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ',
+          text: 'حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.',
+        });
+        console.error('Error fetching invoices: ', error);
+      });
+    });
+
+    function printTable() {
+      const branch = document.getElementById('branch').value;
+      const invoiceDate = document.getElementById('invoiceDate').value;
+      const section = document.getElementById('section').value;
+
+      if (!branch || !invoiceDate || !section) {
+        alert('يرجى اختيار الفرع والتاريخ والقسم قبل الطباعة.');
+        return;
+      }
+
+      const table = document.getElementById('invoiceDataTable');
+      const printWindow = window.open('', '_blank');
+
+      const header = `<h3 style="text-align:center; margin-bottom:15px; font-family: 'Cairo', sans-serif;">
+        فاتورة رقم 1<br>
+        فاتورة فرع "${getArabicBranchName(branch)}" عن تاريخ "${invoiceDate}" لقسم "${section}"
+      </h3>`;
+
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>طباعة الفاتورة</title>
+          <link href="style.css" rel="stylesheet">
+          <style>
+            table { width: 100%; border-collapse: collapse; direction: rtl; font-family: 'Cairo', sans-serif; }
+            th, td { border: 1px solid black; padding: 8px; text-align: center; }
+            th { background-color: #f2f2f2; }
+            h3 { font-family: 'Cairo', sans-serif; }
+          </style>
+        </head>
+        <body>
+          ${header}
+          ${table.outerHTML.replace('<th>Branch</th>', '<th>الفرع</th>')}
+        </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    function getArabicBranchName(branch) {
+      const branchNames = {
+        korba: 'الكوربة',
+        dokki: 'الدقي',
+        tagamo3: 'التجمع',
+        obour: 'العبور'
+      };
+      return branchNames[branch] || branch;
+    }
+
+    function exportToExcel() {
+      const table = document.getElementById('invoiceDataTable');
+      const rows = Array.from(table.querySelectorAll('tr'));
+      const csvContent = rows.map(row => {
+        const cells = Array.from(row.querySelectorAll('td, th'));
+        return cells.map(cell => cell.textContent).join(',');
+      }).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'invoices.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const table = document.getElementById('invoiceDataTable');
+
+      let y = 10;
+      doc.text('الفواتير', 10, y);
+      y += 10;
+
+      Array.from(table.querySelectorAll('tr')).forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td, th'));
+        const rowText = cells.map(cell => cell.textContent).join(' | ');
+        doc.text(rowText, 10, y);
+        y += 10;
+      });
+
+      doc.save('invoices.pdf');
+    }
+
+    // تحميل الأقسام عند تشغيل الصفحة
+    db.collection('invoices').get().then((snapshot) => {
+      const sectionSelect = document.getElementById('section');
+      const sections = new Set();
+      snapshot.forEach((doc) => {
+        const invoice = doc.data();
+        sections.add(invoice.section);
+      });
+      sections.forEach((section) => {
+        const option = document.createElement('option');
+        option.value = section;
+        option.textContent = section;
+        sectionSelect.appendChild(option);
+      });
+    });
+  </script>
+</body>
+</html>

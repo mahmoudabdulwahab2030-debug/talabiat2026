@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قاعدة بيانات - إدارة المجموعات والبيانات</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <div class="col-md-3">
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title">المجموعات</h5>
+            <div class="mb-2 small text-muted">عرض وتحرير مجموعات Firestore (مُسبقًا يطبّق البادئة <code>stock_</code> عند الحفظ)</div>
+            <ul id="collectionsList" class="list-group mb-2" style="max-height:45vh;overflow:auto"></ul>
+            <div class="input-group">
+              <input id="collectionName" class="form-control form-control-sm" placeholder="اسم المجموعة (بدون prefix)">
+              <button id="loadCollection" class="btn btn-sm btn-primary">فتح</button>
+            </div>
+            <div class="mt-2 d-grid">
+              <button id="refreshCollections" class="btn btn-sm btn-outline-secondary">تحديث القائمة</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h6 class="card-title">التخزين المحلي (localStorage)</h6>
+            <div id="localStorageList" style="max-height:30vh;overflow:auto"></div>
+            <div class="mt-2"><button id="refreshLocal" class="btn btn-sm btn-outline-secondary">تحديث</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 id="activeCollectionTitle">قاعدة البيانات</h3>
+          <div class="d-flex gap-2">
+            <input id="searchBox" class="form-control form-control-sm" placeholder="بحث (الوثائق أو الحقول)..." style="min-width:220px">
+            <button id="refreshDocs" class="btn btn-sm btn-outline-secondary">تحديث</button>
+            <button id="addDocBtn" class="btn btn-sm btn-success">إضافة سجل</button>
+            <button id="exportJson" class="btn btn-sm btn-outline-primary">تصدير JSON</button>
+            <button id="exportSummary" class="btn btn-sm btn-outline-dark" title="Export collections summary">تصدير ملخص</button>
+          </div>
+        </div>
+
+        <div class="card shadow-sm">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0 exportable-table">
+                <thead class="table-light"><tr id="docsTableHead"></tr></thead>
+                <tbody id="docsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 small text-muted">ملاحظة: للتحرير السريع اختر وثيقة ثم اضغط تعديل، للحالات المعقدة استخدم المحرر JSON.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doc modal -->
+  <div class="modal fade" id="docModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">عرض وتحرير المستند</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><strong>ID:</strong> <span id="docId"></span></div>
+          <div class="mb-2"><strong>البيانات (JSON)</strong></div>
+          <textarea id="docJson" class="form-control" rows="12" style="font-family:monospace"></textarea>
+          <div class="form-text mt-2 text-muted">عدّل JSON ثم اضغط حفظ. الحق بعض الحقول (مثل التاريخ) قد تمثّل كسلاسل.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="deleteDocBtn" class="btn btn-outline-danger">حذف</button>
+          <button type="button" id="saveDocBtn" class="btn btn-primary">حفظ</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Translations modal -->
+  <div class="modal fade" id="translationsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">ترجمات المجموعة</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2"><strong>المجموعة:</strong> <span id="transCollectionName"></span></div>
+          <div class="mb-2"><label class="form-label">الاسم المترجم للمجموعة</label><input id="transCollectionDisplay" class="form-control"></div>
+          <div class="mb-2"><label class="form-label">ترجمات الحقول (JSON)</label><textarea id="transFieldJson" class="form-control" rows="10" style="font-family:monospace"></textarea></div>
+          <div class="form-text">أدخل JSON كائن حيث المفتاح هو اسم الحقل والقيمة هي التسمية المرئية بالعرض. مثال: {"barcode":"الكود","name":"اسم الصنف"}</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="saveTransBtn" class="btn btn-primary">حفظ الترجمات</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="data-browser.js"></script>
+</body>
+</html>

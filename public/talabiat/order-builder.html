@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام الطلبيات الذكي</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      --bg: #111421;
+      --panel: rgba(20, 26, 46, 0.92);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f3f4f8;
+      --muted: #9aa3bf;
+      --accent: #ffd166;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      --radius: 24px;
+      --transition: 260ms ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top left, rgba(255, 209, 102, 0.08), transparent 18%),
+                  radial-gradient(circle at bottom right, rgba(102, 187, 255, 0.06), transparent 20%),
+                  linear-gradient(180deg, #0d1020 0%, #13182e 55%, #0b0f1f 100%);
+      color: var(--text);
+      direction: rtl;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 8px 4px 16px;
+    }
+
+    .page-shell {
+      width: 100%;
+      padding: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+      overflow: hidden;
+      padding: 16px 12px;
+    }
+
+    h2 {
+      font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+      margin: 0 0 16px;
+      text-align: center;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(255, 209, 102, 0.22);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+
+    .form-group select,
+    .form-group input {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .form-group select:hover,
+    .form-group input:hover {
+      border-color: rgba(255, 209, 102, 0.22);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.1);
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .full-width-btn {
+      grid-column: span 2 !important;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.24), rgba(255, 255, 255, 0.06));
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: all var(--transition);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.35), rgba(255, 255, 255, 0.12));
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .column-panel {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.05), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 209, 102, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+      display: block;
+    }
+
+    .items-table thead {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 1;
+    }
+
+    .items-table tbody {
+      display: block;
+    }
+
+    .items-table tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .items-table th {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 12px;
+      text-align: right;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 2px solid rgba(255, 209, 102, 0.2);
+      font-size: 0.9rem;
+      width: 20%;
+    }
+
+    .items-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 0.9rem;
+      width: 20%;
+    }
+
+    .items-table tr:hover td {
+      background: rgba(255, 209, 102, 0.05);
+    }
+
+    .qty-input {
+      width: 80px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      text-align: center;
+      font-family: inherit;
+    }
+
+    .item-action-btn {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all var(--transition);
+      margin-left: 6px;
+    }
+
+    .add-item-btn {
+      background: rgba(76, 185, 120, 0.18);
+      color: #4cb978;
+    }
+
+    .add-item-btn:hover {
+      background: rgba(76, 185, 120, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .delete-item-btn {
+      background: rgba(255, 92, 92, 0.18);
+      color: #ff5c5c;
+    }
+
+    .delete-item-btn:hover {
+      background: rgba(255, 92, 92, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .empty-message {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .summary-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 14px;
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(255, 255, 255, 0.03));
+      border-radius: 12px;
+      border: 1px solid rgba(255, 209, 102, 0.15);
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .summary-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .summary-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .status-message {
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .status-message.visible {
+      display: block;
+    }
+
+    .status-message.success {
+      background: rgba(76, 185, 120, 0.15);
+      color: #4cb978;
+      border: 1px solid rgba(76, 185, 120, 0.3);
+    }
+
+    .status-message.error {
+      background: rgba(255, 92, 92, 0.15);
+      color: #ff5c5c;
+      border: 1px solid rgba(255, 92, 92, 0.3);
+    }
+
+    .status-message.loading {
+      background: rgba(255, 209, 102, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(255, 209, 102, 0.3);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-spinner::before {
+      content: '⏳';
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .page-shell {
+        width: 100%;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .main-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .left-column,
+      .right-column {
+        gap: 12px;
+      }
+
+      .items-table {
+        font-size: 0.8rem;
+      }
+
+      .items-table th,
+      .items-table td {
+        padding: 8px 10px;
+      }
+
+      .summary-section {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .full-width-btn {
+        grid-column: span 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="panel">
+      <h2>📋 نظام الطلبيات الذكي</h2>
+
+      <div class="controls-grid">
+        <div class="form-group">
+          <label for="branch">🏢 اختر الفرع</label>
+          <select id="branch">
+            <option value="">-- اختر فرعاً --</option>
+            <option value="dokki">فرع الدقي</option>
+            <option value="obour">فرع العبور</option>
+            <option value="tagamo3">فرع التجمع</option>
+            <option value="korba">فرع القربة</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="orderDate">📅 تاريخ الطلبية</label>
+          <input type="date" id="orderDate">
+        </div>
+
+        <div class="form-group">
+          <label for="section">📂 اختر القسم</label>
+          <select id="section">
+            <option value="">-- اختر قسماً --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button onclick="loadCatalogs()">🔄 تحديث الأقسام</button>
+        <button onclick="clearForm()" style="background: linear-gradient(135deg, rgba(255, 92, 92, 0.24), rgba(255, 255, 255, 0.06));">🗑️ مسح النموذج</button>
+      </div>
+
+      <div id="statusMessage" class="status-message"></div>
+
+      <!-- Main Two-Column Layout -->
+      <div class="main-container">
+
+        <!-- Right Column: Available Items -->
+        <div class="right-column">
+          <div class="column-panel">
+            <div class="section-title">✨ إضافة الأصناف</div>
+
+            <div class="search-bar">
+              <input type="text" id="itemSearch" placeholder="ابحث عن صنف...">
+              <button onclick="searchItems()" style="width: auto; padding: 12px 30px;">🔍 بحث</button>
+            </div>
+
+            <div id="catalogItems" class="empty-message">
+              اختر قسماً أولاً لعرض الأصناف
+            </div>
+          </div>
+        </div>
+
+        <!-- Left Column: Selected Items -->
+        <div class="left-column">
+          <div class="column-panel">
+            <div class="section-title">📦 الأصناف المختارة</div>
+
+            <div id="selectedItemsContainer">
+              <table class="items-table" id="selectedItemsTable" style="display: none;">
+                <thead>
+                  <tr>
+                    <th>الحذف</th>
+                    <th>السعر</th>
+                    <th>الكمية</th>
+                    <th>الصنف</th>
+                    <th>الرمز</th>
+                  </tr>
+                </thead>
+                <tbody id="selectedItems"></tbody>
+              </table>
+              <div id="emptySelectedMessage" class="empty-message">
+                لم تختر أصنافاً بعد
+              </div>
+            </div>
+          </div>
+
+          <div class="column-panel">
+            <div class="summary-section" id="summarySection" style="display: none; background: none; border: none; padding: 0;">
+              <div class="summary-item">
+                <div class="summary-label">عدد الأصناف</div>
+                <div class="summary-value" id="itemCount">0</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">إجمالي القطع</div>
+                <div class="summary-value" id="totalQty">0</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">الإجمالي</div>
+                <div class="summary-value" id="totalPrice">0.00</div>
+              </div>
+            </div>
+
+            <button onclick="saveOrder()" style="background: linear-gradient(135deg, rgba(76, 185, 120, 0.24), rgba(255, 255, 255, 0.06));" class="full-width-btn">💾 حفظ الطلبية</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Global state
+    let catalogData = {};
+    let selectedItems = [];
+    let currentSearchResults = [];
+
+    // Set today's date and load selected branch
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('orderDate').value = today;
+
+      // Load selected branch from localStorage
+      const savedBranch = localStorage.getItem('selectedBranch');
+      if (savedBranch) {
+        document.getElementById('branch').value = savedBranch;
+      }
+
+      loadCatalogs();
+    });
+
+    // Load catalogs from Firestore
+    async function loadCatalogs() {
+      showStatus('جاري تحميل الأقسام...', 'loading');
+      try {
+        const snap = await db.collection("catalog").get();
+        catalogData = {};
+        const sectionSelect = document.getElementById('section');
+        sectionSelect.innerHTML = '<option value="">-- اختر قسماً --</option>';
+
+        snap.forEach(doc => {
+          catalogData[doc.id] = doc.data().items || [];
+          const option = document.createElement('option');
+          option.value = doc.id;
+          option.textContent = doc.id;
+          sectionSelect.appendChild(option);
+        });
+
+        showStatus('تم تحميل الأقسام بنجاح ✅', 'success');
+      } catch (error) {
+        showStatus('خطأ في تحميل الأقسام: ' + error.message, 'error');
+      }
+    }
+
+    // When section changes
+    document.getElementById('section').addEventListener('change', () => {
+      selectedItems = [];
+      updateSelectedItems();
+      displayCatalogItems();
+    });
+
+    // Display catalog items
+    function displayCatalogItems() {
+      const section = document.getElementById('section').value;
+      const container = document.getElementById('catalogItems');
+
+      if (!section) {
+        container.innerHTML = '<div class="empty-message">اختر قسماً أولاً لعرض الأصناف</div>';
+        return;
+      }
+
+      const items = catalogData[section] || [];
+      if (items.length === 0) {
+        container.innerHTML = '<div class="empty-message">لا توجد أصناف في هذا القسم</div>';
+        return;
+      }
+
+      let html = `<table class="items-table">
+        <thead>
+          <tr>
+            <th>إضافة</th>
+            <th>السعر</th>
+            <th>الصنف</th>
+            <th>الرمز</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      items.forEach(item => {
+        html += `<tr>
+          <td><button class="item-action-btn add-item-btn" onclick="addItem('${item.code}', '${item.name}', ${item.price})">➕ إضافة</button></td>
+          <td>${item.price.toFixed(2)}</td>
+          <td>${item.name}</td>
+          <td>${item.code}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // Add item to selected list
+    function addItem(code, name, price) {
+      const existing = selectedItems.find(i => i.code === code);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        selectedItems.push({ code, name, price, qty: 1 });
+      }
+      updateSelectedItems();
+    }
+
+    // Update selected items display
+    function updateSelectedItems() {
+      const table = document.getElementById('selectedItemsTable');
+      const tbody = document.getElementById('selectedItems');
+      const container = document.getElementById('selectedItemsContainer');
+      const emptyMessage = document.getElementById('emptySelectedMessage');
+      const summarySection = document.getElementById('summarySection');
+
+      if (selectedItems.length === 0) {
+        table.style.display = 'none';
+        emptyMessage.style.display = 'block';
+        summarySection.style.display = 'none';
+        return;
+      }
+
+      table.style.display = 'block';
+      emptyMessage.style.display = 'none';
+      summarySection.style.display = 'grid';
+
+      let html = '';
+      let totalItems = 0;
+      let totalQty = 0;
+      let totalPrice = 0;
+
+      selectedItems.forEach((item, index) => {
+        const itemTotal = item.price * item.qty;
+        totalItems++;
+        totalQty += item.qty;
+        totalPrice += itemTotal;
+
+        html += `<tr>
+          <td><button class="item-action-btn delete-item-btn" onclick="removeItem(${index})">🗑️ حذف</button></td>
+          <td>${itemTotal.toFixed(2)}</td>
+          <td><input type="number" class="qty-input" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)"></td>
+          <td>${item.name}</td>
+          <td>${item.code}</td>
+        </tr>`;
+      });
+
+      tbody.innerHTML = html;
+
+      document.getElementById('itemCount').textContent = totalItems;
+      document.getElementById('totalQty').textContent = totalQty;
+      document.getElementById('totalPrice').textContent = totalPrice.toFixed(2);
+    }
+
+    // Update quantity
+    function updateQty(index, newQty) {
+      const qty = parseInt(newQty);
+      if (qty > 0) {
+        selectedItems[index].qty = qty;
+        updateSelectedItems();
+      }
+    }
+
+    // Remove item
+    function removeItem(index) {
+      selectedItems.splice(index, 1);
+      updateSelectedItems();
+    }
+
+    // Search items
+    function searchItems() {
+      const query = document.getElementById('itemSearch').value.toLowerCase();
+      const section = document.getElementById('section').value;
+      const container = document.getElementById('catalogItems');
+
+      if (!section) {
+        showStatus('اختر قسماً أولاً', 'error');
+        return;
+      }
+
+      const items = catalogData[section] || [];
+      const filteredItems = items.filter(item =>
+        item.name.toLowerCase().includes(query) ||
+        item.code.toLowerCase().includes(query)
+      );
+
+      if (filteredItems.length === 0) {
+        container.innerHTML = '<div class="empty-message">لا توجد نتائج للبحث</div>';
+        return;
+      }
+
+      let html = `<table class="items-table">
+        <thead>
+          <tr>
+            <th>إضافة</th>
+            <th>السعر</th>
+            <th>الصنف</th>
+            <th>الرمز</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      filteredItems.forEach(item => {
+        html += `<tr>
+          <td><button class="item-action-btn add-item-btn" onclick="addItem('${item.code}', '${item.name}', ${item.price})">➕ إضافة</button></td>
+          <td>${item.price.toFixed(2)}</td>
+          <td>${item.name}</td>
+          <td>${item.code}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // Clear form
+    function clearForm() {
+      document.getElementById('branch').value = '';
+      document.getElementById('section').value = '';
+      document.getElementById('itemSearch').value = '';
+      selectedItems = [];
+      updateSelectedItems();
+      displayCatalogItems();
+      showStatus('تم مسح النموذج', 'success');
+    }
+
+    // Save order
+    async function saveOrder() {
+      const branch = document.getElementById('branch').value;
+      const date = document.getElementById('orderDate').value;
+      const section = document.getElementById('section').value;
+
+      if (!branch || !date || !section || selectedItems.length === 0) {
+        showStatus('يرجى ملء جميع الحقول وإضافة أصناف', 'error');
+        return;
+      }
+
+      showStatus('جاري حفظ الطلبية...', 'loading');
+
+      try {
+        const orderData = {
+          branch,
+          date,
+          section,
+          items: selectedItems,
+          createdAt: new Date(),
+          totalItems: selectedItems.length,
+          totalQty: selectedItems.reduce((sum, item) => sum + item.qty, 0),
+          totalPrice: selectedItems.reduce((sum, item) => sum + (item.price * item.qty), 0)
+        };
+
+        await db.collection('orders').add(orderData);
+
+        showStatus('تم حفظ الطلبية بنجاح ✅', 'success');
+
+        // Clear form after successful save
+        setTimeout(() => {
+          clearForm();
+        }, 2000);
+
+      } catch (error) {
+        showStatus('خطأ في حفظ الطلبية: ' + error.message, 'error');
+      }
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('statusMessage');
+      statusDiv.textContent = message;
+      statusDiv.className = 'status-message visible ' + type;
+
+      if (type !== 'loading') {
+        setTimeout(() => {
+          statusDiv.classList.remove('visible');
+        }, 3000);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>إضافة خبر عاجل</title>
+  
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function submitNews() {
+      const title = document.getElementById('newsTitle').value;
+      const content = document.getElementById('newsContent').value;
+      const date = document.getElementById('newsDate').value;
+      const visibility = document.querySelector('input[name="visibility"]:checked').value;
+
+      if (!title || !content || !date) {
+        Swal.fire('⚠️ خطأ', 'يرجى ملء جميع الحقول', 'error');
+        return;
+      }
+
+      db.collection('urgentNews').add({
+        title,
+        content,
+        date,
+        visibility
+      }).then((docRef) => {
+        Swal.fire('✅ تم رفع الخبر', 'تم تسجيل الخبر بنجاح', 'success');
+        fetchNews();
+      }).catch((error) => {
+        console.error('Error adding document: ', error);
+        Swal.fire('❌ خطأ', 'فشل تسجيل الخبر', 'error');
+      });
+    }
+
+    function fetchNews() {
+      const newsList = document.getElementById('newsList');
+      newsList.innerHTML = '⏳ جاري تحميل الأخبار...';
+
+      db.collection('urgentNews').get().then((snapshot) => {
+        newsList.innerHTML = '';
+        snapshot.forEach((doc) => {
+          const news = doc.data();
+          const newsItem = document.createElement('div');
+          newsItem.className = 'news-item';
+          newsItem.innerHTML = `
+            <h4>${news.title}</h4>
+            <p>${news.content}</p>
+            <small>${news.date}</small>
+            <div class="option-buttons">
+              <button onclick="toggleVisibility('${doc.id}', '${news.visibility}')">
+                ${news.visibility === 'visible' ? 'إخفاء' : 'عرض'}
+              </button>
+              <button onclick="deleteNews('${doc.id}')">🗑️ حذف</button>
+            </div>
+          `;
+          newsList.appendChild(newsItem);
+        });
+      });
+    }
+
+    function toggleVisibility(id, currentVisibility) {
+      const newVisibility = currentVisibility === 'visible' ? 'hidden' : 'visible';
+      db.collection('urgentNews').doc(id).update({ visibility: newVisibility }).then(() => {
+        fetchNews();
+      });
+    }
+
+    function deleteNews(id) {
+      db.collection('urgentNews').doc(id).delete().then(() => {
+        fetchNews();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchNews);
+  </script>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #2c2c2c, #1e1e1e);
+      color: #ddd;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      color: #c4d107;
+      text-shadow: 0 2px 4px rgba(183, 28, 59, 0.3);
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      color: #bbb;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      font-size: 1rem;
+      background: #2c2c2c;
+      color: #ddd;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #660606;
+      box-shadow: 0 0 8px rgba(183, 28, 59, 0.5);
+      outline: none;
+    }
+
+    button {
+      background-color: #660606;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: 1px solid #fff;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #8b0000;
+    }
+
+    .news-item {
+      border: 1px solid #444;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      background: #1e1e1e;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .news-item h4 {
+      margin: 0 0 6px 0;
+      font-size: 1.2rem;
+      color: #b5c203;
+    }
+
+    .news-item p {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: #bbb;
+    }
+
+    .news-item small {
+      font-size: 0.9rem;
+      color: #999;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .option-row label {
+      margin: 0;
+    }
+
+    .option-row input {
+      width: auto;
+    }
+
+    .option-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .option-buttons button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <h2>📰 إضافة خبر عاجل</h2>
+  <form id="newsForm">
+    <label for="newsTitle">عنوان الخبر:</label>
+    <input type="text" id="newsTitle" placeholder="أدخل عنوان الخبر" required>
+
+    <label for="newsContent">نص الخبر:</label>
+    <textarea id="newsContent" rows="5" placeholder="أدخل نص الخبر" required></textarea>
+
+    <label for="newsDate">تاريخ الخبر:</label>
+    <input type="date" id="newsDate" required>
+
+    <div class="option-row">
+      <span>حالة الخبر:</span>
+      <label><input type="radio" name="visibility" value="visible" checked> عرض</label>
+      <label><input type="radio" name="visibility" value="hidden"> إخفاء</label>
+    </div>
+
+    <button type="button" onclick="submitNews()">📤 رفع الخبر</button>
+
+  </form>
+
+  <div id="newsList"></div>
+</body>
+</html>

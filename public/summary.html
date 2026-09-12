@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>📈 تحليلات الانتاج</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+    :root{--bg:#0b0b0b;--panel:#121212;--muted:#a8b0b6;--text:#e6e6e6;--accent:#ffd166}
+    /* ensure Arabic font applies to primitive elements */
+    * , input, select, textarea, button, table, th, td { font-family:'Cairo',sans-serif; }
+    html,body{height:100%;margin:0;font-family:'Cairo',sans-serif;background:linear-gradient(180deg,#0b0b0b,#121212);color:var(--text);direction:rtl}
+    .wrap{max-width:1100px;margin:18px auto;padding:14px}
+    h2{color:var(--accent);text-align:center;margin:6px 0 14px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+    select,input[type=date]{background:var(--panel);color:var(--text);border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px}
+    .btn{background:#28343a;color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .card{background:#161616;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);flex:1;min-width:180px;text-align:center}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border:1px solid rgba(255,255,255,0.06);text-align:center}
+    thead th{background:#0f0f0f;color:var(--accent)}
+    .drill{cursor:pointer;color:var(--accent);text-decoration:underline}
+    #sectionsModal,#overlay{display:none}
+    /* print */
+    @media print{ .controls,.btn{display:none} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>📈 تحليلات الانتاج</h2>
+    <div class="controls">
+      <select id="searchMethod" title="طريقة البحث">
+        <option value="by_item">بحث بالصنف</option>
+        <option value="by_branch">بحث بالفرع</option>
+      </select>
+      <button class="btn" id="btnChooseSection">اختر القسم</button>
+      <button class="btn" id="btnChooseItems" title="اختيار أصناف القسم">🗂️ اختر أصناف</button>
+      <select id="itemSelect"><option value="">كل الأصناف</option></select>
+      <span id="itemsSummary" style="align-self:center;color:var(--muted);font-size:13px;">—</span>
+      <select id="branchSelect"><option value="">كل الفروع</option><option value="korba">كوربة</option><option value="dokki">دقي</option><option value="tagamo3">تجمع</option><option value="obour">العبور</option></select>
+      <button class="btn" id="btnChooseBranches" title="اختيار فروع متعددة">🏷️ اختيار فروع</button>
+      <span id="branchesSummary" style="align-self:center;color:var(--muted);font-size:13px;">—</span>
+      <input type="date" id="fromDate" />
+      <input type="date" id="toDate" />
+      <button class="btn" id="btnLoad">تحميل الملخص</button>
+      <button class="btn" id="btnPrint">🖨️ طباعة</button>
+      <button class="btn" id="btnExport">💾 تحميل PDF</button>
+    </div>
+
+    <div class="cards">
+      <div class="card"><strong id="totalItems">القسم: —</strong></div>
+      <div class="card"><strong id="totalQty">إجمالي الكمية: 0</strong></div>
+      <div class="card"><strong id="totalBranches">أفرع مشاركة: 0</strong></div>
+    </div>
+
+    <div id="result">
+      <table id="summaryTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sections modal -->
+  <div id="overlay" style="position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:90"></div>
+  <div id="sectionsModal" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#121212;color:#fff;padding:16px;border-radius:8px;z-index:91;max-width:720px;width:90%">
+    <h3 style="margin-top:0;color:var(--accent)">اختر القسم</h3>
+    <div id="sectionsList" style="display:flex;flex-wrap:wrap;gap:8px;max-height:320px;overflow:auto"></div>
+    <div style="text-align:left;margin-top:12px"><button id="closeSections" class="btn">إغلاق</button></div>
+  </div>
+
+  <!-- Items selection modal (multiple checkboxes) -->
+  <div id="itemsModal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#121212;color:#fff;padding:16px;border-radius:8px;z-index:92;max-width:720px;width:90%;max-height:70%;overflow:auto">
+    <h3 style="margin-top:0;color:var(--accent)">اختر أصناف القسم <small id="itemsModalSheet" style="color:var(--muted)"></small></h3>
+    <div style="margin-bottom:8px"><label><input type="checkbox" id="itemsSelectAll"> اختر الكل</label></div>
+    <div id="itemsCheckboxList" style="display:flex;flex-wrap:wrap;gap:8px;max-height:420px;overflow:auto"></div>
+    <div style="text-align:left;margin-top:12px"><button id="applyItemsBtn" class="btn">تطبيق</button> <button id="closeItemsBtn" class="btn">إغلاق</button></div>
+  </div>
+
+  <!-- Branches selection modal -->
+  <div id="branchesModal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#121212;color:#fff;padding:16px;border-radius:8px;z-index:92;max-width:420px;width:90%">
+    <h3 style="margin-top:0;color:var(--accent)">اختر فروع</h3>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label><input type="checkbox" class="branchChk" value="korba"> كوربة</label>
+      <label><input type="checkbox" class="branchChk" value="dokki"> دقي</label>
+      <label><input type="checkbox" class="branchChk" value="tagamo3"> تجمع</label>
+      <label><input type="checkbox" class="branchChk" value="obour"> عبور</label>
+    </div>
+    <div style="text-align:left;margin-top:12px"><button id="applyBranchesBtn" class="btn">تطبيق</button> <button id="closeBranchesBtn" class="btn">إغلاق</button></div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- SweetAlert2 for notifications -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- jsPDF + autoTable for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+  // filepath: d:\ORDER\summary.html
+  // REPLACE existing Firebase init + data loaders with improved unified data pipeline
+  const firebaseConfig = { apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw", authDomain: "ledoux-80b46.firebaseapp.com", projectId: "ledoux-80b46" };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // normalized branch keys
+  const BRANCH_KEYS = {
+    korba: 'korba', 'كوربة': 'korba',
+    dokki: 'dokki', 'دقي': 'dokki',
+    tagamo3: 'tagamo3', 'تجمع': 'tagamo3', 'tagamo3': 'tagamo3',
+    obour: 'obour', 'عبور': 'obour'
+  };
+  function normalizeBranch(v){
+    if(!v) return '';
+    v = String(v).trim().toLowerCase();
+    return BRANCH_KEYS[v] || (Object.keys(BRANCH_KEYS).includes(v) ? BRANCH_KEYS[v] : v);
+  }
+
+  // store raw combined records used for analysis
+  let RAW_RECORDS = []; // { code, name, qtyRequested, qtySent, sheet, branch, date}}
+
+  // maps for UI population
+  let allItems = [];
+  let sheetsMap = {};
+
+  // show last sync
+  const lastSyncEl = document.createElement('div');
+  lastSyncEl.style.textAlign = 'center';
+  lastSyncEl.style.color = '#9aa4a8';
+  lastSyncEl.style.marginBottom = '8px';
+  lastSyncEl.id = 'lastSyncInfo';
+  document.querySelector('.wrap').insertBefore(lastSyncEl, document.querySelector('.controls'));
+
+  async function fetchAllRawData() {
+    RAW_RECORDS = [];
+    const [ordersSnap, reservationsSnap, invoicesSnap, catalogSnap] = await Promise.all([
+      db.collection('orders').get().catch(()=>({ empty:true, forEach:()=>{} })),
+      db.collection('reservations').get().catch(()=>({ empty:true, forEach:()=>{} })),
+      db.collection('invoices').get().catch(()=>({ empty:true, forEach:()=>{} })),
+      db.collection('catalog').get().catch(()=>({ empty:true, forEach:()=>{} }))
+    ]);
+
+    // orders -> treat each doc as a potential single-item row or array
+    ordersSnap.forEach(doc => {
+      const d = doc.data();
+      const branchKey = normalizeBranch(d.branch);
+      const date = d.orderDate || d.deliveryDate || d.date || '';
+      if (Array.isArray(d.items) && d.items.length){
+        d.items.forEach(it => {
+          const code = String(it.code || it.name || '').trim();
+          const name = it.name || it.title || d.name || '';
+          const qtyReq = Number(it.qty || it.requestedQty || it.requested_quantity || 0) || (Number(d.qty) || 0);
+          const qtySent = Number(it.sentQty || it.sent_quantity || 0) || Number(d.sent || 0);
+          const sheet = it.sheet || d.sheet || d.section || 'main';
+          if(code && name && qtyReq){
+            RAW_RECORDS.push({ code, name, qtyReq, qtySent, sheet, branchKey, date, source: 'orders' });
+          }
+        });
+      } else if (d.name || d.code) {
+        const code = String(d.code || d.name || '').trim();
+        const name = d.name || d.title || '';
+        const qtyReq = Number(d.qty) || 0;
+        const qtySent = Number(d.sent || 0) || 0;
+        const sheet = d.sheet || d.section || 'main';
+        if(code && name && (qtyReq || qtySent)) RAW_RECORDS.push({ code, name, qtyReq, qtySent, sheet, branchKey, date, source:'orders' });
+      }
+    });
+
+    // reservations -> each reservation contains items array
+    reservationsSnap.forEach(doc => {
+      const d = doc.data();
+      const branchKey = normalizeBranch(d.branch || d.branchName);
+      const date = d.orderDate || d.deliveryDate || d.timestamp || '';
+      if (Array.isArray(d.items)) {
+        d.items.forEach(it => {
+          const code = String(it.code || it.name || '').trim();
+          const name = it.name || '';
+          const qtyReq = Number(it.qty || it.quantity || 0) || 0;
+          const qtySent = Number(it.sentQty || it.sent_quantity || 0) || 0;
+          const sheet = it.sheet || it.sheet || 'main';
+          if(code && name && qtyReq) RAW_RECORDS.push({ code, name, qtyReq, qtySent, sheet, branchKey, date, source: 'reservations' });
+        });
+      }
+    });
+
+    // invoices -> these usually carry sent quantities (authoritative for sent)
+    const invoiceSums = {}; // invoiceSums[code][branch] = sentTotal
+    invoicesSnap.forEach(doc => {
+      const inv = doc.data();
+      const date = inv.orderDate || inv.date || '';
+      const branchKey = normalizeBranch(inv.branch);
+      if (Array.isArray(inv.products)) {
+        inv.products.forEach(p => {
+          const code = String(p.code || p.name || '').trim();
+          const sent = Number(p.sentQuantity ?? p.sentQty ?? p.sent ?? 0) || 0;
+          const name = p.name || p.title || '';
+          const sheet = p.sheet || 'main';
+          if(code && (sent>0)){
+            RAW_RECORDS.push({ code, name, qtyReq: 0, qtySent: sent, sheet, branchKey, date, source: 'invoices' });
+            invoiceSums[code] = invoiceSums[code] || {};
+            invoiceSums[code][branchKey] = (invoiceSums[code][branchKey] || 0) + sent;
+          }
+        });
+      }
+    });
+
+    // catalog -> build sheetsMap entries from documents (section -> items)
+    sheetsMap = {};
+    catalogSnap.forEach(doc => {
+      const sheetName = doc.id;
+      const data = doc.data() || {};
+      const items = Array.isArray(data.items) ? data.items : [];
+      sheetsMap[sheetName] = sheetsMap[sheetName] || {};
+      items.forEach(it => {
+        const code = String(it.code || it.name || '').trim();
+        const name = it.name || '';
+        if(code && name) sheetsMap[sheetName][code] = name;
+      });
+    });
+
+    // After building RAW_RECORDS and catalog sheetsMap, also include items discovered in orders/reservations
+    RAW_RECORDS.forEach(r => {
+      if (r.sheet) {
+        sheetsMap[r.sheet] = sheetsMap[r.sheet] || {};
+        if (r.code && r.name) sheetsMap[r.sheet][r.code] = r.name;
+      } else {
+        sheetsMap['main'] = sheetsMap['main'] || {};
+        if (r.code && r.name) sheetsMap['main'][r.code] = r.name;
+      }
+    });
+
+    // build allItems array (unique codes)
+    const itemMap = {};
+    Object.keys(sheetsMap).forEach(sheet => {
+      Object.entries(sheetsMap[sheet]).forEach(([code,name])=>{
+        itemMap[code] = itemMap[code] || name;
+      });
+    });
+    allItems = Object.entries(itemMap).map(([code,name])=>({code,name})).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+
+    // update item select and sections list UI
+    const sel = document.getElementById('itemSelect');
+    sel.innerHTML = '<option value="">كل الأصناف</option>' + allItems.map(i=>`<option value="${i.code}">${i.name}</option>`).join('');
+    const sectionsList = document.getElementById('sectionsList');
+    sectionsList.innerHTML = Object.keys(sheetsMap).sort().map(s=>`<button class="btn sectionBtn" data-sheet="${s}" style="background:#222;border:1px solid #333">${s}</button>`).join('');
+
+    lastSyncEl.textContent = 'آخر تزامن: ' + new Date().toLocaleString();
+  }
+
+  // initial load
+  (async ()=>{ try{ await fetchAllRawData(); } catch(e){ console.error(e); } })();
+
+  // Replace btnLoad handler: compute aggregated summary using RAW_RECORDS
+  document.getElementById('btnLoad').addEventListener('click', async ()=> {
+    const btn = document.getElementById('btnLoad');
+    btn.disabled = true; btn.textContent = '⏳ جاري التحميل...';
+
+    try {
+      // refresh underlying data to maximize accuracy
+      await fetchAllRawData();
+
+      // gather filters
+      const searchMethod = document.getElementById('searchMethod').value;
+      const selItem = document.getElementById('itemSelect').value;
+      const from = document.getElementById('fromDate').value || null;
+      const to = document.getElementById('toDate').value || null;
+      const branchFilter = document.getElementById('branchSelect').value;
+      const selectedBr = (typeof selectedBranches !== 'undefined' && selectedBranches.length) ? selectedBranches : [];
+
+      // helpers
+      function withinRange(dateStr){
+        if(!dateStr) return true;
+        if(!from && !to) return true;
+        const d = new Date(dateStr);
+        if (from && d < new Date(from)) return false;
+        if (to && d > new Date(to)) return false;
+        return true;
+      }
+
+      // group by code and accumulate per branch
+      const grouped = {};
+      const branchesSet = new Set();
+
+      RAW_RECORDS.forEach(r => {
+        if (!withinRange(r.date)) return;
+        const b = r.branchKey || '';
+        // branch filters (single select or multi selection)
+        if (selectedBr.length && !selectedBr.includes(b)) return;
+        if (branchFilter && branchFilter !== '' && branchFilter !== b) return;
+
+        // item filtering
+        if (searchMethod === 'by_item') {
+          if (selectedItems && selectedItems.length>0) {
+            if (!selectedItems.includes(r.code)) return;
+          } else if (selItem && selItem !== '') {
+            if (r.code !== selItem) return;
+          }
+        }
+
+        const code = r.code || String(r.name || '').trim();
+        if (!code) return;
+        grouped[code] = grouped[code] || { code, name: r.name || r.code, perBranch: {} };
+        grouped[code].perBranch[b] = grouped[code].perBranch[b] || { req:0, sent:0 };
+        grouped[code].perBranch[b].req += Number(r.qtyReq || 0);
+        grouped[code].perBranch[b].sent += Number(r.qtySent || 0);
+        branchesSet.add(b);
+      });
+
+      // incorporate invoices as authoritative sent numbers per branch (sum them and override sent if present)
+      // (we already pushed invoice records into RAW_RECORDS, so the above already counted invoice sent amounts)
+      // Build table header
+      const preferredOrder = ['korba','dokki','tagamo3','obour'];
+      const branchLabels = { korba:'كوربة', dokki:'دقي', tagamo3:'تجمع', obour:'عبور' };
+      const branchesToShow = (document.getElementById('branchSelect').value ? [document.getElementById('branchSelect').value] : Array.from(branchesSet).filter(Boolean).sort((a,b)=> preferredOrder.indexOf(a)-preferredOrder.indexOf(b)));
+      document.getElementById('totalBranches').textContent = branchesToShow.length ? ('أفرع مشاركة: ' + branchesToShow.map(b=>branchLabels[b]||b).join('، ')) : 'أفرع مشاركة: —';
+
+      const thead = document.querySelector('#summaryTable thead');
+      let headHtml = '<tr><th>الكود</th><th>الاسم</th>';
+      branchesToShow.forEach(b => { headHtml += `<th>${branchLabels[b] || b}<br/><small>مطلوب</small></th><th>${branchLabels[b] || b}<br/><small>مرسل</small></th>`; });
+      headHtml += '<th>الإجمالي<br/><small>مطلوب</small></th><th>الإجمالي<br/><small>مرسل</small></th></tr>';
+      thead.innerHTML = headHtml;
+
+      const tbody = document.querySelector('#summaryTable tbody');
+      tbody.innerHTML = '';
+      let totalReq = 0, totalSent = 0, totalItemsCount = 0;
+      Object.values(grouped).forEach(row => {
+        totalItemsCount++;
+        let rowReq = 0, rowSent = 0;
+        let cols = `<td>${row.code}</td><td class="drill">${row.name}</td>`;
+        branchesToShow.forEach(b => {
+          const pb = row.perBranch[b] || { req:0, sent:0 };
+          cols += `<td>${pb.req || 0}</td><td>${pb.sent || 0}</td>`;
+          rowReq += pb.req || 0;
+          rowSent += pb.sent || 0;
+        });
+        totalReq += rowReq; totalSent += rowSent;
+        cols += `<td><strong>${rowReq}</strong></td><td><strong>${rowSent}</strong></td>`;
+        tbody.innerHTML += `<tr data-code="${row.code}">${cols}</tr>`;
+      });
+
+      document.getElementById('totalQty').textContent = `إجمالي الكمية: ${totalReq}`;
+      document.getElementById('totalItems').textContent = (lastSelectedSheet ? ('القسم: ' + lastSelectedSheet) : `القسم: —`) + ` — عناصر: ${totalItemsCount}`;
+      // attach drill handlers (delegated)
+      document.querySelectorAll('#summaryTable tbody .drill').forEach(td => {
+        td.addEventListener('click', (ev) => {
+          const code = ev.target.closest('tr').getAttribute('data-code');
+          openDrillForItem(code, from, to);
+        });
+      });
+    } catch (err) {
+      console.error(err);
+      Swal.fire({ icon:'error', title:'خطأ', text:'فشل جلب البيانات. تحقق من الاتصال أو أذونات Firestore.' });
+    } finally {
+      btn.disabled = false; btn.textContent = 'تحميل الملخص';
+    }
+  });
+
+  // keep existing handlers for modals and other UI (no change)
+  document.getElementById('btnChooseSection').addEventListener('click', ()=>{ document.getElementById('overlay').style.display='block'; document.getElementById('sectionsModal').style.display='block'; });
+  document.getElementById('closeSections').addEventListener('click', ()=>{ document.getElementById('overlay').style.display='none'; document.getElementById('sectionsModal').style.display='none'; });
+  let lastSelectedSheet = null;
+  document.addEventListener('click', (e)=>{ if (e.target && e.target.classList && e.target.classList.contains('sectionBtn')){ const sheet = e.target.getAttribute('data-sheet'); lastSelectedSheet = sheet; const itemsObj = sheetsMap[sheet] || {}; const sel = document.getElementById('itemSelect'); sel.innerHTML = '<option value="">— اختر الصنف —</option>' + Object.entries(itemsObj).map(([code,name])=>`<option value="${code}">${name}</option>`).join(''); document.getElementById('overlay').style.display='none'; document.getElementById('sectionsModal').style.display='none';
+  // عرض اسم القسم فوراً في البطاقة
+  try{ document.getElementById('totalItems').textContent = 'القسم: ' + (lastSelectedSheet || '—'); } catch(e){}
+} });
+
+  // items modal handlers
+  document.getElementById('btnChooseItems').addEventListener('click', ()=>{
+    if (!lastSelectedSheet){ Swal.fire({icon:'warning', title:'تنبيه', text:'اختر القسم أولاً'}); return; }
+    const container = document.getElementById('itemsCheckboxList'); container.innerHTML='';
+    const itemsObj = sheetsMap[lastSelectedSheet] || {};
+    // create a table with checkbox, code, name
+    const table = document.createElement('table');
+    table.id = 'itemsTable';
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `<thead><tr><th style="width:36px"></th><th style="text-align:left;padding:6px">كود الصنف</th><th style="text-align:left;padding:6px">اسم الصنف</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    Object.entries(itemsObj).forEach(([code,name])=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align:center;padding:6px"><input type="checkbox" class="itemChk" value="${code}"></td>
+        <td style="padding:6px;border-top:1px solid rgba(255,255,255,0.04);">${code}</td>
+        <td style="padding:6px;border-top:1px solid rgba(255,255,255,0.04);">${name}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+    document.getElementById('itemsModalSheet').textContent = lastSelectedSheet || '';
+    document.getElementById('itemsModal').style.display='block'; document.getElementById('overlay').style.display='block';
+  });
+  document.getElementById('closeItemsBtn').addEventListener('click', ()=>{ document.getElementById('itemsModal').style.display='none'; document.getElementById('overlay').style.display='none'; });
+  document.getElementById('itemsSelectAll').addEventListener('change', (e)=>{ document.querySelectorAll('#itemsTable .itemChk').forEach(c=>c.checked=e.target.checked); });
+  let selectedItems = [];
+  document.getElementById('applyItemsBtn').addEventListener('click', ()=>{
+    selectedItems = Array.from(document.querySelectorAll('#itemsTable .itemChk:checked')).map(i=>i.value);
+    document.getElementById('itemsModal').style.display='none'; document.getElementById('overlay').style.display='none';
+    document.getElementById('itemsSummary').textContent = selectedItems.length ? (`${selectedItems.length} صنف مختار`) : '—';
+  });
+
+  // branches modal handlers
+  document.getElementById('btnChooseBranches').addEventListener('click', ()=>{ document.getElementById('branchesModal').style.display='block'; document.getElementById('overlay').style.display='block'; });
+  document.getElementById('closeBranchesBtn').addEventListener('click', ()=>{ document.getElementById('branchesModal').style.display='none'; document.getElementById('overlay').style.display='none'; });
+  let selectedBranches = [];
+  document.getElementById('applyBranchesBtn').addEventListener('click', ()=>{
+    selectedBranches = Array.from(document.querySelectorAll('.branchChk:checked')).map(c=>c.value);
+    document.getElementById('branchesModal').style.display='none'; document.getElementById('overlay').style.display='none';
+    document.getElementById('branchesSummary').textContent = selectedBranches.length ? (`${selectedBranches.length} فرع`) : '—';
+  });
+
+  document.getElementById('searchMethod').addEventListener('change', (e)=>{ const v=e.target.value; const btn=document.getElementById('btnChooseSection'); const itemSel=document.getElementById('itemSelect'); if (v==='by_item'){ btn.style.display=''; itemSel.disabled=false; } else { btn.style.display='none'; itemSel.disabled=true; } });
+
+  function parseDateInput(v){ return v ? v : null; }
+  function withinRange(docDate, from, to){ if (!docDate) return true; if (!from && !to) return true; const d = new Date(docDate); if (from && d < new Date(from)) return false; if (to && d > new Date(to)) return false; return true; }
+
+  document.getElementById('btnLoad').addEventListener('click', async ()=>{
+    const btn = document.getElementById('btnLoad');
+    const prevText = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳ جاري التحميل...';
+    const searchMethod = document.getElementById('searchMethod').value;
+     // if user selected specific items via modal use selectedItems, otherwise fallback to single select
+     const selItem = document.getElementById('itemSelect').value;
+    // إذا تم اختيار صنف من القوائم لكن لم يُختَر قسم، حاول تحديد القسم من sheetsMap
+    if (!lastSelectedSheet && selItem) {
+      for (const s of Object.keys(sheetsMap)){
+        if (sheetsMap[s] && (sheetsMap[s][String(selItem)] || Object.values(sheetsMap[s]).includes(selItem))){
+          lastSelectedSheet = s;
+          try{ document.getElementById('totalItems').textContent = 'القسم: ' + lastSelectedSheet; } catch(e){}
+          break;
+        }
+      }
+    }
+    // branch selection (single) used for columns; also we support selectedBranches (multi) filtering
+    const branch = document.getElementById('branchSelect').value;
+    const from = parseDateInput(document.getElementById('fromDate').value);
+    const to = parseDateInput(document.getElementById('toDate').value);
+
+    const snap = await db.collection('orders').get();
+    const grouped = {};
+    let branchesSet = new Set();
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      const docDate = d.orderDate || d.deliveryDate || d.date;
+      if (!withinRange(docDate, from, to)) return;
+      const docBranch = (d.branch || '').toString().trim().toLowerCase();
+      // branch filtering with selectedBranches if any
+      if (selectedBranches && selectedBranches.length>0 && !selectedBranches.includes(docBranch)) return;
+
+      const itemsArr = Array.isArray(d.items) && d.items.length ? d.items : (d.name ? [{name:d.name, code:d.code, qty:Number(d.qty)||0, sentQty:Number(d.sentQty||d.sent_qty||0)}] : []);
+      itemsArr.forEach(it => {
+        const code = String(it.code || it.name || '').trim();
+        const name = it.name || it.title || it.code || '';
+        // item filtering: if selectedItems chosen prefer that; else use selItem (single)
+        if (searchMethod === 'by_item'){
+          if (selectedItems && selectedItems.length>0){ if (!selectedItems.includes(code) && !selectedItems.includes(name)) return; }
+          else if (selItem && selItem !== '' && selItem !== '—' && code !== selItem && name !== selItem) return;
+        }
+        if (!grouped[code]) grouped[code] = { code, name, korba:{req:0,sent:0}, dokki:{req:0,sent:0}, tagamo3:{req:0,sent:0}, obour:{req:0,sent:0} };
+        const qReq = Number(it.qty)||0;
+        const itSent = Number(it.sentQty ?? it.sent_qty ?? it.sentAmount ?? it.sent_quantity ?? 0) || 0;
+        const docSentFlag = d.sent || d.isSent || d.sent_flag || false;
+        const qSent = itSent || (docSentFlag ? qReq : 0);
+        const map = { 'كوربة':'korba','korba':'korba','دقي':'dokki','dokki':'dokki','تجمع':'tagamo3','tagamo3':'tagamo3','عبور':'obour','obour':'obour' };
+        const key = map[docBranch] || 'korba';
+        grouped[code][key].req += qReq;
+        grouped[code][key].sent += qSent;
+        branchesSet.add(key);
+      });
+    });
+
+    // ----- اجمع كميات المرسَل من مجموعة 'invoices' لكن لا تدمجها مباشرة مع grouped -----
+    let invoiceSums = {};
+    try {
+      const invSnap = await db.collection('invoices').get();
+      invSnap.forEach(invDoc => {
+        const inv = invDoc.data();
+        const invDate = inv.orderDate || inv.date || inv.createdAt;
+        if (!withinRange(invDate, from, to)) return;
+        const invBranch = (inv.branch || '').toString().trim().toLowerCase();
+        if (selectedBranches && selectedBranches.length>0 && !selectedBranches.includes(invBranch)) return;
+        const branchMap = { 'كوربة':'korba','korba':'korba','دقي':'dokki','dokki':'dokki','تجمع':'tagamo3','tagamo3':'tagamo3','عبور':'obour','obour':'obour' };
+        const bKey = branchMap[invBranch] || 'korba';
+        if (!Array.isArray(inv.products)) return;
+        inv.products.forEach(p => {
+          const code = String(p.code || p.name || '').trim();
+          if (!code) return;
+          const sentQty = Number(p.sentQuantity ?? p.sentQty ?? p.sent ?? 0) || 0;
+          if (!invoiceSums[code]) invoiceSums[code] = {};
+          invoiceSums[code][bKey] = (invoiceSums[code][bKey] || 0) + sentQty;
+          branchesSet.add(bKey);
+        });
+      });
+    } catch(e) { console.error('invoices aggregation error', e); invoiceSums = {}; }
+
+    // determine branches to show
+    const preferredOrder = ['korba','dokki','tagamo3','obour'];
+    const branchLabels = { korba:'كوربة', dokki:'دقي', tagamo3:'تجمع', obour:'عبور' };
+    const branchesToShow = (branch && branch !== '') ? [branch] : Array.from(branchesSet).sort((a,b)=> preferredOrder.indexOf(a)-preferredOrder.indexOf(b));
+
+    // عرض أسماء الفروع المشاركة بدلًا من العدد
+    const branchNames = branchesToShow.map(b => branchLabels[b] || b);
+    document.getElementById('totalBranches').textContent = branchNames.length ? ('أفرع مشاركة: ' + branchNames.join('، ')) : 'أفرع مشاركة: —';
+
+    // build thead
+    const thead = document.querySelector('#summaryTable thead');
+    let headHtml = '<tr><th>الكود</th><th>الاسم</th>';
+    branchesToShow.forEach(b => { headHtml += `<th>${branchLabels[b] || b}<br/><small>مطلوب</small></th><th>${branchLabels[b] || b}<br/><small>مرسل</small></th>`; });
+    headHtml += '<th>الإجمالي<br/><small>مطلوب</small></th><th>الإجمالي<br/><small>مرسل</small></th></tr>';
+    thead.innerHTML = headHtml;
+
+    // build tbody
+    const tbody = document.querySelector('#summaryTable tbody');
+    tbody.innerHTML = '';
+    let totalItems = 0, totalReq = 0, totalSent = 0;
+    Object.values(grouped).forEach(row =>{
+      // إذا اخترت قسماً (lastSelectedSheet) فتأكد أن بند الطلب ينتمي لذلك القسم
+      const itemSheet = row.sheet || row.sheetName || null;
+      if (lastSelectedSheet && itemSheet && itemSheet !== lastSelectedSheet) return; // تجاهل البنود من أقسام أخرى
+      // استخدم قيم المرسَل من invoiceSums إن وُجِدت لكل كود/فرع، وإلا قيمة المرسَل المحسوبة من orders
+      const rowReqSent = branchesToShow.map(b => ({ req: row[b]?.req || 0, sent: (invoiceSums[row.code] && invoiceSums[row.code][b] != null) ? invoiceSums[row.code][b] : (row[b]?.sent || 0) }));
+      const sumReq = rowReqSent.reduce((s,x)=>s + (x.req||0), 0);
+      const sumSent = rowReqSent.reduce((s,x)=>s + (x.sent||0), 0);
+      totalItems++;
+      totalReq += sumReq;
+      totalSent += sumSent;
+      let cols = `<td>${row.code}</td><td class="drill">${row.name}</td>`;
+      rowReqSent.forEach(x => { cols += `<td>${x.req}</td><td>${x.sent}</td>`; });
+      cols += `<td><strong>${sumReq}</strong></td><td><strong>${sumSent}</strong></td>`;
+      tbody.innerHTML += `<tr data-code="${row.code}">${cols}</tr>`;
+    });
+
+    // attach drill handlers
+    document.querySelectorAll('#summaryTable tbody .drill').forEach(td => td.addEventListener('click', ()=>{ const tr = td.closest('tr'); const code = tr.getAttribute('data-code'); openDrillForItem(code, from, to); }));
+
+    // إعادة تمكين زر التحميل بعد الانتهاء
+    try { const btnEl = document.getElementById('btnLoad'); if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'تحميل الملخص'; } } catch(e){}
+  });
+
+  function openDrillForItem(code, from, to){ const url = `item-summary.html?code=${encodeURIComponent(code)}${from?('&from='+from):''}${to?('&to='+to):''}`; window.open(url,'_blank'); }
+
+  document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+  document.getElementById('btnExport').addEventListener('click', async ()=>{
+    const container = document.getElementById('result');
+    if (!container){ Swal.fire({icon:'warning', title:'تنبيه', text:'لا يوجد جدول للتصدير'}); return; }
+    const jsPDFLib = window.jspdf;
+    if (!jsPDFLib || !jsPDFLib.jsPDF){ Swal.fire({icon:'error', title:'خطأ', text:'فشل تحميل مكتبة توليد PDF'}); return; }
+    const { jsPDF } = jsPDFLib;
+    const originalScroll = window.scrollY || 0;
+    try {
+      // wait for web fonts to be ready to preserve Arabic shaping
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+      // add temporary export styles to force black text and white background to improve PDF readability
+      const exportStyle = document.createElement('style');
+      exportStyle.id = 'pdfExportStyles';
+      exportStyle.innerHTML = `
+        /* force black text and white backgrounds inside export container */
+        #result, #result * { color: #000 !important; background-color: #fff !important; }
+        #result a, #result a * { color: #000 !important; text-decoration: none !important; }
+      `;
+      document.head.appendChild(exportStyle);
+
+      // temporarily enforce Cairo font on the export container to ensure correct glyph shaping
+      const prevFont = container.style.fontFamily || '';
+      container.style.fontFamily = "'Cairo', sans-serif";
+      // ensure top of container is visible for html2canvas
+      container.scrollIntoView();
+      // choose a higher scale for crisp text while keeping memory reasonable
+      const scale = Math.min(3, (window.devicePixelRatio || 1) * 1.5);
+      const canvas = await html2canvas(container, { scale, useCORS: true, backgroundColor: '#ffffff', allowTaint: false });
+
+      // restore font and remove temporary styles
+      container.style.fontFamily = prevFont;
+      try{ document.head.removeChild(exportStyle); } catch(e){}
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+      if (imgHeight <= pageHeight) {
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      } else {
+        // split canvas into pages vertically
+        let remainingHeight = canvas.height;
+        let srcY = 0;
+        const pxPerMm = canvas.width / pageWidth; // pixels per mm
+        const sliceHeightPx = Math.floor(pageHeight * pxPerMm);
+        while (remainingHeight > 0) {
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = Math.min(sliceHeightPx, remainingHeight);
+          const ctx = pageCanvas.getContext('2d');
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+          ctx.drawImage(canvas, 0, srcY, canvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
+          const pageImg = pageCanvas.toDataURL('image/png');
+          const h = (pageCanvas.height * pageWidth) / canvas.width;
+          pdf.addImage(pageImg, 'PNG', 0, 0, imgWidth, h);
+          remainingHeight -= pageCanvas.height;
+          srcY += pageCanvas.height;
+          if (remainingHeight > 0) pdf.addPage();
+        }
+      }
+      pdf.save('summary.pdf');
+    } catch (err){ console.error(err); Swal.fire({icon:'error', title:'خطأ', text:'فشل توليد PDF. حاول مرة أخرى.'}); }
+    finally { window.scrollTo(0, originalScroll); }
+  });
+
+  // init
+  loadDistinctItems();
+  </script>
+</body>
+</html>

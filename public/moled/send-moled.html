@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>إصدار فواتير - المصنع</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="moled.css" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Cairo', Arial, sans-serif;
+      --bg: #0c0f14;
+      --surface: rgba(255,255,255,0.06);
+      --surface-strong: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.12);
+      --text: #f1f1f5;
+      --muted: #b6b9c6;
+      --primary: #ff6b7a;
+      --primary-dark: #e64b61;
+      --success: #64d68f;
+      --shadow: 0 24px 80px rgba(0,0,0,0.36);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at top right, rgba(255,107,122,0.12), transparent 24%), linear-gradient(180deg, #0a0d12 0%, #11151d 100%); color: var(--text); }
+    body { direction: rtl; }
+
+    .layout { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { width: min(1120px, 100%); border-radius: 24px; background: rgba(16,19,26,0.94); border: 1px solid rgba(255,255,255,0.08); box-shadow: var(--shadow); overflow: hidden; }
+
+    .hero { padding: 32px 32px 20px; text-align: center; }
+    .hero h1 { margin: 0; font-size: clamp(2rem, 2.5vw, 2.8rem); color: var(--primary); letter-spacing: 0.03em; }
+    .hero p { margin: 14px auto 0; max-width: 760px; color: var(--muted); font-size: 1rem; line-height: 1.8; }
+
+    .invoice-meta { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 16px; padding: 0 32px 16px; }
+    .meta-field { display: flex; flex-direction: column; gap: 8px; }
+    .meta-field label { color: var(--muted); font-size: 0.92rem; font-weight: 600; }
+    .meta-field input { width: 100%; border: 1px solid rgba(255,255,255,0.14); border-radius: 16px; background: rgba(255,255,255,0.04); color: var(--text); padding: 12px 14px; font-size: 0.96rem; outline: none; }
+    .meta-field input:focus { border-color: rgba(255,107,122,0.65); box-shadow: 0 0 0 6px rgba(255,107,122,0.08); }
+
+    .brand-actions { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 16px; padding: 16px 32px 0; }
+    .brand-button { border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text); padding: 16px 18px; border-radius: 16px; cursor: pointer; font-size: 1rem; font-weight: 700; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease; }
+    .brand-button:hover { transform: translateY(-2px); background: rgba(255,255,255,0.08); }
+    .brand-button.active { background: linear-gradient(180deg, rgba(255,107,122,0.18), rgba(255,42,77,0.14)); border-color: rgba(255,107,122,0.45); color: #fff; }
+
+    .brand-panel { display: none; padding: 24px 32px 32px; }
+    .brand-panel.active { display: block; }
+
+    .brand-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 20px; }
+    .brand-title { font-size: 1.45rem; font-weight: 800; color: var(--primary); }
+    .brand-summary { color: var(--muted); font-size: 0.96rem; }
+
+    .invoice-table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+    .invoice-table th, .invoice-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: right; font-size: 0.95rem; }
+    .invoice-table th { color: var(--text); background: rgba(255,255,255,0.06); font-weight: 700; }
+    .invoice-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+    .invoice-table input { width: 100%; background: transparent; border: none; color: var(--text); font-size: 0.95rem; min-height: 40px; padding: 0 6px; outline: none; }
+    .invoice-table input::placeholder { color: rgba(255,255,255,0.45); }
+    .invoice-table input[readonly] { color: #dcdde1; }
+    .invoice-table button { border: none; background: transparent; color: #ff8aa0; cursor: pointer; font-weight: 700; }
+
+    .table-footer { margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; }
+    .footer-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .button, .brand-button { display: inline-flex; align-items: center; justify-content: center; }
+    .button { padding: 14px 20px; border-radius: 14px; font-weight: 700; border: none; cursor: pointer; transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease; }
+    .button.primary { background: var(--primary); color: #111; }
+    .button.secondary { background: rgba(255,255,255,0.08); color: var(--text); }
+    .button.danger { background: #ff4e6d; color: #fff; }
+    .button:hover { transform: translateY(-1px); }
+
+    .summary-card { border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 16px 18px; min-width: 180px; color: var(--text); }
+    .summary-card strong { display: block; font-size: 1.2rem; margin-bottom: 6px; }
+    .summary-card span { color: var(--muted); font-size: 0.95rem; }
+
+    .lookup-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.76); padding: 18px; z-index: 1000; }
+    .lookup-modal.active { display: flex; }
+    .lookup-card { width: min(940px, 100%); max-height: 90vh; background: rgba(12,15,22,0.98); border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; box-shadow: 0 30px 90px rgba(0,0,0,0.4); overflow: hidden; display: grid; grid-template-columns: 320px 1fr; }
+    .lookup-sidebar { padding: 24px; border-inline-end: 1px solid rgba(255,255,255,0.08); }
+    .lookup-title { font-size: 1.15rem; margin-bottom: 14px; color: var(--primary); }
+    .section-list { display: grid; gap: 10px; }
+    .section-item { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text); cursor: pointer; transition: background 180ms ease, transform 180ms ease; text-align: right; }
+    .section-item:hover, .section-item.active { background: rgba(255,107,122,0.16); transform: translateY(-1px); }
+    .lookup-content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .lookup-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+    .lookup-actions input { flex: 1; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(255,255,255,0.05); color: var(--text); padding: 12px 14px; outline: none; font-size: 0.95rem; }
+    .items-grid { display: grid; gap: 12px; overflow-y: auto; max-height: calc(90vh - 180px); }
+    .item-card { padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: transform 180ms ease, background 180ms ease; text-align: right; }
+    .item-card:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+    .item-card strong { display: block; color: var(--text); margin-bottom: 6px; }
+    .item-card span { display: block; color: var(--muted); font-size: 0.92rem; }
+    .close-modal { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0; }
+
+    .search-invoice { padding: 16px 32px 8px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .search-row { display: flex; gap: 8px; width: min(560px, 100%); }
+    .search-row input { flex: 1; border: 1px solid rgba(255,255,255,0.14); border-radius: 16px; background: rgba(255,255,255,0.04); color: var(--text); padding: 12px 14px; outline: none; }
+    .status-message { color: var(--muted); min-height: 1.4rem; font-size: 0.95rem; }
+
+    .invoice-print-fields,
+    .invoice-footer-print {
+      display: none;
+    }
+
+    .invoice-print-table,
+    .footer-summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .invoice-print-table td,
+    .footer-summary-table td {
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 14px 12px;
+      vertical-align: top;
+      text-align: right;
+      color: var(--text);
+    }
+
+    .invoice-print-table .print-label,
+    .footer-summary-table .print-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .invoice-print-table .print-value,
+    .footer-summary-table .print-value {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .brand-print-note {
+      margin-top: 16px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    @media print {
+      body, html { margin: 0; padding: 0; }
+      body * { visibility: hidden !important; }
+      .layout, .card, .card * { visibility: visible !important; }
+      .layout { display: block !important; min-height: auto !important; align-items: flex-start !important; justify-content: flex-start !important; padding: 0 !important; }
+      .card { margin: 0 !important; padding: 18px !important; box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
+      .card * { color: #000 !important; background: transparent !important; }
+      .hero, .lookup-modal, .brand-actions, .search-invoice, .lookup-actions, .section-list, .item-card, .button, .invoice-meta, .table-footer { display: none !important; }
+      .brand-header { display: none !important; }
+      .invoice-print-fields,
+      .invoice-footer-print { display: block !important; }
+      .invoice-print-table,
+      .footer-summary-table,
+      .invoice-table { width: 100% !important; border-color: #000 !important; table-layout: fixed !important; }
+      .invoice-print-table td,
+      .footer-summary-table td,
+      .invoice-table th,
+      .invoice-table td { border-color: #000 !important; color: #000 !important; word-wrap: break-word !important; word-break: break-word !important; white-space: normal !important; }
+      .invoice-table th,
+      .invoice-table td { font-size: 10pt !important; padding: 8px !important; }
+      .invoice-table th:last-child,
+      .invoice-table td:last-child { display: none !important; }
+      .invoice-table th:nth-child(1), .invoice-table td:nth-child(1) { width: 12% !important; }
+      .invoice-table th:nth-child(2), .invoice-table td:nth-child(2) { width: 25% !important; }
+      .invoice-table th:nth-child(3), .invoice-table td:nth-child(3) { width: 16% !important; }
+      .invoice-table th:nth-child(4), .invoice-table td:nth-child(4) { width: 11% !important; }
+      .invoice-table th:nth-child(5), .invoice-table td:nth-child(5) { width: 13% !important; }
+      .invoice-table th:nth-child(6), .invoice-table td:nth-child(6) { width: 12% !important; }
+      .invoice-table th:nth-child(7), .invoice-table td:nth-child(7) { width: 16% !important; }
+      .footer-summary-table td { font-size: 10pt !important; padding: 10px !important; }
+      .brand-print-note { color: #000 !important; }
+      .card { padding: 24px !important; }
+      .invoice-table { page-break-inside: avoid; }
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .lookup-card { grid-template-columns: 1fr; max-height: 95vh; }
+      .lookup-sidebar { border-inline-end: none; border-block-end: 1px solid rgba(255,255,255,0.08); }
+      .invoice-meta { grid-template-columns: 1fr; }
+      .brand-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="card">
+      <section class="hero">
+        <h1>لوحة الفواتير</h1>
+      </section>
+
+      <section class="invoice-meta">
+        <div class="meta-field">
+          <label for="invoiceNumber">رقم الفاتورة</label>
+          <input type="text" id="invoiceNumber" readonly placeholder="سيتم إنشاء الرقم تلقائياً" />
+        </div>
+        <div class="meta-field">
+          <label for="invoiceDate">تاريخ الفاتورة</label>
+          <input type="date" id="invoiceDate" />
+        </div>
+        <div class="meta-field">
+          <label for="invoiceClient">اسم العميل</label>
+          <input type="text" id="invoiceClient" placeholder="مثال: شركة ..." />
+        </div>
+      </section>
+
+      <section class="brand-actions">
+        <button type="button" class="brand-button" data-brand="best-sweet">بيست سويت</button>
+        <button type="button" class="brand-button" data-brand="ledo">ليدو</button>
+      </section>
+
+      <section class="search-invoice">
+        <div class="meta-field">
+          <label for="searchInvoiceNumber">استعلام برقم الفاتورة</label>
+          <div class="search-row">
+            <input type="text" id="searchInvoiceNumber" placeholder="أدخل رقم الفاتورة للبحث" />
+            <button type="button" class="button secondary" id="lookupInvoiceBtn">استعلام</button>
+          </div>
+        </div>
+        <div class="status-message" id="statusMessage"></div>
+      </section>
+
+      <section id="brandPanel" class="brand-panel">
+        <div class="brand-header">
+          <div>
+            <div class="brand-title" id="brandTitle">الفواتير</div>
+            <div class="brand-summary" id="brandSummary">اختر البراند لبدء الفاتورة.</div>
+          </div>
+          <div class="summary-card">
+            <strong id="invoiceTotal">0.00</strong>
+            <span>الإجمالي العام بالكجم</span>
+          </div>
+        </div>
+
+        <div class="invoice-print-fields">
+          <table class="invoice-print-table">
+            <tr>
+              <td>
+                <span class="print-label">رقم الفاتورة</span>
+                <span class="print-value" id="printInvoiceNumber">-</span>
+              </td>
+              <td>
+                <span class="print-label">البراند</span>
+                <span class="print-value" id="printBrandValue">-</span>
+              </td>
+              <td>
+                <span class="print-label">تاريخ الفاتورة</span>
+                <span class="print-value" id="printInvoiceDate">-</span>
+              </td>
+              <td>
+                <span class="print-label">العميل</span>
+                <span class="print-value" id="printInvoiceClient">-</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="invoice-table">
+            <thead>
+              <tr>
+                <th>كود الصنف</th>
+                <th>الصنف</th>
+                <th>القسم</th>
+                <th>الوحدة</th>
+                <th>وزن الوحدة</th>
+                <th>الكمية</th>
+                <th>الإجمالي</th>
+                <th>حذف</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceBody"></tbody>
+          </table>
+        </div>
+
+        <div class="invoice-footer-print">
+          <table class="footer-summary-table">
+            <tr>
+              <td>
+                <span class="print-label">عدد الأصناف</span>
+                <span class="print-value" id="printItemCount">0</span>
+              </td>
+              <td>
+                <span class="print-label">الإجمالي العام بالكجم</span>
+                <span class="print-value" id="printTotalKilos">0.00</span>
+              </td>
+            </tr>
+          </table>
+          <p class="brand-print-note">فاتورة مخصصة لاصناف <span id="printBrandName">-</span></p>
+          <p class="brand-print-note">تم طباعة الفاتورة من خلال <strong id="printByUser">-</strong></p>
+        </div>
+
+        <div class="table-footer">
+          <div class="footer-actions">
+            <button type="button" class="button primary" id="addRowBtn">إضافة صنف</button>
+            <button type="button" class="button secondary" id="resetBtn">إعادة تعيين</button>
+            <button type="button" class="button primary" id="sendInvoiceBtn">إرسال الفاتورة</button>
+            <button type="button" class="button secondary" id="printInvoiceBtn" disabled>طباعة الفاتورة</button>
+          </div>
+          <div class="summary-card hidden" id="brandNote">
+            <strong id="brandNoteText"></strong>
+            <span>تابع بيانات الفاتورة الخاصة بالبراند</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="lookup-modal" id="lookupModal" role="dialog" aria-modal="true">
+    <div class="lookup-card">
+      <aside class="lookup-sidebar">
+        <div class="lookup-title">الأقسام</div>
+        <div class="section-list" id="sectionList"></div>
+      </aside>
+      <div class="lookup-content">
+        <div class="lookup-actions">
+          <input type="text" id="itemSearch" placeholder="بحث في الأصناف ..." />
+          <button type="button" class="close-modal" id="closeLookupBtn">إغلاق</button>
+        </div>
+        <div class="lookup-title" id="lookupTitle">اختر قسمًا لمعرفة الأصناف</div>
+        <div class="items-grid" id="itemsGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd96734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const ITEM_COLLECTION = 'moled-items';
+
+    const brandButtons = document.querySelectorAll('.brand-button');
+    const brandPanel = document.getElementById('brandPanel');
+    const brandTitle = document.getElementById('brandTitle');
+    const brandSummary = document.getElementById('brandSummary');
+    const brandNote = document.getElementById('brandNote');
+    const brandNoteText = document.getElementById('brandNoteText');
+    const invoiceBody = document.getElementById('invoiceBody');
+    const invoiceTotal = document.getElementById('invoiceTotal');
+    const invoiceNumberInput = document.getElementById('invoiceNumber');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const sendInvoiceBtn = document.getElementById('sendInvoiceBtn');
+    const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+    const lookupInvoiceBtn = document.getElementById('lookupInvoiceBtn');
+    const searchInvoiceNumber = document.getElementById('searchInvoiceNumber');
+    const statusMessage = document.getElementById('statusMessage');
+    const printInvoiceNumber = document.getElementById('printInvoiceNumber');
+    const printBrandValue = document.getElementById('printBrandValue');
+    const printInvoiceDate = document.getElementById('printInvoiceDate');
+    const printInvoiceClient = document.getElementById('printInvoiceClient');
+    const printItemCount = document.getElementById('printItemCount');
+    const printTotalKilos = document.getElementById('printTotalKilos');
+    const printBrandName = document.getElementById('printBrandName');
+    const printByUser = document.getElementById('printByUser');
+    const lookupModal = document.getElementById('lookupModal');
+    const closeLookupBtn = document.getElementById('closeLookupBtn');
+    const sectionList = document.getElementById('sectionList');
+    const itemsGrid = document.getElementById('itemsGrid');
+    const itemSearch = document.getElementById('itemSearch');
+
+    let currentBrand = '';
+    let currentLookupRow = null;
+    let currentItems = [];
+    let allSections = [];
+    let invoiceSent = false;
+
+    const brandConfig = {
+      'best-sweet': { title: 'بيست سويت', note: 'فاتورة خاصة ببراند بيست سويت' },
+      'ledo': { title: 'ليدو', note: 'فاتورة خاصة ببراند ليدو' }
+    };
+
+    async function showBrandPanel(brandKey, autoNumber = true) {
+      currentBrand = brandKey;
+      const config = brandConfig[brandKey];
+      brandPanel.classList.add('active');
+      brandTitle.textContent = `الفاتورة - ${config.title}`;
+      brandSummary.textContent = `إنشاء فاتورة جديدة لعلامة ${config.title}. اضغط F1 في خانة كود الصنف أو اسم الصنف.`;
+      brandNote.classList.remove('hidden');
+      brandNoteText.textContent = config.note;
+      brandButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.brand === brandKey));
+      if (!invoiceBody.children.length) addInvoiceRow();
+      if (autoNumber) await loadNextInvoiceNumber(brandKey);
+      recalculateTotal();
+    }
+
+    async function loadNextInvoiceNumber(brandKey) {
+      if (!brandKey) {
+        invoiceNumberInput.value = '';
+        return;
+      }
+      const year = new Date().getFullYear();
+      const snapshot = await db.collection('moled-invoices').where('brand', '==', brandKey).get();
+      let maxSequence = 0;
+      snapshot.docs.forEach(doc => {
+        const invoiceNumber = (doc.data().invoiceNumber || '').trim();
+        const match = invoiceNumber.match(/^(\d+)-(\d{4})$/);
+        if (match && match[2] === String(year)) {
+          maxSequence = Math.max(maxSequence, parseInt(match[1], 10));
+        }
+      });
+      invoiceNumberInput.value = `${maxSequence + 1}-${year}`;
+    }
+
+    function addInvoiceRow() {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="text" placeholder="كود الصنف" class="code-input" /></td>
+        <td><input type="text" placeholder="اسم الصنف" class="item-input" /></td>
+        <td><input type="text" placeholder="القسم" class="section-input" readonly /></td>
+        <td><input type="text" placeholder="الوحدة" class="unit-input" /></td>
+        <td><input type="number" min="0" step="0.01" placeholder="وزن الوحدة" class="weight-input" /></td>
+        <td><input type="number" min="0" step="1" placeholder="الكمية" class="qty-input" /></td>
+        <td><input type="number" readonly class="total-input" placeholder="0.00" /></td>
+        <td><button type="button" class="button danger remove-row-btn">حذف</button></td>
+      `;
+      invoiceBody.appendChild(row);
+      attachRowListeners(row);
+    }
+
+    function attachRowListeners(row) {
+      const codeInput = row.querySelector('.code-input');
+      const itemInput = row.querySelector('.item-input');
+      const qtyInput = row.querySelector('.qty-input');
+      const weightInput = row.querySelector('.weight-input');
+      const removeBtn = row.querySelector('.remove-row-btn');
+
+      [codeInput, itemInput].forEach(input => {
+        input.addEventListener('keydown', event => {
+          if (event.key === 'F1') {
+            event.preventDefault();
+            currentLookupRow = row;
+            openLookupModal();
+          }
+        });
+      });
+
+      [qtyInput, weightInput].forEach(input => input.addEventListener('input', () => updateRowTotal(row)));
+      removeBtn.addEventListener('click', () => { row.remove(); recalculateTotal(); });
+    }
+
+    function updateRowTotal(row) {
+      const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+      const weight = parseFloat(row.querySelector('.weight-input').value) || 0;
+      const total = qty * weight;
+      row.querySelector('.total-input').value = total ? total.toFixed(2) : '';
+      recalculateTotal();
+    }
+
+    function recalculateTotal() {
+      let sum = 0;
+      invoiceBody.querySelectorAll('.total-input').forEach(input => {
+        const value = parseFloat(input.value.replace(',', '.'));
+        if (!Number.isNaN(value)) sum += value;
+      });
+      invoiceTotal.textContent = sum.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      updatePrintMeta();
+    }
+
+    function updatePrintMeta() {
+      printInvoiceNumber.textContent = invoiceNumberInput.value || '-';
+      printBrandValue.textContent = currentBrand ? brandConfig[currentBrand].title : '-';
+      printInvoiceDate.textContent = document.getElementById('invoiceDate').value || '-';
+      printInvoiceClient.textContent = document.getElementById('invoiceClient').value.trim() || '-';
+      printBrandName.textContent = currentBrand ? brandConfig[currentBrand].title : '-';
+      printByUser.textContent = getCurrentUsername();
+
+      const itemCount = Array.from(invoiceBody.querySelectorAll('tr')).filter(row => {
+        return row.querySelector('.code-input').value.trim() || row.querySelector('.item-input').value.trim();
+      }).length;
+      printItemCount.textContent = itemCount;
+      printTotalKilos.textContent = invoiceTotal.textContent || '0.00';
+    }
+
+    function openLookupModal() {
+      lookupModal.classList.add('active');
+      itemSearch.value = '';
+      itemsGrid.innerHTML = '<p style="color: var(--muted);">اختر قسمًا لعرض الأصناف.</p>';
+      document.getElementById('lookupTitle').textContent = 'اختر قسمًا لمعرفة الأصناف';
+      loadSections();
+    }
+
+    function getCurrentUsername() {
+      return (localStorage.getItem('username') || localStorage.getItem('userName') || localStorage.getItem('userCode') || localStorage.getItem('userUid') || sessionStorage.getItem('username') || sessionStorage.getItem('userName') || sessionStorage.getItem('userCode') || sessionStorage.getItem('userUid') || 'النظام').toString().trim() || 'النظام';
+    }
+
+    function closeLookupModal() {
+      lookupModal.classList.remove('active');
+      currentLookupRow = null;
+    }
+
+    async function loadSections() {
+      if (allSections.length) return renderSections();
+      const snapshot = await db.collection(ITEM_COLLECTION).get();
+      const sections = new Set();
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.section) sections.add(data.section);
+      });
+      allSections = Array.from(sections).sort((a, b) => a.localeCompare(b, 'ar'));
+      renderSections();
+    }
+
+    function renderSections() {
+      sectionList.innerHTML = allSections.map(section => `<button type="button" class="section-item" data-section="${section}">${section}</button>`).join('');
+      sectionList.querySelectorAll('.section-item').forEach(button => {
+        button.addEventListener('click', () => selectSection(button.dataset.section));
+      });
+    }
+
+    async function selectSection(section) {
+      document.getElementById('lookupTitle').textContent = `الأصناف في قسم ${section}`;
+      const snapshot = await db.collection(ITEM_COLLECTION).where('section', '==', section).get();
+      currentItems = snapshot.docs.map(doc => doc.data()).filter(item => item.name && item.code);
+      renderItems(currentItems);
+    }
+
+    function renderItems(items) {
+      const filter = itemSearch.value.trim().toLowerCase();
+      const filtered = items.filter(item => item.name.toLowerCase().includes(filter) || String(item.code || '').toLowerCase().includes(filter));
+      if (!filtered.length) {
+        itemsGrid.innerHTML = '<p style="color: var(--muted);">لا توجد أصناف مطابقة في هذا القسم.</p>';
+        return;
+      }
+      itemsGrid.innerHTML = filtered.map(item => `
+        <button type="button" class="item-card" data-code="${item.code}" data-name="${item.name}" data-section="${item.section}" data-weight="${item.weight || ''}">
+          <strong>${item.name}</strong>
+          <span>الكود: ${item.code}</span>
+          <span>القسم: ${item.section}</span>
+          <span>وزن الوحدة: ${item.weight || '-'}</span>
+        </button>
+      `).join('');
+      itemsGrid.querySelectorAll('.item-card').forEach(card => card.addEventListener('click', () => chooseItem(card.dataset)));
+    }
+
+    function chooseItem(data) {
+      if (!currentLookupRow) return;
+      currentLookupRow.querySelector('.code-input').value = data.code || '';
+      currentLookupRow.querySelector('.item-input').value = data.name || '';
+      currentLookupRow.querySelector('.section-input').value = data.section || '';
+      currentLookupRow.querySelector('.weight-input').value = data.weight || '';
+      updateRowTotal(currentLookupRow);
+      closeLookupModal();
+    }
+
+    itemSearch.addEventListener('input', () => renderItems(currentItems));
+    closeLookupBtn.addEventListener('click', closeLookupModal);
+    lookupModal.addEventListener('click', event => { if (event.target === lookupModal) closeLookupModal(); });
+    document.getElementById('invoiceDate').addEventListener('input', updatePrintMeta);
+    document.getElementById('invoiceClient').addEventListener('input', updatePrintMeta);
+
+    async function resetInvoice() {
+      invoiceBody.innerHTML = '';
+      addInvoiceRow();
+      recalculateTotal();
+      invoiceSent = false;
+      printInvoiceBtn.disabled = true;
+      if (currentBrand) await loadNextInvoiceNumber(currentBrand);
+      setStatus('تم إعادة تعيين الفاتورة.', true);
+    }
+
+    function setStatus(message, success = true) {
+      statusMessage.textContent = message;
+      statusMessage.style.color = success ? '#64d68f' : '#ff6b7a';
+    }
+
+    async function sendInvoice() {
+      if (!currentBrand) {
+        setStatus('اختر البراند أولاً قبل إرسال الفاتورة.', false);
+        return;
+      }
+
+      const invoiceNumber = invoiceNumberInput.value.trim();
+      if (!invoiceNumber) {
+        setStatus('أدخل رقم الفاتورة قبل الإرسال.', false);
+        return;
+      }
+
+      const items = Array.from(invoiceBody.querySelectorAll('tr')).map(row => ({
+        code: row.querySelector('.code-input').value.trim(),
+        name: row.querySelector('.item-input').value.trim(),
+        section: row.querySelector('.section-input').value.trim(),
+        unit: row.querySelector('.unit-input').value.trim(),
+        unitWeight: parseFloat(row.querySelector('.weight-input').value) || 0,
+        qty: parseFloat(row.querySelector('.qty-input').value) || 0,
+        total: parseFloat(row.querySelector('.total-input').value) || 0
+      })).filter(item => item.code || item.name);
+
+      if (!items.length) {
+        setStatus('أضف صنفاً واحداً على الأقل في الفاتورة.', false);
+        return;
+      }
+
+      const payload = {
+        brand: currentBrand,
+        invoiceNumber,
+        date: document.getElementById('invoiceDate').value || '',
+        client: document.getElementById('invoiceClient').value.trim() || '',
+        items,
+        total: parseFloat(invoiceTotal.textContent.replace(/,/g, '')) || 0,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      const docId = `${currentBrand}-${invoiceNumber}`;
+      await db.collection('moled-invoices').doc(docId).set(payload);
+      invoiceSent = true;
+      printInvoiceBtn.disabled = false;
+      setStatus('تم إرسال الفاتورة وحفظها بنجاح.', true);
+    }
+
+    function printInvoice() {
+      if (!invoiceSent) {
+        setStatus('أرسل الفاتورة أولاً ثم اضغط طباعة.', false);
+        return;
+      }
+      window.print();
+    }
+
+    async function lookupInvoice() {
+      const searchNumber = searchInvoiceNumber.value.trim();
+      if (!searchNumber) {
+        setStatus('أدخل رقم الفاتورة للاستعلام.', false);
+        return;
+      }
+
+      let query = db.collection('moled-invoices')
+        .where('invoiceNumber', '==', searchNumber)
+        .limit(1);
+
+      if (currentBrand) {
+        query = query.where('brand', '==', currentBrand);
+      }
+
+      let snapshot = await query.get();
+      if (snapshot.empty && currentBrand) {
+        snapshot = await db.collection('moled-invoices')
+          .where('invoiceNumber', '==', searchNumber)
+          .limit(1)
+          .get();
+      }
+
+      if (snapshot.empty) {
+        setStatus('لم يتم العثور على الفاتورة. تأكد من الرقم والمحاولة مرة أخرى.', false);
+        return;
+      }
+
+      const invoice = snapshot.docs[0].data();
+      await showBrandPanel(invoice.brand, false);
+      invoiceNumberInput.value = invoice.invoiceNumber || '';
+      document.getElementById('invoiceDate').value = invoice.date || '';
+      document.getElementById('invoiceClient').value = invoice.client || '';
+      invoiceBody.innerHTML = '';
+
+      (invoice.items || []).forEach(item => {
+        addInvoiceRow();
+        const row = invoiceBody.lastElementChild;
+        row.querySelector('.code-input').value = item.code || '';
+        row.querySelector('.item-input').value = item.name || '';
+        row.querySelector('.section-input').value = item.section || '';
+        row.querySelector('.unit-input').value = item.unit || '';
+        row.querySelector('.weight-input').value = item.unitWeight || '';
+        row.querySelector('.qty-input').value = item.qty || '';
+        row.querySelector('.total-input').value = item.total ? item.total.toFixed(2) : '';
+      });
+
+      recalculateTotal();
+      invoiceSent = true;
+      printInvoiceBtn.disabled = false;
+      setStatus('تم استرجاع الفاتورة للعرض والتعديل.', true);
+    }
+
+    brandButtons.forEach(button => button.addEventListener('click', () => showBrandPanel(button.dataset.brand)));
+    addRowBtn.addEventListener('click', addInvoiceRow);
+    resetBtn.addEventListener('click', resetInvoice);
+    sendInvoiceBtn.addEventListener('click', sendInvoice);
+    printInvoiceBtn.addEventListener('click', printInvoice);
+    lookupInvoiceBtn.addEventListener('click', lookupInvoice);
+  </script>
+</body>
+</html>

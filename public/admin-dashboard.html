@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>لوحة التحكم - إدارة المستخدمين</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <link href="style.css" rel="stylesheet" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="notifications.js"></script>
+
+  <style>
+/* d:\ORDER\admin-dashboard.html */
+/* Modern dark theme — soft, roomy, eye-friendly */
+:root{
+  --bg-900: #0b0c0d;
+  --bg-800: #0f1112;
+  --panel: #131516;
+  --muted: #98a0a6;
+  --text: #e6eef0;
+  --accent: #ffcc21; /* warm gold */
+  --accent-2: #f6b24e;
+  --success: #16a34a;
+  --danger: #ef476f;
+  --glass: rgba(255,255,255,0.03);
+  --card-border: rgba(255,255,255,0.04);
+  --radius: 12px;
+  --shadow-soft: 0 8px 30px rgba(0,0,0,0.6);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.02);
+  --focus-ring: 0 0 0 4px rgba(255,204,33,0.06);
+}
+
+/* Base */
+html,body{height:100%;margin:0;padding:0}
+body{
+  background: linear-gradient(180deg,var(--bg-900) 0%, var(--bg-800) 60%);
+  color:var(--text);
+  font-family: 'Cairo', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  direction: rtl;
+  padding:28px;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.45;
+}
+
+/* Page shell */
+h2,h3{ color:var(--accent); margin:0 0 12px 0; text-align:center; font-weight:800; text-shadow:0 2px 0 rgba(0,0,0,0.5) }
+.container {
+  max-width:980px;
+  margin:0 auto;
+}
+
+/* Buttons */
+button{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid var(--card-border);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+  color:var(--text);
+  cursor:pointer;
+  font-weight:700;
+  transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
+}
+button:hover{ transform:translateY(-2px); box-shadow:var(--shadow-soft) }
+button.primary { background: linear-gradient(180deg, var(--accent), var(--accent-2)); color:#0b0b0b; border-color: rgba(0,0,0,0.25) }
+button.ghost { background: transparent; border:1px solid var(--card-border); color:var(--text) }
+button.danger { background: linear-gradient(180deg, var(--danger), #c13b61); color:#fff; }
+
+/* Add-user box & user rows (cards) */
+.add-user-box, .user-row {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  border: 1px solid var(--card-border);
+  padding:18px;
+  border-radius:var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+  margin-bottom:18px;
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="number"]{
+  width:100%;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.08));
+  color:var(--text);
+  outline:none;
+  box-shadow: var(--shadow-inset);
+  transition: box-shadow .12s, transform .06s, border-color .08s;
+}
+input:focus{
+  box-shadow: var(--focus-ring);
+  border-color: rgba(255,204,33,0.18);
+  transform: translateY(-1px);
+}
+
+/* Permissions chips layout */
+.permissions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.permissions label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06));
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.03);
+  color:var(--muted);
+  cursor:pointer;
+  font-weight:700;
+  font-size:13px;
+}
+.permissions input[type="checkbox"]{
+  transform:translateY(1px);
+  accent-color: var(--accent);
+}
+
+/* Controls row & top actions */
+.add-user-box > h3{ margin-bottom:10px; color:var(--accent) }
+hr{ border: none; height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent); margin:18px 0 }
+
+/* User list */
+.user-row strong{ font-size:16px; color:var(--text) }
+.user-row small{ color:var(--muted); display:block; margin-top:6px }
+
+/* Inline action buttons inside user-row */
+.user-row button{ margin-right:8px }
+
+/* Message */
+#message{ margin-top:10px; color:var(--muted); font-weight:700 }
+
+/* Responsive tweaks */
+@media (max-width:700px){
+  body{ padding:14px }
+  .permissions label{ font-size:12px; padding:6px 8px }
+  button{ padding:8px 10px }
+}
+
+/* SweetAlert2 custom (match dark theme) */
+.swal2-popup {
+  background-color: #0f1213 !important;
+  color: var(--text) !important;
+  border:1px solid rgba(255,255,255,0.04);
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+}
+.swal2-title { color: var(--accent) !important; font-weight:800 }
+.swal2-html-container { color: var(--text) !important }
+.swal2-confirm { background: linear-gradient(180deg,var(--accent), var(--accent-2)) !important; color:#000 !important; font-weight:800 }
+.swal2-cancel { background:#333 !important; color:#fff !important }
+
+/* Accessibility: focus outlines for keyboard users */
+:focus{ outline: none }
+button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
+
+/* small utility */
+.muted { color:var(--muted) }
+  /* users table */
+  #userTable { width:100%; border-collapse:collapse; margin-top:12px }
+  #userTable th, #userTable td { padding:10px 8px; border:1px solid rgba(255,255,255,0.03); text-align:center }
+  #userTable thead th { background:linear-gradient(180deg,#151717,#0f1112); color:var(--accent); font-weight:800 }
+  .pw-toggle { cursor:pointer; background:transparent; border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px }
+  /* centered modal overlay + permission modal (modern look with animation) */
+  .modal-overlay{ position:fixed; inset:0; background: rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:99999; opacity:0; pointer-events:none; transition:opacity .22s ease; }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  .perm-modal{ width:720px; max-width:96%; background:var(--panel); border-radius:14px; padding:18px; border:1px solid var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.7); transform: translateY(12px) scale(.98); opacity:0; transition: transform .28s cubic-bezier(.2,.9,.2,1), opacity .22s; }
+  .modal-overlay.open .perm-modal{ transform: translateY(0) scale(1); opacity:1; }
+  /* inline non-floating modal variant (not overlaying SweetAlert) */
+  .perm-modal-inline{ position:relative; margin:18px auto; left:0; right:0; transform:none; opacity:1; box-shadow:0 12px 30px rgba(0,0,0,0.45); }
+  .perm-modal .modal-header{ display:flex; align-items:center; gap:12px; justify-content:space-between }
+  .perm-modal h4{ margin:0; color:var(--accent) }
+  .perm-modal .close-x{ background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer }
+  .perm-modal .infographic{ height:6px; border-radius:6px; background: linear-gradient(90deg, rgba(255,204,33,0.12), rgba(240,173,78,0.12)); margin:12px 0 }
+    /* Make the modal body stack vertically so the permissions grid fills the width
+      and there is no empty right column. This makes scrolling vertical (up/down). */
+    .perm-modal .perm-body{ display:flex; flex-direction:column; gap:12px; align-items:stretch }
+    .perm-modal .perm-left{ display:none }
+    .perm-modal .perm-right{ width:100%; max-width:100% }
+  .perm-modal input[type="text"], .perm-modal input[type="password"]{ width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); color:var(--text); }
+  .perm-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:none; overflow:visible; padding-right:0 }
+    /* wrapper that enables vertical scrolling for permission grid (user requested)
+      and allows the grid to take full width and flow into 3 columns/rows. */
+    .perm-grid-wrapper{ overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding-bottom:8px; max-height:320px; }
+    .perm-grid{ display:grid; grid-auto-rows: minmax(44px, auto); grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; align-items:start; }
+  .perm-grid label{ width:100%; display:flex; align-items:center; gap:10px; justify-content:flex-start }
+  .perm-grid .perm-chip{ flex:1; white-space:normal }
+  /* horizontal scrollbar styling */
+  .perm-grid-wrapper::-webkit-scrollbar{ width:10px }
+  .perm-grid-wrapper::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.06); border-radius:6px }
+  .perm-chip{ display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); border:1px solid rgba(255,255,255,0.03); color:var(--muted); font-weight:700 }
+  .perm-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
+  </style>
+</head>
+<body>
+  <h2>🧑‍💼 لوحة التحكم | إدارة المستخدمين</h2>
+
+  <div class="button-group">
+    <button onclick="location.href='manage-uploads.html'">📂 إدارة مرفوعات ليدو</button>
+    <button onclick="location.href='manage-uploads-best-sweet.html'">📂 إدارة مرفوعات بيست سويت</button>
+    <button onclick="location.href='add-news.html'">📰 إضافة خبر عاجل</button>
+    <button onclick="location.href='حركات.html'">🔁 حركات</button>
+    <button class="primary" id="openCreateUserBtn">➕ إنشاء مستخدم جديد</button>
+    <button class="ghost" id="toggleUsersBtn">👥 عرض المستخدمين</button>
+    <button class="ghost" id="sliderToggleBtn">👁️ إخفاء/عرض السلايدر</button>
+    <button class="ghost" id="openColumnSettingsBtn" onclick="openGlobalColumnSettings()">⚙️ إعدادات أعمدة التجميع</button>
+     <button onclick="location.href='suggestions.html'"> المقترحات</button>
+        <button class="btn" onclick="location.href='production-plan.html'">🔧 خطة إنتاج لكل صنف</button>
+
+  </div>
+
+  <!-- legacy inline add box (hidden) - we now use a modal -->
+  <div class="add-user-box" id="legacyAddBox" style="display:none;">
+    <h3>➕ إنشاء مستخدم جديد</h3>
+    <input type="text" id="newUser" placeholder="اسم المستخدم" />
+    <input type="password" id="newPass" placeholder="كلمة المرور" />
+    <div><strong>🔐 الصلاحيات:</strong></div>
+    <div class="permissions" id="permissionsList">
+      <label><input type="checkbox" value="korba_page"> كوربة</label>
+      <label><input type="checkbox" value="dokki_page"> دقي</label>
+      <label><input type="checkbox" value="tagamo3_page"> تجمع</label>
+      <label><input type="checkbox" value="delivery_page"> أوردرات التسليم</label>
+      <label><input type="checkbox" value="reservation_page"> الحجوزات</label>
+      <label><input type="checkbox" value="all_orders_page"> صفحة التجميع</label>
+      <label><input type="checkbox" value="upload_page"> إدارة الأصناف</label>
+    <label><input type="checkbox" value="storage_page"> إدارة المخازن</label>
+      <label><input type="checkbox" value="admin_page"> إدارة المستخدمين</label>
+      <label><input type="checkbox" value="all_reservations_page"> فواتير الحجوزات الكاملة</label>
+      <label><input type="checkbox" value="obour_page"> فرع العبور</label>
+      <label><input type="checkbox" value="send_to_branches_page"> إرسال الطلبات للفروع</label>
+      <label><input type="checkbox" value="summary_page"> تحليلات الانتاج</label>
+      <label><input type="checkbox" value="manage_invoices_page"> إدارة الفواتير</label>
+      <label><input type="checkbox" value="quality_page"> صفحة الجودة</label>
+      <label><input type="checkbox" value="view_quality_reports"> عرض التقارير المخزنة</label>
+      <label><input type="checkbox" value="best_sweet_page"> بيست سويت</label>
+      <label><input type="checkbox" value="best_sweet_branch1_page"> فرع اول اجمال</label>
+      <label><input type="checkbox" value="best_sweet_abbassia_page"> فرع العباسية</label>
+      <label><input type="checkbox" value="best_sweet_helw_zaytoun_page"> فرع حلو منه فيه الزيتون</label>
+      <label><input type="checkbox" value="best_sweet_market_zaytoun_page"> فرع فيصل</label>
+      <label><input type="checkbox" value="best_sweet_helwan_page"> فرع حلوان</label>
+      <label><input type="checkbox" value="best_sweet_obour_market_page"> فرع العبور ماركت</label>
+    </div>
+    <div style="margin-top:10px;"><strong>🎯 صلاحية شاملة:</strong></div>
+    <div class="permissions">
+      <label><input type="checkbox" value="all"> كافة الصلاحيات</label>
+    </div>
+    <button onclick="addUser()">✔️ إضافة المستخدم</button>
+    <div id="message"></div>
+  </div>
+
+  <!-- Create User Modal (2-step): Step1 = user code/name/pass, Step2 = permissions -->
+  <div id="createUserModal" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); z-index:9999;">
+    <div style="width:520px; max-width:94%; background:var(--panel); border-radius:12px; padding:18px; border:1px solid var(--card-border);">
+      <div id="modalStep1">
+        <h3>إنشاء مستخدم - الخطوة 1</h3>
+        <input type="text" id="userCode" placeholder="كود المستخدم (مثال: U001)" style="margin-top:10px;" />
+        <input type="text" id="userName" placeholder="اسم المستخدم" style="margin-top:10px;" />
+        <input type="password" id="userPass" placeholder="كلمة المرور" style="margin-top:10px;" />
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end;">
+          <button onclick="closeCreateModal()">❌ إلغاء</button>
+          <button class="primary" onclick="modalNext()">التالي ➜</button>
+        </div>
+      </div>
+      <div id="modalStep2" style="display:none; margin-top:8px;">
+        <h3>تفعيل الصلاحيات - الخطوة 2</h3>
+        <div style="max-height:220px; overflow:auto; margin-top:8px;">
+          <div class="permissions" id="modalPermissions">
+            <!-- permissions will be cloned here -->
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:10px; margin-top:12px;">
+          <label style="display:flex; flex-direction:column; gap:4px;">أيام تجربة <input id="trialDays" type="number" min="0" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+          <label style="display:flex; flex-direction:column; gap:4px;">ساعات تجربة <input id="trialHours" type="number" min="0" max="23" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+          <label style="display:flex; flex-direction:column; gap:4px;">دقائق تجربة <input id="trialMinutes" type="number" min="0" max="59" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+          <label style="display:flex; flex-direction:column; gap:4px;">ثواني تجربة <input id="trialSeconds" type="number" min="0" max="59" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+        </div>
+        <div style="font-size:0.9rem; color:#ccc; margin-top:10px; text-align:right">حدد مدة الفترة التجريبية هنا ثم اضغط إتمام. اترك جميع القيم صفرًا لإلغاء الفترة.</div>
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end;">
+          <button onclick="modalPrev()">◀ العودة</button>
+          <button class="primary" onclick="modalComplete()">✔️ إتمام</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr />
+  <h3>📋 المستخدمون الحاليون:</h3>
+  <button onclick="loadUsers()">🔄 تحديث القائمة</button>
+  <div id="userList"></div>
+  <div id="permPanel" style="margin-top:14px;"></div>
+
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const globalTableSettingsDoc = db.collection('settings').doc('tableColumnVisibility');
+    const globalTableSettingLabels = {
+      code: '🔢 الكود',
+      name: '📦 الصنف',
+      best_sweet_abbassia: 'فرع العباسية',
+      best_sweet_1: 'جمال',
+      best_sweet_market_zaytoun: 'فيصل',
+      best_sweet_helwan: 'حلوان',
+      best_sweet_obour_market: 'العبور ماركت',
+      best_sweet_helw_zaytoun: 'حلو الزيتون',
+      korba: 'كوربة',
+      dokki: 'دقي',
+      tagamo3: 'تجمع',
+      obour: 'عبور',
+      total: 'الإجمالي'
+    };
+    const defaultGlobalTableSettings = {
+      bestSweet: {
+        code: true,
+        name: true,
+        best_sweet_abbassia: true,
+        best_sweet_1: true,
+        best_sweet_market_zaytoun: true,
+        best_sweet_helwan: true,
+        best_sweet_obour_market: true,
+        best_sweet_helw_zaytoun: true,
+        total: true
+      },
+      allOrders: {
+        code: true,
+        name: true,
+        korba: true,
+        dokki: true,
+        tagamo3: true,
+        obour: true,
+        total: true
+      }
+    };
+
+    function buildSettingsSection(pageKey, title, keys) {
+      return `
+        <div style="border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:12px; background:rgba(255,255,255,0.02);">
+          <h4 style="margin:0 0 10px 0; color:var(--accent);">${title}</h4>
+          ${keys.map(key => `
+            <label style="display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:14px;">
+              <input type="checkbox" id="gs-${pageKey}-${key}" ${defaultGlobalTableSettings[pageKey][key] ? 'checked' : ''}>
+              ${globalTableSettingLabels[key] || key}
+            </label>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    async function openGlobalColumnSettings() {
+      try {
+        const doc = await globalTableSettingsDoc.get();
+        const current = doc.exists ? doc.data() : {};
+        const settings = {
+          bestSweet: { ...defaultGlobalTableSettings.bestSweet, ...(current.bestSweet || {}) },
+          allOrders: { ...defaultGlobalTableSettings.allOrders, ...(current.allOrders || {}) }
+        };
+
+        const html = `
+          <div style="text-align:right; display:grid; gap:16px; font-size:14px;">
+            ${buildSettingsSection('bestSweet', 'إعدادات أعمدة تجميع صفحة بيست سويت', Object.keys(defaultGlobalTableSettings.bestSweet))}
+            ${buildSettingsSection('allOrders', 'إعدادات أعمدة تجميع صفحة الطلبات العامة', Object.keys(defaultGlobalTableSettings.allOrders))}
+          </div>
+        `;
+
+        const result = await Swal.fire({
+          title: '⚙️ إعدادات أعمدة التجميع',
+          html,
+          width: '720px',
+          showCancelButton: true,
+          confirmButtonText: 'حفظ',
+          cancelButtonText: 'إلغاء',
+          focusConfirm: false,
+          didOpen: () => {
+            Object.entries(settings.bestSweet).forEach(([key, value]) => {
+              const el = document.getElementById(`gs-bestSweet-${key}`);
+              if (el) el.checked = value;
+            });
+            Object.entries(settings.allOrders).forEach(([key, value]) => {
+              const el = document.getElementById(`gs-allOrders-${key}`);
+              if (el) el.checked = value;
+            });
+          },
+          preConfirm: () => {
+            const newSettings = {
+              bestSweet: {},
+              allOrders: {}
+            };
+            Object.keys(defaultGlobalTableSettings.bestSweet).forEach(key => {
+              const el = document.getElementById(`gs-bestSweet-${key}`);
+              newSettings.bestSweet[key] = !!(el && el.checked);
+            });
+            Object.keys(defaultGlobalTableSettings.allOrders).forEach(key => {
+              const el = document.getElementById(`gs-allOrders-${key}`);
+              newSettings.allOrders[key] = !!(el && el.checked);
+            });
+            return newSettings;
+          }
+        });
+
+        if (result.isConfirmed && result.value) {
+          await globalTableSettingsDoc.set(result.value, { merge: true });
+          Swal.fire('✅ تم الحفظ', 'تم تحديث إعدادات أعمدة التجميع لجميع المستخدمين.', 'success');
+          try{ if (window.activityLogger) activityLogger.logActivity('update_global_column_settings','/admin-dashboard.html',{ settings: result.value }); } catch(e){}
+        }
+      } catch (error) {
+        console.error('Error saving global table settings:', error);
+        Swal.fire('❌ حدث خطأ', 'لم نتمكن من حفظ إعدادات الأعمدة الآن.', 'error');
+      }
+    }
+
+async function addUser() {
+  const username = document.getElementById("newUser").value.trim();
+  const password = document.getElementById("newPass").value.trim();
+  const checkboxes = document.querySelectorAll('.permissions input[type=checkbox]');
+  let roles = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+
+  if (!username || !password || roles.length === 0) {
+    Swal.fire('⚠️ تنبيه', 'يرجى ملء كافة الحقول وتحديد الصلاحيات', 'warning');
+    return;
+  }
+
+  // معالجة صلاحية "الكل"
+  if (roles.includes("all") && roles.length === 1) {
+    roles = ["all"];
+  } else {
+    roles = roles.filter(r => r !== "all");
+  }
+
+  try {
+    await db.collection("users").doc(username).set({ password, roles });
+    Swal.fire('✅ تم الإضافة', `تم إضافة المستخدم "${username}" بنجاح`, 'success');
+    try{ if (window.activityLogger) activityLogger.logActivity('create_user','/admin-dashboard.html',{ code: username, roles }); } catch(e){}
+    document.getElementById("newUser").value = "";
+    document.getElementById("newPass").value = "";
+    checkboxes.forEach(cb => cb.checked = false);
+    loadUsers();
+  } catch (err) {
+    console.error(err);
+    Swal.fire('❌ خطأ', 'حدث خطأ أثناء الإضافة', 'error');
+  }
+}
+
+    function normalizeDateValue(value) {
+      if (!value) return null;
+      if (value instanceof Date) return value;
+      if (typeof value === 'object' && value !== null) {
+        if (typeof value.toDate === 'function') {
+          return value.toDate();
+        }
+        if (typeof value.seconds === 'number') {
+          const nanos = typeof value.nanoseconds === 'number' ? value.nanoseconds : 0;
+          return new Date(value.seconds * 1000 + nanos / 1e6);
+        }
+      }
+      if (typeof value === 'number') {
+        return new Date(value);
+      }
+      if (typeof value === 'string') {
+        const parsed = new Date(value);
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+      }
+      return null;
+    }
+
+    async function loadUsers() {
+      const list = document.getElementById("userList");
+      list.innerHTML = "⏳ جاري التحميل...";
+      try {
+        const snapshot = await db.collection("users").get();
+        if (snapshot.empty) {
+          list.innerHTML = "🚫 لا يوجد مستخدمون";
+          return;
+        }
+
+        list.innerHTML = "";
+            // build table
+            const table = document.createElement('table');
+            table.id = 'userTable';
+            const thead = document.createElement('thead');
+            thead.innerHTML = '<tr><th>كود المستخدم</th><th>اسم المستخدم</th><th>فترة التجربة</th><th>كلمة المرور</th><th>صلاحيات</th><th>حذف</th></tr>';
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              const roles = data.roles || [];
+              const tr = document.createElement('tr');
+              // row metadata
+              // code
+              const tdCode = document.createElement('td'); tdCode.textContent = doc.id;
+              // name
+              const tdName = document.createElement('td'); tdName.textContent = data.name || doc.id;
+              // trial period
+              const tdTrial = document.createElement('td');
+              const trialExpiresAt = normalizeDateValue(data.trialExpiresAt);
+              const now = new Date();
+              let trialStatus = 'غير محددة';
+              let trialBtnLabel = 'تعيين';
+              if (trialExpiresAt && Number.isFinite(trialExpiresAt.getTime())) {
+                const diff = trialExpiresAt.getTime() - now.getTime();
+                if (diff <= 0) {
+                  trialStatus = 'انتهت';
+                  trialBtnLabel = 'تجديد';
+                } else {
+                  const days = Math.floor(diff / 86400000);
+                  const hours = Math.floor((diff % 86400000) / 3600000);
+                  const minutes = Math.floor((diff % 3600000) / 60000);
+                  const seconds = Math.floor((diff % 60000) / 1000);
+                  trialStatus = `${days} يوم ${hours} س ${minutes} د ${seconds} ث`;
+                  trialBtnLabel = 'عرض';
+                }
+              }
+              const trialBtn = document.createElement('button'); trialBtn.className = 'ghost'; trialBtn.textContent = trialBtnLabel; trialBtn.style.marginLeft='6px';
+              trialBtn.title = 'ضبط فترة التجربة';
+              trialBtn.onclick = () => openTrialModal(doc.id, data.name || doc.id, trialExpiresAt);
+              tdTrial.appendChild(document.createTextNode(trialStatus));
+              tdTrial.appendChild(document.createElement('br'));
+              tdTrial.appendChild(trialBtn);
+              // password with toggle
+              const tdPass = document.createElement('td');
+              const pwSpan = document.createElement('span'); pwSpan.textContent = '••••••'; pwSpan.className = 'pw-mask'; pwSpan.dataset.pw = data.password || '';
+              const pwBtn = document.createElement('button'); pwBtn.className = 'pw-toggle'; pwBtn.textContent = 'عرض';
+              pwBtn.onclick = () => togglePassword(pwSpan, pwBtn);
+              tdPass.appendChild(pwSpan); tdPass.appendChild(document.createTextNode(' ')); tdPass.appendChild(pwBtn);
+              // permissions button
+              const tdPerm = document.createElement('td');
+              const permViewBtn = document.createElement('button'); permViewBtn.className = 'ghost'; permViewBtn.textContent = 'عرض';
+              permViewBtn.title = 'عرض الصلاحيات';
+              permViewBtn.onclick = () => showPermissionsCard(doc.id, roles);
+              const permEditBtn = document.createElement('button'); permEditBtn.className = 'primary'; permEditBtn.style.marginLeft='6px'; permEditBtn.textContent = 'تعديل';
+              permEditBtn.title = 'تحديث/تعديل الصلاحيات';
+              permEditBtn.onclick = () => openPermEditor(doc.id);
+              tdPerm.appendChild(permViewBtn); tdPerm.appendChild(permEditBtn);
+              // delete
+              const tdDel = document.createElement('td');
+              const delBtn = document.createElement('button'); delBtn.className = 'danger'; delBtn.textContent = '🗑️ حذف'; delBtn.onclick = () => deleteUser(doc.id);
+              tdDel.appendChild(delBtn);
+
+              tr.appendChild(tdCode); tr.appendChild(tdName); tr.appendChild(tdTrial); tr.appendChild(tdPass); tr.appendChild(tdPerm); tr.appendChild(tdDel);
+              tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            list.innerHTML = '';
+            list.appendChild(table);
+      } catch (err) {
+        console.error(err);
+        list.innerHTML = "❌ فشل تحميل المستخدمين";
+      }
+    }
+    // بعد تحميل المستخدمين، اربط أحداث الحذف
+document.querySelectorAll('.delete-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const username = btn.getAttribute('data-username');
+    deleteUser(username);
+  });
+});
+
+
+    function generateCheckbox(role, activeRoles) {
+      const labelMap = {
+        korba_page: "فرع الكوربة",
+        dokki_page: "فرع الدقي",
+        tagamo3_page: "فرع التجمع",
+        delivery_page: "تسليم الحجوزات",
+        reservation_page: "الحجوزات",
+        all_orders_page: " تجميع الطلبيات",
+        upload_page: "إدارة الاصناف",
+        admin_page: "إدارة المستخدمين",
+        all_reservations_page: "فواتير الحجوزات الكاملة",
+        all: "الكل",
+        obour_page: "فرع العبور",
+        send_to_branches_page: "إرسال الطلبات للفروع",
+        manage_invoices_page: "إدارة الفواتير",
+        summary_page: "تحليلات الانتاج",
+        quality_page: "صفحة الجودة",
+        storage_page: "إدارة المخازن",
+        view_quality_reports: "عرض التقارير المخزنة",
+        best_sweet_page: "بيست سويت",
+        best_sweet_branch1_page: "فرع اول اجمال",
+        best_sweet_abbassia_page: "فرع العباسية",
+        best_sweet_helw_zaytoun_page: "فرع حلو منه فيه الزيتون",
+        best_sweet_market_zaytoun_page: "فرع فيصل",
+        best_sweet_helwan_page: "فرع حلوان",
+        best_sweet_obour_market_page: "فرع العبور ماركت" // صلاحيات فروع بيست سويت
+      };
+      return `<label><input type="checkbox" value="${role}" ${activeRoles.includes(role) ? "checked" : ""}> ${labelMap[role]}</label>`;
+    }
+
+    // canonical role labels for editor/viewer
+    const ROLE_LABELS = {
+      korba_page: "فرع الكوربة",
+      dokki_page: "فرع الدقي",
+      tagamo3_page: "فرع التجمع",
+      delivery_page: "تسليم الحجوزات",
+      reservation_page: "الحجوزات",
+      all_orders_page: "صفحة التجميع",
+      upload_page: "إدارة الاصناف",
+      admin_page: "إدارة المستخدمين",
+      all_reservations_page: "فواتير الحجوزات الكاملة",
+      all: "الكل",
+      obour_page: "فرع العبور",
+      send_to_branches_page: "إرسال الطلبات للفروع",
+      manage_invoices_page: "إدارة الفواتير",
+      summary_page: "تحليلات الانتاج",
+      quality_page: "صفحة الجودة",
+      storage_page: "إدارة المخازن",
+      view_quality_reports: "عرض التقارير المخزنة",
+      best_sweet_page: "بيست سويت",
+      best_sweet_branch1_page: "فرع اول اجمال",
+      best_sweet_abbassia_page: "فرع العباسية",
+      best_sweet_helw_zaytoun_page: "فرع حلو منه فيه الزيتون",
+      best_sweet_market_zaytoun_page: "فرع فيصل",
+      best_sweet_helwan_page: "فرع حلوان",
+      best_sweet_obour_market_page: "فرع العبور ماركت"
+    };
+
+    async function updateRoles(username, btn) {
+      const checkboxes = btn.parentElement.querySelectorAll('input[type=checkbox]');
+      const newRoles = Array.from(checkboxes).filter
+      (cb => cb.checked).map(cb => cb.value);
+      if (newRoles.length === 0) {
+        showError("⚠️ حدد صلاحية واحدة على الأقل");
+        return;
+      }
+
+      try {
+        await db.collection("users").doc(username).update({ roles: newRoles });
+        showError("✅ تم تحديث الصلاحيات");
+        try{ if (window.activityLogger) activityLogger.logActivity('update_roles','/admin-dashboard.html',{ user: username, roles: newRoles }); } catch(e){}
+        loadUsers();
+      } catch (err) {
+        console.error(err);
+        showError("❌ حدث خطأ أثناء التحديث");
+      }
+    }
+
+function deleteUser(username) {
+  Swal.fire({
+    title: 'هل أنت متأكد؟',
+    text: `⚠️ سيتم حذف المستخدم "${username}" نهائيًا`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '🗑️ نعم، احذف',
+    cancelButtonText: '❌ إلغاء',
+    reverseButtons: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      db.collection("users").doc(username).delete()
+        .then(() => {
+              Swal.fire('✅ تم الحذف', 'تم حذف المستخدم بنجاح', 'success');
+              try{ if (window.activityLogger) activityLogger.logActivity('delete_user','/admin-dashboard.html',{ user: username }); } catch(e){}
+          loadUsers();
+        })
+        .catch((err) => {
+          console.error(err);
+          Swal.fire('❌ خطأ', 'فشل حذف المستخدم', 'error');
+        });
+    }
+  });
+}
+
+// Open permission editor: fetch latest roles then render editor card
+async function openPermEditor(username){
+  try{
+    const doc = await db.collection('users').doc(username).get();
+    if (!doc.exists){ Swal.fire('تنبيه','المستخدم غير موجود','warning'); return; }
+    const data = doc.data() || {};
+    const currentRoles = Array.isArray(data.roles) ? data.roles.slice() : [];
+    renderPermEditor(username, data.name || username, currentRoles);
+  } catch(err){ console.error('openPermEditor', err); Swal.fire('خطأ','فشل جلب بيانات الصلاحيات','error'); }
+}
+
+function renderPermEditor(username, displayName, currentRoles){
+  closePermissionsCard();
+  // overlay
+  // create inline modal (not overlay) to avoid blocking SweetAlert confirmations
+  const modal = document.createElement('div'); modal.className = 'perm-modal perm-modal-inline';
+
+  const header = document.createElement('div'); header.className = 'modal-header';
+  const closeX = document.createElement('button'); closeX.className = 'close-x'; closeX.innerHTML = '✖'; closeX.onclick = () => { try{ modal.remove(); }catch(e){ if(currentPermCard) currentPermCard.remove(); } currentPermCard=null; };
+  // create a horizontal table (headers row + inputs row) to appear where the label was requested
+  const inCode = document.createElement('input'); inCode.type='text'; inCode.value = username; inCode.style.width='100%';
+  const inName = document.createElement('input'); inName.type='text'; inName.value = displayName; inName.style.width='100%';
+  const inPass = document.createElement('input'); inPass.type='password'; inPass.value = ''; inPass.style.width='100%';
+  const topTable = document.createElement('table'); topTable.style.width = '100%'; topTable.style.borderCollapse = 'collapse';
+  const thead2 = document.createElement('thead'); thead2.innerHTML = '<tr><th>كود المستخدم</th><th>اسم المستخدم</th><th>كلمة المرور</th></tr>';
+  const tbody2 = document.createElement('tbody');
+  const r2 = document.createElement('tr');
+  const tdA = document.createElement('td'); tdA.appendChild(inCode);
+  const tdB = document.createElement('td'); tdB.appendChild(inName);
+  const tdC = document.createElement('td'); tdC.appendChild(inPass);
+  r2.appendChild(tdA); r2.appendChild(tdB); r2.appendChild(tdC);
+  tbody2.appendChild(r2); topTable.appendChild(thead2); topTable.appendChild(tbody2);
+  header.appendChild(topTable); header.appendChild(closeX);
+  modal.appendChild(header);
+
+  const infoBar = document.createElement('div'); infoBar.className = 'infographic'; modal.appendChild(infoBar);
+
+  // body: permissions will appear full-width under the header (no empty right column)
+  const body = document.createElement('div'); body.className = 'perm-body';
+  const right = document.createElement('div'); right.className = 'perm-right';
+
+  // roles grid (no internal scrollbars)
+  const rolesTitle = document.createElement('div'); rolesTitle.textContent = 'الصلاحيات'; rolesTitle.style.margin = '12px 0 8px 0';
+  const grid = document.createElement('div'); grid.className = 'perm-grid';
+  Object.keys(ROLE_LABELS).forEach(key => {
+    const cell = document.createElement('label'); cell.style.display='flex'; cell.style.alignItems='center'; cell.style.gap='8px';
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.value=key; cb.checked = currentRoles.includes(key);
+    const span = document.createElement('span'); span.className='perm-chip'; span.textContent = ROLE_LABELS[key] || key;
+    cell.appendChild(cb); cell.appendChild(span); grid.appendChild(cell);
+  });
+  const permsWrapper = document.createElement('div'); permsWrapper.className = 'perm-grid-wrapper'; permsWrapper.appendChild(grid);
+  right.appendChild(rolesTitle); right.appendChild(permsWrapper);
+
+  body.appendChild(right);
+  modal.appendChild(body);
+
+  const actions = document.createElement('div'); actions.className = 'perm-actions';
+  const btnCancel = document.createElement('button'); btnCancel.textContent='إغلاق'; btnCancel.onclick = () => { try{ modal.remove(); }catch(e){ if(currentPermCard) currentPermCard.remove(); } currentPermCard=null; };
+  const btnSave = document.createElement('button'); btnSave.className='primary'; btnSave.textContent='حفظ التغييرات';
+  btnSave.onclick = async () => {
+    const newCode = inCode.value.trim(); const newName = inName.value.trim(); const newPass = inPass.value;
+    const boxes = grid.querySelectorAll('input[type=checkbox]');
+    const newRoles = Array.from(boxes).filter(b=>b.checked).map(b=>b.value);
+    if (!newCode || !newName) { Swal.fire('⚠️','يرجى تعبئة الكود والاسم','warning'); return; }
+    const confirm = await Swal.fire({ title: 'تأكيد الحفظ', text: `هل تريد حفظ التغييرات للمستخدم ${displayName || username}؟`, icon: 'question', showCancelButton:true, confirmButtonText:'نعم، حفظ', cancelButtonText:'إلغاء' });
+    if (!confirm.isConfirmed) return;
+    try{
+      if (newCode !== username) {
+        // create new doc then delete old
+        await db.collection('users').doc(newCode).set({ code: newCode, name: newName, password: newPass || undefined, roles: newRoles });
+        await db.collection('users').doc(username).delete();
+      } else {
+        const payload = { name: newName, roles: newRoles };
+        if (newPass) payload.password = newPass;
+        await db.collection('users').doc(username).update(payload);
+      }
+      try{ if (window.activityLogger) activityLogger.logActivity('update_user','/admin-dashboard.html',{ userBefore: username, userAfter: newCode, name: newName, roles: newRoles }); } catch(e){}
+      try{ modal.remove(); } catch(e) { if (currentPermCard) currentPermCard.remove(); } currentPermCard=null;
+      toastr.success(`تم حفظ التعديلات للمستخدم ${newName || newCode}`);
+      loadUsers();
+    } catch(err){ console.error('save user edit', err); Swal.fire('❌ خطأ','فشل حفظ التغييرات','error'); }
+  };
+  actions.appendChild(btnCancel); actions.appendChild(btnSave);
+  modal.appendChild(actions);
+
+  // insert modal inline above user list to avoid blocking SweetAlert
+  const container = document.querySelector('.container') || document.body;
+  container.insertBefore(modal, document.getElementById('userList'));
+  currentPermCard = modal;
+}
+
+function formatTrialRemaining(ms) {
+  if (!ms || ms <= 0) return 'انتهت';
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${days} يوم ${hours} س ${minutes} د ${seconds} ث`;
+}
+
+function openTrialModal(username, displayName, expiresAt) {
+  const expiresAtDate = normalizeDateValue(expiresAt);
+  const now = new Date();
+  const remainingMs = expiresAtDate ? Math.max(0, expiresAtDate.getTime() - now.getTime()) : 0;
+  const currentStatus = expiresAtDate ? `${formatTrialRemaining(remainingMs)}${remainingMs <= 0 ? ' (انتهت)' : ''}` : 'غير محددة';
+  Swal.fire({
+    title: `فترة تجربة ${displayName}`,
+    html: `
+      <div style="text-align:right; direction:rtl; margin-bottom:12px; color:#ddd">مدة التجربة الحالية: <strong>${currentStatus}</strong></div>
+      <div style="display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:10px; text-align:right">
+        <label style="display:flex; flex-direction:column; gap:4px;"><span>أيام</span><input id="swalTrialDays" type="number" min="0" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+        <label style="display:flex; flex-direction:column; gap:4px;"><span>ساعات</span><input id="swalTrialHours" type="number" min="0" max="23" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+        <label style="display:flex; flex-direction:column; gap:4px;"><span>دقائق</span><input id="swalTrialMinutes" type="number" min="0" max="59" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+        <label style="display:flex; flex-direction:column; gap:4px;"><span>ثواني</span><input id="swalTrialSeconds" type="number" min="0" max="59" value="0" style="padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.10);background:#111;color:#fff"></label>
+      </div>
+      <div style="margin-top:12px; color:#ccc; text-align:right">اكتب مدة التجربة الكاملة التي تريدها للمستخدم، ثم اضغط حفظ. اترك جميع الحقول صفرًا لحذف فترة التجربة الحالية.</div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'حفظ',
+    cancelButtonText: 'إلغاء',
+    preConfirm: () => {
+      const days = parseInt(document.getElementById('swalTrialDays').value || '0', 10) || 0;
+      const hours = parseInt(document.getElementById('swalTrialHours').value || '0', 10) || 0;
+      const minutes = parseInt(document.getElementById('swalTrialMinutes').value || '0', 10) || 0;
+      const seconds = parseInt(document.getElementById('swalTrialSeconds').value || '0', 10) || 0;
+      if (days === 0 && hours === 0 && minutes === 0 && seconds === 0) {
+        return { remove: true };
+      }
+      const durationMs = ((days * 24 + hours) * 3600 + minutes * 60 + seconds) * 1000;
+      if (!Number.isFinite(durationMs) || durationMs <= 0) {
+        Swal.showValidationMessage('يرجى إدخال مدة صحيحة أكبر من صفر');
+        return false;
+      }
+      return { durationMs };
+    }
+  }).then(async (result) => {
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    if (result.value && result.value.remove) {
+      const confirmClear = await Swal.fire({ title: 'حذف فترة التجربة', text: 'هل تريد فعلاً حذف فترة التجربة هذه؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'نعم', cancelButtonText: 'لا' });
+      if (!confirmClear.isConfirmed) return;
+      try {
+        await db.collection('users').doc(username).update({ trialExpiresAt: firebase.firestore.FieldValue.delete(), trialStartedAt: firebase.firestore.FieldValue.delete() });
+        Swal.fire('تم', 'تم حذف فترة التجربة', 'success');
+        loadUsers();
+      } catch (err) {
+        console.error('clearTrial failed', err);
+        Swal.fire('خطأ', 'فشل حذف فترة التجربة', 'error');
+      }
+      return;
+    }
+
+    if (!result.value || typeof result.value.durationMs !== 'number') {
+      Swal.fire('❌ خطأ', 'مدة التجربة غير صالحة', 'error');
+      return;
+    }
+
+    const durationMs = result.value.durationMs;
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
+      Swal.fire('❌ خطأ', 'مدة التجربة غير صالحة', 'error');
+      return;
+    }
+    const expiresAtDate = new Date(Date.now() + durationMs);
+    if (!Number.isFinite(expiresAtDate.getTime())) {
+      Swal.fire('❌ خطأ', 'فترة التجربة غير قابلة للحساب', 'error');
+      return;
+    }
+    try {
+      await db.collection('users').doc(username).update({
+        trialExpiresAt: expiresAtDate,
+        trialStartedAt: new Date()
+      });
+      Swal.fire('تم', 'تم تحديث فترة التجربة', 'success');
+      loadUsers();
+    } catch (err) {
+      console.error('saveTrial failed', err);
+      Swal.fire('خطأ', 'فشل حفظ فترة التجربة', 'error');
+    }
+  });
+}
+
+// Toggle password visibility
+function togglePassword(span, btn){
+  const pw = span.dataset.pw || '';
+  if (span.textContent === '••••••') {
+    span.textContent = pw;
+    btn.textContent = 'إخفاء';
+  } else {
+    span.textContent = '••••••';
+    btn.textContent = 'عرض';
+  }
+}
+
+// Permissions card
+let currentPermCard = null;
+async function showPermissionsCard(username, roles){
+  // Render permissions inside a modal so they stay within the window
+  closePermissionsCard();
+  // fetch latest user info for display (name/password)
+  let userData = {};
+  try{ const doc = await db.collection('users').doc(username).get(); if (doc.exists) userData = doc.data() || {}; } catch(e){ console.warn('fetch user for perms', e); }
+  const modal = document.createElement('div'); modal.className = 'perm-modal perm-modal-inline';
+  const header = document.createElement('div'); header.className = 'modal-header';
+  // top horizontal table (headers + values)
+  const topTable = document.createElement('table'); topTable.style.width = '100%'; topTable.style.borderCollapse = 'collapse';
+  topTable.innerHTML = '<thead><tr><th>كود المستخدم</th><th>اسم المستخدم</th><th>كلمة المرور</th></tr></thead>';
+  const tBody = document.createElement('tbody');
+  const r = document.createElement('tr');
+  const c1 = document.createElement('td'); c1.style.padding='6px'; c1.textContent = username;
+  const c2 = document.createElement('td'); c2.style.padding='6px'; c2.textContent = userData.name || '';
+  const c3 = document.createElement('td'); c3.style.padding='6px'; c3.textContent = userData.password ? '••••••' : '';
+  r.appendChild(c1); r.appendChild(c2); r.appendChild(c3); tBody.appendChild(r); topTable.appendChild(tBody);
+  header.appendChild(topTable);
+  const closeBtn = document.createElement('button'); closeBtn.className='close-x'; closeBtn.innerHTML='✖'; closeBtn.onclick = () => { try{ modal.remove(); } catch(e){ if (currentPermCard) currentPermCard.remove(); } currentPermCard = null; };
+  header.appendChild(closeBtn);
+  modal.appendChild(header);
+  const info = document.createElement('div'); info.className='infographic'; modal.appendChild(info);
+  // permissions grid arranged 3 columns (2-3 per row visually)
+  const permsContainer = document.createElement('div'); permsContainer.className = 'perm-grid-wrapper'; permsContainer.style.padding = '6px 0';
+  const grid = document.createElement('div'); grid.className = 'perm-grid';
+  if (!roles || roles.length === 0) {
+    const p = document.createElement('div'); p.className='muted'; p.textContent = 'لا توجد صلاحيات'; permsContainer.appendChild(p);
+  } else {
+    roles.forEach(rk => {
+      const el = document.createElement('label'); el.style.display='flex'; el.style.alignItems='center'; el.style.gap='8px';
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.disabled = true; cb.checked = !!(roles && roles.indexOf && roles.indexOf(rk) !== -1);
+      const span = document.createElement('span'); span.className='perm-chip'; span.textContent = ROLE_LABELS[rk] || rk;
+      el.appendChild(cb); el.appendChild(span); grid.appendChild(el);
+    });
+  }
+  permsContainer.appendChild(grid);
+  modal.appendChild(permsContainer);
+  const actions = document.createElement('div'); actions.className='perm-actions';
+  const editBtn = document.createElement('button'); editBtn.className='primary'; editBtn.textContent='تعديل'; editBtn.onclick = () => { modal.remove(); openPermEditor(username); };
+  actions.appendChild(editBtn);
+  modal.appendChild(actions);
+  const container = document.querySelector('.container') || document.body;
+  container.insertBefore(modal, document.getElementById('userList'));
+  currentPermCard = modal;
+}
+function closePermissionsCard(){ if (currentPermCard){ currentPermCard.remove(); currentPermCard = null; } }
+
+    window.onload = loadUsers;
+
+// --- New UI handlers for modal and buttons ---
+document.addEventListener('DOMContentLoaded', () => {
+  const openBtn = document.getElementById('openCreateUserBtn');
+  const toggleBtn = document.getElementById('toggleUsersBtn');
+  if (openBtn) openBtn.addEventListener('click', openCreateModal);
+  if (toggleBtn) toggleBtn.addEventListener('click', () => {
+    const list = document.getElementById('userList');
+    if (list.style.display === 'none' || list.style.display === '') {
+      list.style.display = 'block';
+      loadUsers();
+    } else {
+      list.style.display = 'none';
+    }
+  });
+
+  // slider control: read current state and toggle
+  const sliderBtn = document.getElementById('sliderToggleBtn');
+  if (sliderBtn && typeof db !== 'undefined') {
+    (async () => {
+      try {
+        const doc = await db.collection('settings').doc('ui').get();
+        let currentlyVisible = !(doc.exists && doc.data() && doc.data().sliderVisible === false);
+        sliderBtn.textContent = currentlyVisible ? '👁️ إخفاء السلايدر' : '👁️ عرض السلايدر';
+        sliderBtn.onclick = async () => {
+          try {
+            const newVal = !currentlyVisible;
+            await db.collection('settings').doc('ui').set({ sliderVisible: newVal }, { merge: true });
+            currentlyVisible = newVal;
+            sliderBtn.textContent = currentlyVisible ? '👁️ إخفاء السلايدر' : '👁️ عرض السلايدر';
+            Swal.fire('✅ تم', `تم ${currentlyVisible ? 'عرض' : 'إخفاء'} السلايدر`, 'success');
+                try{ if (window.activityLogger) activityLogger.logActivity('toggle_slider','/admin-dashboard.html',{ sliderVisible: currentlyVisible }); } catch(e){}
+          } catch (err) {
+            console.error(err);
+            Swal.fire('❌ خطأ', 'فشل تحديث إعداد السلايدر', 'error');
+          }
+        };
+      } catch (e) {
+        console.warn('Could not read slider setting', e);
+      }
+    })();
+  }
+});
+
+function openCreateModal() {
+  // clone permissions from hidden legacy list into modal
+  const modal = document.getElementById('createUserModal');
+  const permSrc = document.getElementById('permissionsList');
+  const permDest = document.getElementById('modalPermissions');
+  if (permSrc && permDest) {
+    permDest.innerHTML = permSrc.innerHTML;
+  }
+  document.getElementById('userCode').value = '';
+  document.getElementById('userName').value = '';
+  document.getElementById('userPass').value = '';
+  document.getElementById('trialDays').value = '0';
+  document.getElementById('trialHours').value = '0';
+  document.getElementById('trialMinutes').value = '0';
+  document.getElementById('trialSeconds').value = '0';
+  document.getElementById('modalStep1').style.display = 'block';
+  document.getElementById('modalStep2').style.display = 'none';
+  modal.style.display = 'flex';
+}
+
+function closeCreateModal() {
+  const modal = document.getElementById('createUserModal');
+  modal.style.display = 'none';
+}
+
+function modalNext() {
+  const code = document.getElementById('userCode').value.trim();
+  const name = document.getElementById('userName').value.trim();
+  const pass = document.getElementById('userPass').value.trim();
+  if (!code || !name || !pass) {
+    Swal.fire('⚠️ تنبيه', 'يرجى إدخال كود، اسم، وكلمة المرور', 'warning');
+    return;
+  }
+  document.getElementById('modalStep1').style.display = 'none';
+  document.getElementById('modalStep2').style.display = 'block';
+}
+
+function modalPrev() {
+  document.getElementById('modalStep2').style.display = 'none';
+  document.getElementById('modalStep1').style.display = 'block';
+}
+
+async function modalComplete() {
+  const code = document.getElementById('userCode').value.trim();
+  const name = document.getElementById('userName').value.trim();
+  const pass = document.getElementById('userPass').value.trim();
+  const checkboxes = document.querySelectorAll('#modalPermissions input[type=checkbox]');
+  let roles = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+  if (!name || !pass) {
+    Swal.fire('⚠️ تنبيه', 'الاسم أو كلمة المرور مفقودة', 'warning');
+    return;
+  }
+  if (roles.length === 0) {
+    Swal.fire('⚠️ تنبيه', 'حدد صلاحية واحدة على الأقل', 'warning');
+    return;
+  }
+  if (roles.includes('all') && roles.length === 1) roles = ['all'];
+  else roles = roles.filter(r => r !== 'all');
+
+  const trialDays = parseInt(document.getElementById('trialDays').value || '0', 10) || 0;
+  const trialHours = parseInt(document.getElementById('trialHours').value || '0', 10) || 0;
+  const trialMinutes = parseInt(document.getElementById('trialMinutes').value || '0', 10) || 0;
+  const trialSeconds = parseInt(document.getElementById('trialSeconds').value || '0', 10) || 0;
+  let payload = { code, name, password: pass, roles };
+  const trialDurationMs = ((trialDays * 24 + trialHours) * 3600 + trialMinutes * 60 + trialSeconds) * 1000;
+  if (trialDurationMs > 0) {
+    if (!Number.isFinite(trialDurationMs) || trialDurationMs <= 0) {
+      Swal.fire('❌ خطأ', 'مدة التجربة غير صحيحة', 'error');
+      return;
+    }
+    const expiresAt = new Date(Date.now() + trialDurationMs);
+    if (!Number.isFinite(expiresAt.getTime())) {
+      Swal.fire('❌ خطأ', 'فترة التجربة غير قابلة للحساب', 'error');
+      return;
+    }
+    payload = {
+      ...payload,
+      trialExpiresAt: expiresAt,
+      trialStartedAt: new Date()
+    };
+  }
+
+  try {
+    // استخدم كود المستخدم كمعرّف الوثيقة واحفظ الاسم أيضًا
+    await db.collection('users').doc(code).set(payload);
+    Swal.fire('✅ تم', `تم إنشاء المستخدم ${name} (${code})`,'success');
+    try{ if (window.activityLogger) activityLogger.logActivity('create_user','/admin-dashboard.html',{ code, name, roles }); } catch(e){}
+    closeCreateModal();
+    loadUsers();
+  } catch (err) {
+    console.error(err);
+    Swal.fire('❌ خطأ', 'فشل إنشاء المستخدم', 'error');
+  }
+}
+  </script>
+  <script src="activity-logger.js"></script>
+</body>
+</html>

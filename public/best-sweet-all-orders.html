@@ -1,0 +1,940 @@
+<!-- نسخة من all-orders.html مع تصفية الفروع لبيست سويت فقط -->
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>📊 تجميع طلبيات بيست سويت</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    :root{
+      --bg: #0f0f10;
+      --panel: #121212;
+      --muted: #a8b0b6;
+      --text: #e6e6e6;
+      --accent: #ffd166;
+      --accent-2: #f0ad4e;
+      --primary: #ffd166;
+      --secondary: #28343a;
+      --danger: #ef476f;
+      --ghost-border: rgba(255,255,255,0.06);
+      --radius: 10px;
+      --glass: rgba(255,255,255,0.03);
+    }
+
+    html,body{height:100%}
+    body {
+      background: linear-gradient(180deg,#0b0b0b 0%, #121212 60%);
+      color: var(--text);
+      font-family: "Cairo", sans-serif;
+      margin: 12px;
+      direction: rtl;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.45;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    h2{
+      color:var(--accent);
+      margin:0 0 14px 0;
+      text-align:center;
+      font-size:22px;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+    }
+
+    .container{
+      max-width:1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Controls layout */
+    .controls{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+    .controls .row{ display:flex; gap:12px; align-items:center; width:100%; }
+    .controls .row .field{ display:flex; gap:8px; align-items:center; flex:1; min-width:150px; }
+    .controls .row .field.full-width{ flex:1 1 100%; }
+    .controls label{ min-width:120px; color:var(--muted); font-weight:700; font-size:14px; }
+    .toggle-group{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:4px; }
+    .column-toggle{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.04); padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); color:var(--text); font-size:13px; }
+    .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center; padding:12px; }
+    .column-modal{ background: #101010; border:1px solid rgba(255,255,255,0.15); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.4); width:min(560px,100%); max-height:min(90vh, 560px); overflow:auto; padding:22px; color:var(--text); }
+    .column-modal header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+    .column-modal header h4{ margin:0; font-size:18px; color:var(--accent); }
+    .column-modal header button{ background:transparent; color:var(--text); border:none; font-size:20px; cursor:pointer; }
+    .column-modal .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:18px; flex-wrap:wrap; }
+    .column-modal .modal-actions .btn{ border-radius:10px; }
+    input[type="date"], select, .controls input[type="text"]{
+      background: linear-gradient(180deg,var(--panel), #101010);
+      color:var(--text);
+      border:1px solid var(--ghost-border);
+      padding:8px 10px;
+      border-radius:8px;
+      width:100%;
+      box-sizing:border-box;
+      outline: none;
+      transition: box-shadow .12s, transform .08s;
+    }
+    input[type="date"]::placeholder, select::placeholder{ color:var(--muted); }
+
+    input[type="date"]:focus, select:focus, input:focus{
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08);
+      transform: translateY(-1px);
+    }
+
+    /* Buttons */
+    .btn-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .btn{
+      background:var(--secondary);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,0.04);
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:0.6px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .btn:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+    .btn:active{ transform: translateY(0); box-shadow:none; }
+
+    .btn.primary{ background: linear-gradient(180deg,var(--primary), var(--accent-2)); color:#000; border-color: rgba(0,0,0,0.25); }
+    .btn.ghost{ background: transparent; color:var(--text); border:1px solid var(--ghost-border); }
+    .btn.danger, .btn.negative{ background: linear-gradient(180deg, var(--danger), #d6456e); color:#fff; border-color: rgba(0,0,0,0.2); }
+
+    /* ===== New Modern Icon-Only Button Styles (5D Professional) ===== */
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .icon-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+
+    .icon-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(125deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .icon-btn:hover::before {
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+
+    /* Excel Export Button */
+    .icon-btn.export-btn {
+      background: linear-gradient(135deg, #0d7377 0%, #1ba098 100%);
+      color: #fff;
+      position: relative;
+      font-size: 0;
+      line-height: 0;
+    }
+
+    .icon-btn.export-btn:hover {
+      transform: translateY(-3px) scale(1.1);
+      box-shadow: 0 10px 28px rgba(11, 115, 119, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    /* Print Report Button (Printer Device) */
+    .icon-btn.print-btn {
+      background: linear-gradient(135deg, #d62828 0%, #a4161a 100%);
+      color: #fff;
+      animation: printPulse 2s infinite;
+    }
+
+    .icon-btn.print-btn:hover {
+      transform: translateY(-3px) scale(1.1);
+      box-shadow: 0 10px 28px rgba(164, 22, 26, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+      animation: none;
+    }
+
+    @keyframes printPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Share Image Button */
+    .icon-btn.share-btn {
+      background: linear-gradient(135deg, #f77f00 0%, #d62828 100%);
+      color: #fff;
+    }
+
+    .icon-btn.share-btn:hover {
+      transform: translateY(-3px) scale(1.1) rotate(5deg);
+      box-shadow: 0 10px 28px rgba(214, 40, 40, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    /* Print Summary Button */
+    .icon-btn.summary-btn {
+      background: linear-gradient(135deg, #7209b7 0%, #560bad 100%);
+      color: #fff;
+    }
+
+    .icon-btn.summary-btn:hover {
+      transform: translateY(-3px) scale(1.1);
+      box-shadow: 0 10px 28px rgba(86, 10, 173, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    /* Primary Aggregate Button - Keep Text */
+    .btn-aggregate {
+      background: linear-gradient(135deg, var(--primary), var(--accent-2));
+      color: #000;
+      padding: 10px 16px;
+      height: 42px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 6px 18px rgba(255, 209, 102, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-aggregate::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      transition: left 0.4s ease;
+    }
+
+    .btn-aggregate:hover::before {
+      left: 100%;
+    }
+
+    .btn-aggregate:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 28px rgba(255, 209, 102, 0.35);
+    }
+
+    .btn-aggregate:active {
+      transform: translateY(-1px);
+    }
+
+    /* Icon Animation */
+    .btn-aggregate .icon {
+      font-size: 18px;
+      animation: iconFloat 2s ease-in-out infinite;
+    }
+
+    .btn-aggregate .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+    }
+
+    .excel-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      position: relative;
+    }
+
+    .excel-mark::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.35);
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+    }
+
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Status & result */
+    #status{ margin-top:6px; color:var(--muted); font-weight:700; text-align:center; }
+    #loadingIndicator{ margin-top:12px; }
+    .liquid-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 10px;
+      font-family: system-ui, sans-serif;
+    }
+    .loader-track {
+      position: relative;
+      width: 160px;
+      height: 28px;
+      background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.6),
+        0 1px 3px rgba(255, 255, 255, 0.1);
+    }
+    .liquid-fill {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      height: calc(100% - 4px);
+      width: 4px;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed, #ec4899, #f59e0b);
+      border-radius: 14px;
+      animation:
+        fillProgress 4s ease-out infinite,
+        colorShift 3s linear infinite;
+      box-shadow:
+        0 0 12px rgba(124, 58, 237, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    }
+    @keyframes fillProgress {
+      0% { width: 4px; }
+      25% { width: 25%; }
+      50% { width: 50%; }
+      75% { width: 75%; }
+      100% { width: calc(100% - 4px); }
+    }
+    @keyframes colorShift {
+      0% { filter: hue-rotate(0deg) brightness(1); }
+      33% { filter: hue-rotate(120deg) brightness(1.1); }
+      66% { filter: hue-rotate(240deg) brightness(0.9); }
+      100% { filter: hue-rotate(360deg) brightness(1); }
+    }
+    #resultArea{ margin-top:16px; }
+
+    /* ===== جدول كشبكة واضحة ===== */
+    .table-wrap{ overflow:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.18)); padding:10px; }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      color:var(--text);
+      font-size:14px;
+      /* اجعل الجدول auto-layout ليتمدد حسب المحتوى */
+      table-layout: auto;
+    }
+    thead th {
+      background: linear-gradient(180deg,#151515,#0f0f0f);
+      color:var(--accent);
+      padding:12px 10px;
+      text-align:center;
+      border:1px solid rgba(255,255,255,0.06);
+      position:sticky;
+      top:0;
+      z-index:3;
+      /* لا تضع أي width هنا */
+    }
+    tbody td{
+      padding:10px 8px;
+      border:1px solid rgba(255,255,255,0.04);
+      text-align:center;
+      vertical-align:middle;
+      background: transparent;
+      word-break:break-word;
+    }
+    tbody tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }
+    tbody tr:hover td{ background: rgba(240,173,78,0.06); }
+    /* اجعل كل الأعمدة تتسع تلقائياً */
+    table th, table td {
+      white-space: normal;
+      word-break: break-word;
+    }
+    /* توازن العرض بين الأعمدة */
+    table th, table td {
+      min-width: 60px;
+      max-width: 300px;
+    }
+    /* عمود الصنف أوسع قليلاً */
+    table th:nth-child(2), table td:nth-child(2) {
+      min-width: 120px;
+      max-width: 400px;
+    }
+    /* عمود الكود أضيق */
+    table th:nth-child(1), table td:nth-child(1) {
+      min-width: 60px;
+      max-width: 120px;
+    }
+    /* عمود الإجمالي */
+    table th:last-child, table td:last-child {
+      min-width: 70px;
+      max-width: 120px;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    @media (max-width:1100px){
+      .container{ padding:10px; max-width:960px; }
+      table{ font-size:13px; }
+      thead th{ padding:10px 8px; }
+    }
+    @media (max-width:820px){
+      .container{ padding:10px; max-width:100%; }
+      .controls .row{ flex-direction:column; align-items:stretch; gap:8px; }
+      .controls label{ min-width:unset; font-size:13px; }
+      .btn{ padding:10px 12px; font-size:13px; }
+      table{ font-size:13px; }
+      thead th{ font-size:13px; }
+    }
+    @media (max-width:520px){
+      h2{ font-size:18px; }
+      .btn{ padding:10px 10px; font-size:12px; border-radius:8px; }
+      .controls .row{ gap:6px; }
+      table{ font-size:12px; }
+      tbody td{ padding:8px 6px; }
+      .table-wrap{ padding:6px; }
+    }
+    #sheetSelector{
+      background: linear-gradient(180deg,#0f1112,#0b0b0b);
+      color: var(--text);
+      border:1px solid var(--ghost-border);
+      padding:8px 12px;
+      border-radius:8px;
+      width:100%;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      appearance:none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 13px) calc(1em + 2px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+    #sheetSelector option{
+      background: #0b0b0b;
+      color: #fff;
+    }
+    @media print{
+      body { background: white !important; color: black !important; }
+      .controls, .btn-row, .btn, input, select { display:none !important; }
+      body * { visibility: hidden; }
+      #printSection, #printSection * { visibility: visible; }
+      #printSection { position: absolute; left:0; top:0; width:100%; padding:0; margin:0; background:white; color:black; }
+      #printSection table{ border-collapse:collapse; width:100%; background:white; color:black; }
+      #printSection table th, #printSection table td{
+        border:1px solid #000;
+        background:white;
+        color:black;
+        padding:8px;
+      }
+      @page { margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+  <h2>📚 تجميع الطلبات من فروع بيست سويت</h2>
+  <div class="container">
+    <div class="controls">
+      <div class="row">
+        <div class="field">
+          <label for="dateSelector">📅 تاريخ التجميع (تاريخ التسليم):</label>
+          <input type="date" id="dateSelector" />
+        </div>
+        <div class="field">
+          <label for="sheetSelector">🧾 القسم:</label>
+          <select id="sheetSelector">
+            <option disabled selected>— اختر القسم —</option>
+          </select>
+        </div>
+      </div>
+      <div class="row btn-row">
+        <button class="btn-aggregate" onclick="renderSection()">
+          <span class="icon">📊</span>
+          تجميع البيانات
+        </button>
+        <button class="icon-btn export-btn" onclick="exportCurrentTableToExcel()" title="تصدير إلى Excel"><span class="excel-mark">X</span>𝄔</button>
+        <button class="icon-btn print-btn" onclick="printTable()" title="طباعة التقرير">🖨️</button>
+        <button class="icon-btn share-btn" onclick="shareAsImage()" title="مشاركة كصورة">📸</button>
+        <button class="icon-btn summary-btn" onclick="printSummaryOnly()" title="طباعة ملخص">📋</button>
+        <button class="icon-btn ghost" onclick="saveDataToLocalStorage()" title="حفظ البيانات محلياً">💾</button>
+        <button class="icon-btn ghost" onclick="refreshFromServer()" title="تحديث البيانات من الخادم">🔄</button>
+      </div>
+    </div>
+    <div id="status"></div>
+    <div id="loadingIndicator" class="liquid-loader" style="display:none;">
+      <div class="loader-track">
+        <div class="liquid-fill"></div>
+      </div>
+    </div>
+    <div id="resultArea"></div>
+  </div>
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// فروع بيست سويت فقط
+const bestSweetBranches = [
+  "best_sweet_1",
+  "best_sweet_abbassia",
+  "best_sweet_helw_zaytoun",
+  "best_sweet_market_zaytoun",
+  "best_sweet_helwan",
+  "best_sweet_obour_market"
+];
+
+let allData = [];
+const globalColumnSettingsDoc = db.collection('settings').doc('tableColumnVisibility');
+const defaultBestSweetSettings = {
+  code: true,
+  name: true,
+  best_sweet_abbassia: true,
+  best_sweet_1: true,
+  best_sweet_market_zaytoun: true,
+  best_sweet_helwan: true,
+  best_sweet_obour_market: true,
+  best_sweet_helw_zaytoun: true,
+  total: true
+};
+let globalColumnSettings = { bestSweet: { ...defaultBestSweetSettings }, allOrders: {} };
+
+const availableColumns = [
+  { key: 'code', label: '🔢 الكود' },
+  { key: 'name', label: '📦 الصنف' },
+  { key: 'best_sweet_abbassia', label: 'فرع العباسية' },
+  { key: 'best_sweet_1', label: 'جمال' },
+  { key: 'best_sweet_market_zaytoun', label: 'فيصل' },
+  { key: 'best_sweet_helwan', label: 'حلوان' },
+  { key: 'best_sweet_obour_market', label: 'عبور2' },
+  { key: 'best_sweet_helw_zaytoun', label: 'حلو الزيتون' },
+  { key: 'total', label: 'اجمالي' }
+];
+
+async function loadGlobalColumnSettings() {
+  try {
+    const doc = await globalColumnSettingsDoc.get();
+    if (doc.exists) {
+      const saved = doc.data();
+      globalColumnSettings.bestSweet = { ...defaultBestSweetSettings, ...(saved.bestSweet || {}) };
+    } else {
+      globalColumnSettings.bestSweet = { ...defaultBestSweetSettings };
+    }
+  } catch (e) {
+    globalColumnSettings.bestSweet = { ...defaultBestSweetSettings };
+    console.warn('Unable to load global column settings:', e);
+  }
+}
+
+function isColumnVisible(columnKey) {
+  return globalColumnSettings.bestSweet?.[columnKey] !== false;
+}
+
+function setColumnVisibility(columnKey, visible) {
+  document.querySelectorAll(`.col-${columnKey}`).forEach(cell => {
+    cell.style.display = visible ? '' : 'none';
+  });
+}
+
+function applyGlobalColumnSettings() {
+  availableColumns.forEach(col => {
+    setColumnVisibility(col.key, isColumnVisible(col.key));
+  });
+}
+
+const CACHE_KEY = 'bestSweetOrdersCache';
+const CACHE_TIMESTAMP_KEY = 'bestSweetOrdersCacheTime';
+
+function showLoading() {
+  document.getElementById("loadingIndicator").style.display = "flex";
+  document.getElementById("resultArea").style.display = "none";
+  document.getElementById("status").textContent = "";
+}
+
+function hideLoading() {
+  document.getElementById("loadingIndicator").style.display = "none";
+  document.getElementById("resultArea").style.display = "block";
+}
+
+function saveDataToLocalStorage() {
+  if (!allData || allData.length === 0) {
+    document.getElementById("status").textContent = "⚠️ لا توجد بيانات لحفظها محلياً.";
+    return;
+  }
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
+    localStorage.setItem(CACHE_TIMESTAMP_KEY, new Date().toISOString());
+    document.getElementById("status").textContent = "✅ تم حفظ البيانات محلياً بنجاح.";
+  } catch (error) {
+    console.error('saveDataToLocalStorage failed:', error);
+    document.getElementById("status").textContent = "❌ تعذر حفظ البيانات محلياً.";
+  }
+}
+
+function loadCachedData() {
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (!cached) return false;
+  try {
+    const parsed = JSON.parse(cached);
+    if (!Array.isArray(parsed) || parsed.length === 0) return false;
+    allData = parsed;
+    const selector = document.getElementById("sheetSelector");
+    const sheets = [...new Set(allData.map(d => d.sheet).filter(s => s && s !== "main"))].sort();
+    selector.innerHTML = '<option disabled selected>— اختر القسم —</option>' +
+                         '<option value="all">كل الأقسام</option>';
+    sheets.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      selector.appendChild(opt);
+    });
+    const cacheTime = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+    const savedAt = cacheTime ? ` بتاريخ ${new Date(cacheTime).toLocaleString('ar-EG')}` : '';
+    document.getElementById("status").textContent = `✅ تم تحميل البيانات من التخزين المحلي${savedAt}. اضغط تحديث من الخادم لتحديثها.`;
+    return true;
+  } catch (error) {
+    console.warn('loadCachedData failed:', error);
+    return false;
+  }
+}
+
+async function refreshFromServer() {
+  showLoading();
+  await fetchData();
+}
+
+async function initializePage() {
+  await loadGlobalColumnSettings();
+  const loaded = loadCachedData();
+  if (!loaded) {
+    await fetchData();
+  }
+}
+
+async function fetchData() {
+  showLoading();
+  try {
+    const snap = await db.collection("orders_best_sweet").get();
+    allData = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      if ((d.name && d.sheet && d.branch) && (d.orderDate || d.deliveryDate)) {
+        allData.push({ ...d, id: doc.id });
+      }
+    });
+
+    const selector = document.getElementById("sheetSelector");
+    const sheets = [...new Set(allData.map(d => d.sheet).filter(s => s && s !== "main"))].sort();
+    selector.innerHTML = '<option disabled selected>— اختر القسم —</option>' +
+                         '<option value="all">كل الأقسام</option>';
+    sheets.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      selector.appendChild(opt);
+    });
+
+    document.getElementById("status").textContent = "تم تحميل البيانات بنجاح";
+    await loadGlobalColumnSettings();
+  } catch (error) {
+    if (!navigator.onLine) {
+      document.getElementById("status").textContent = "يرجى توصيل الجهاز بالانترنت حتي يتم تحميل البيانات";
+    } else {
+      document.getElementById("status").textContent = "خطأ غير متوقع يرجي تحديث الصفحة";
+    }
+    console.error('fetchData failed:', error);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function renderSection() {
+  const sheet = document.getElementById("sheetSelector").value;
+  const date = document.getElementById("dateSelector").value;
+  if (!sheet || !date) {
+    document.getElementById("status").textContent = "⚠️ يرجى اختيار القسم والتاريخ.";
+    return;
+  }
+
+  // فلترة فقط على فروع بيست سويت
+  const filtered = allData.filter(d =>
+    (sheet === 'all' || d.sheet === sheet) &&
+    (d.orderDate === date || d.deliveryDate === date) &&
+    bestSweetBranches.includes(d.branch)
+  );
+
+  if (filtered.length === 0) {
+    document.getElementById("resultArea").innerHTML = "";
+    document.getElementById("status").textContent = "⚠️ لا توجد بيانات لهذا القسم في هذا التاريخ.";
+    return;
+  }
+
+  const weekday = new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' });
+  const sheetLabel = sheet === 'all' ? 'كل الأقسام' : sheet;
+  const sectionNames = sheet === 'all'
+    ? [...new Set(filtered.map(d => d.sheet).filter(s => s && s !== 'main'))].sort()
+    : [sheet];
+
+  let html = `<div id="printSection">
+    <h3 style="text-align:center; margin-bottom:15px;">
+      📝 تجميع طلبيات فروع بيست سويت عن يوم ${weekday} - بتاريخ ${date} - القسم: <span style="color:#ffd166">${sheetLabel}</span>
+    </h3>
+    <table border="1"><thead>
+      <tr>
+        <th class="col-code">🔢 الكود</th>
+        <th class="col-name">📦 الصنف</th>
+        <th class="col-best_sweet_abbassia col-branch">فرع العباسية</th>
+        <th class="col-best_sweet_1 col-branch">جمال</th>
+        <th class="col-best_sweet_market_zaytoun col-branch">فيصل</th>
+        <th class="col-best_sweet_helwan col-branch">حلوان</th>
+        <th class="col-best_sweet_obour_market col-branch">عبور2</th>
+        <th class="col-best_sweet_helw_zaytoun col-branch">حلو الزيتون</th>
+        <th class="col-total">اجمالي</th>
+      </tr>
+    </thead><tbody>`;
+
+  let grandTotal = 0;
+  const displayValue = (val) => {
+    return val === 0 || val === '0' ? '' : val;
+  };
+
+  function leadingSeqCode(s){
+    if (!s) return NaN;
+    const m = String(s).trim().match(/^(\d+)\s*-/);
+    return m ? parseInt(m[1], 10) : NaN;
+  }
+
+  function renderSectionRows(sectionName) {
+    const sectionData = sheet === 'all'
+      ? filtered.filter(d => d.sheet === sectionName)
+      : filtered;
+
+    const grouped = {};
+    sectionData.forEach(d => {
+      const key = String(d.code || d.name || "").trim().toLowerCase();
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: d.name,
+          code: d.code || "",
+          best_sweet_1: 0,
+          best_sweet_abbassia: 0,
+          best_sweet_helw_zaytoun: 0,
+          best_sweet_market_zaytoun: 0,
+          best_sweet_helwan: 0,
+          best_sweet_obour_market: 0,
+          reservationQty: 0
+        };
+      }
+      const branchKey = (d.branch || '').toString().trim();
+      const qty = Number(d.qty) || 0;
+      if (branchKey && grouped[key].hasOwnProperty(branchKey)) {
+        grouped[key][branchKey] += qty;
+      }
+      if (d.source === "reservation") {
+        grouped[key].reservationQty += qty;
+      }
+    });
+
+    const entries = Object.values(grouped);
+    const rowsWithIndex = entries.map((v, idx) => ({ v, idx }));
+    rowsWithIndex.sort((a, b) => {
+      const seqA = leadingSeqCode(a.v.code);
+      const seqB = leadingSeqCode(b.v.code);
+
+      const aHas = !isNaN(seqA);
+      const bHas = !isNaN(seqB);
+
+      if (aHas && bHas) return seqA - seqB;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      return a.idx - b.idx;
+    });
+
+    let sectionHtml = '';
+
+    if (sheet === 'all') {
+      sectionHtml += `<tr>
+        <td colspan="8" style="text-align:right; padding:12px 12px; font-weight:800; color:#111; background: linear-gradient(90deg, rgba(255,209,102,0.2), rgba(255,209,102,0.08));">تجميع طلبيات فروع بيست سويت عن يوم ${weekday} - بتاريخ ${date} - القسم ${sectionName}</td>
+      </tr>`;
+    }
+
+    rowsWithIndex.forEach(({ v }) => {
+      const sum = (v.best_sweet_1 || 0) + (v.best_sweet_abbassia || 0) + (v.best_sweet_market_zaytoun || 0) + (v.best_sweet_helw_zaytoun || 0) + (v.best_sweet_helwan || 0) + (v.best_sweet_obour_market || 0);
+      grandTotal += sum;
+      const icon = (v.reservationQty && v.reservationQty > 0) ? " ✅" : "";
+      sectionHtml += `<tr>
+        <td class="col-code">${v.code}</td>
+        <td class="col-name">${v.name}${icon}</td>
+        <td class="col-best_sweet_abbassia col-branch">${displayValue(v.best_sweet_abbassia)}</td>
+        <td class="col-best_sweet_1 col-branch">${displayValue(v.best_sweet_1)}</td>
+        <td class="col-best_sweet_market_zaytoun col-branch">${displayValue(v.best_sweet_market_zaytoun)}</td>
+        <td class="col-best_sweet_helwan col-branch">${displayValue(v.best_sweet_helwan)}</td>
+        <td class="col-best_sweet_obour_market col-branch">${displayValue(v.best_sweet_obour_market)}</td>
+        <td class="col-best_sweet_helw_zaytoun col-branch">${displayValue(v.best_sweet_helw_zaytoun)}</td>
+        <td class="col-total"><strong>${sum}</strong></td>
+      </tr>`;
+    });
+
+    return sectionHtml;
+  }
+
+  sectionNames.forEach(sectionName => {
+    html += renderSectionRows(sectionName);
+  });
+
+  html += `</tbody></table>
+    <p style="margin-top:10px; font-size:13px; color:gray;">بيست سويت للصناعات الغذائيه </p>`;
+
+  // append collector name (only signature — not including حركات operations here)
+  try{
+    const collector = (localStorage.getItem('username') || localStorage.getItem('userCode') || '').toString();
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html += `<p style="margin-top:12px; font-size:14px; color:#ffd166; font-weight:800;">تم تجميع الطلبيه بواسطة ${esc(collector)}</p>`;
+    html += `</div>`;
+  } catch(e){ html += `</div>`; }
+
+  document.getElementById("resultArea").innerHTML = html;
+  applyGlobalColumnSettings();
+  document.getElementById("status").textContent = `✅ تم عرض ${filtered.length} صف من "${sheetLabel}" بتاريخ ${date}`;
+}
+
+function printTable() {
+  window.print();
+}
+
+function printSummaryOnly() {
+  const table = document.querySelector("#printSection table");
+  if (!table) return;
+  const hiddenCells = [];
+  document.querySelectorAll("#printSection table .col-branch").forEach(cell => {
+    hiddenCells.push({ cell, prev: cell.style.display || '' });
+    cell.style.display = 'none';
+  });
+  window.print();
+  setTimeout(() => {
+    hiddenCells.forEach(({ cell, prev }) => {
+      cell.style.display = prev;
+    });
+  }, 1000);
+}
+
+function shareAsImage() {
+  const node = document.getElementById("printSection");
+  if (!node) return;
+  html2canvas(node).then(canvas => {
+    canvas.toBlob(async blob => {
+      const file = new File([blob], "report.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: "📦 تقرير الطلبات",
+            text: "تم تصدير التقرير كصورة.",
+            files: [file]
+          });
+        } catch (err) {}
+      } else {
+        const url = URL.createObjectURL(file);
+        window.open(url, "_blank");
+      }
+    });
+  });
+}
+
+function exportCurrentTableToExcel() {
+  const table = document.querySelector("#printSection table");
+  if (!table) {
+    alert("⚠️ لا يوجد جدول لتصديره. يرجى تجميع البيانات أولاً.");
+    return;
+  }
+
+  const sheet = document.getElementById("sheetSelector").value;
+  const date = document.getElementById("dateSelector").value;
+  const weekday = new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' });
+  
+  const aoa = [];
+  aoa.push([`📝 تجميع طلبيات فروع بيست سويت عن يوم ${weekday} - بتاريخ ${date} - القسم: ${sheet}`]);
+  aoa.push([]);
+
+  // استخراج البيانات من الجدول
+  const rows = table.querySelectorAll("tr");
+  rows.forEach((row, rowIdx) => {
+    const rowData = [];
+    const cells = row.querySelectorAll("th, td");
+    cells.forEach(cell => {
+      if (window.getComputedStyle(cell).display === "none") return;
+      rowData.push(cell.textContent.trim());
+    });
+    aoa.push(rowData);
+  });
+
+  // إنشاء ورقة Excel
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!sheetViews'] = [{ rightToLeft: true }];
+  
+  // ضبط عرض الأعمدة
+  const colWidths = [12, 40, 12, 12, 12, 12, 12, 12];
+  ws['!cols'] = colWidths.map(w => ({wch: w}));
+
+  // إضافة الورقة إلى الكتاب
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, ws, 'Orders');
+  
+  // تحميل الملف
+  const filename = `best_sweet_orders_${date}.xlsx`;
+  try {
+    XLSX.writeFile(workbook, filename);
+    document.getElementById("status").textContent = `✅ تم تحميل ملف ${filename} بنجاح.`;
+  } catch (err) {
+    console.error('خطأ في التصدير:', err);
+    alert('❌ حدث خطأ أثناء تصدير الملف.');
+  }
+}
+
+initializePage();
+  </script>
+</body>
+</html>

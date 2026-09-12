@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دليل الأصناف - مخازن غذائية</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>دليل الأصناف والأسعار</h2>
+      <div>
+        <a href="add-product.html" class="btn btn-primary"><i class="bi bi-plus-lg"></i> إضافة صنف جديد</a>
+        <button class="btn btn-sm btn-outline-success ms-2"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <input id="searchInput" type="text" class="form-control" placeholder="ابحث باسم الصنف أو الباركود...">
+          </div>
+          <div class="col-md-3">
+            <select id="sectionFilter" class="form-select">
+              <option value="">كل الأقسام</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <button id="searchBtn" class="btn btn-secondary w-100">بحث</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0 text-center exportable-table">
+          <thead class="table-dark">
+            <tr>
+              <th>كود الصنف</th>
+              <th>اسم المنتج</th>
+              <th>القسم</th>
+              <th>التصنيف الفرعي</th>
+              <th>الكمية المتاحة</th>
+              <th>وحدة</th>
+              <th>شد الصنف</th>
+              <th>سعر الشراء</th>
+              <th>معامل التجهيز</th>
+              <th>تتبع</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody">
+            <tr class="text-muted">
+              <td colspan="10">جارٍ التحميل…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+  <script src="products.js"></script>
+  
+  <!-- Product picker handled by central component (productPicker) -->
+</body>
+</html>

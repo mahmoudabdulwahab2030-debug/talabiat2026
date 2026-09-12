@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إضافة صنف جديد - مخازن غذائية</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">نموذج تسجيل صنف جديد (مخازن غذائية)</h5>
+          </div>
+          <div class="card-body">
+            <form id="addProductForm">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">باركود الصنف</label>
+                  <div class="input-group">
+                    <input id="productBarcode" name="barcode" type="text" class="form-control" placeholder="Barcode" data-product-query>
+                    <button id="productQueryBtn" type="button" class="btn btn-outline-secondary">استعلام</button>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">اسم الصنف</label>
+                  <input id="productName" name="name" type="text" class="form-control" placeholder="مثال: أرز بسمتي" required>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">القسم</label>
+                  <select id="productSection" name="section" class="form-select section-select" data-static="true">
+                    <option value="">اختر القسم...</option>
+                    <option value="مواد غذائية">مواد غذائية</option>
+                    <option value="تعبئة وتغليف">تعبئة وتغليف</option>
+                    <option value="نظافة">نظافة</option>
+                    <option value="اخري">اخري</option>
+                  </select>
+                  <select id="productSubsection" name="subsection" class="form-select mt-2" style="display:none;">
+                    <!-- populated when section == مواد غذائية -->
+                  </select>
+                </div>
+                
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">مراكز التكلفة</label>
+                    <select id="costCenterType" name="costCenterType" class="form-select">
+                      <option value="">اختر ...</option>
+                      <option value="المصنع">المصنع</option>
+                      <option value="الفروع">الفروع</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">تفصيل المركز</label>
+                    <select id="costCenterDetail" name="costCenterDetail" class="form-select" style="display:none;"></select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">وحدة القياس</label>
+                  <select id="productUnit" name="unit" class="form-select">
+                    <option>كجم</option>
+                    <option>جم</option>
+                    <option>كرتونة</option>
+                    <option>قطعة</option>
+                    <option>شكارة</option>
+                    <option>جالون</option>
+                    <option>بولة</option>
+                    <option>عدد</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="unitWeightGroup" class="row mb-3" style="display:none;">
+                <div class="col-md-6">
+                  <label class="form-label">وزن الوحدة (كجم)</label>
+                  <input id="productUnitWeight" type="number" step="0.001" class="form-control" placeholder="مثلاً 1.000">
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-12">
+                  <label class="form-label">شد الصنف</label>
+                  <div class="d-flex gap-2">
+                    <input id="productPackArabic" name="packArabic" type="text" class="form-control" placeholder="مثال: شوال">
+                    <input id="productPackNumber" name="packNumber" type="number" class="form-control" placeholder="مثال: 50">
+                    <select id="productPackUnit" name="packUnit" class="form-select">
+                      <option value="كجم">كجم</option>
+                      <option value="عدد">عدد</option>
+                      <option value="لتر">لتر</option>
+                      <option value="حبة">حبة</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <label class="form-label">سعر الشراء</label>
+                  <input id="productPurchasePrice" name="purchasePrice" type="number" step="0.01" class="form-control" placeholder="0.00">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">حد الطلب (الحد الأدنى)</label>
+                  <input id="productReorder" name="reorderLevel" type="number" class="form-control" placeholder="تنبيه عند وصول الكمية لـ">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">معامل التجهيز</label>
+                  <input id="productProcessingFactor" name="processingFactor" type="number" step="0.01" class="form-control" placeholder="مثال: 1.00">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">مكان التخزين</label>
+                  <input id="productLocation" name="location" type="text" class="form-control" placeholder="رقم الرف أو الممر">
+                </div>
+              </div>
+
+
+
+              <div class="mb-3">
+                <label class="form-label">وصف إضافي</label>
+                <textarea id="productDescription" name="description" class="form-control" rows="3"></textarea>
+              </div>
+
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" onclick="document.getElementById('addProductForm').reset()" class="btn btn-secondary">إلغاء</button>
+                <button id="openImportBtn" type="button" class="btn btn-outline-info">استيراد من Excel</button>
+                <button id="saveNewBtn" type="submit" class="btn btn-success px-4">حفظ الصنف</button>
+                <button id="updateBtn" type="button" class="btn btn-primary" style="display:none">حفظ التعديلات</button>
+                <button id="deleteBtn" type="button" class="btn btn-danger" style="display:none">حذف الصنف</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+          <!-- Product Import Modal -->
+          <div class="modal fade" id="productImportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                  <h5 class="modal-title">استيراد منتجات من ملف Excel</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="row mb-3">
+                    <div class="col-md-4">
+                      <div class="card p-3 mb-3">
+                        <h6>تحميل القالب</h6>
+                        <p class="small text-muted">قم بتحميل القالب وتعبئة البيانات حسب العناوين ثم ارفع الملف هنا.</p>
+                        <button id="downloadTemplateBtn" class="btn btn-outline-primary btn-sm">تحميل قالب Excel</button>
+                      </div>
+                      <div class="card p-3">
+                        <h6>اختيار الملف</h6>
+                        <input id="productImportFile" accept=".xlsx,.xls,.csv" type="file" class="form-control mb-2">
+                        <button id="previewBtn" class="btn btn-primary btn-sm">معاينة الملف</button>
+                        <button id="startImportBtn" class="btn btn-success btn-sm mt-2" disabled>ابدأ الاستيراد</button>
+                      </div>
+                    </div>
+                    <div class="col-md-8">
+                      <div class="card mb-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <h6 class="mb-0">إرشادات سريعة</h6>
+                          <button id="toggleInstructions" class="btn btn-sm btn-outline-secondary">إظهار/إخفاء التفاصيل</button>
+                        </div>
+                        <div id="importInstructions" style="display:none">
+                          <p>نموذج الأعمدة المتوقعة (يمكن تغيّر الترتيب ولكن الأسماء يجب أن تطابق أحد الأسماء المتوقعة):</p>
+                          <ul>
+                            <li><strong>barcode</strong> أو <strong>باركود</strong></li>
+                            <li><strong>name</strong> أو <strong>الاسم</strong></li>
+                            <li><strong>section</strong> أو <strong>القسم</strong></li>
+                            <li><strong>subsection</strong> أو <strong>التصنيف الفرعي</strong></li>
+                            <li><strong>unit</strong> أو <strong>الوحدة</strong></li>
+                            <li><strong>unitWeight</strong> أو <strong>وزن الوحدة</strong></li>
+                            <li><strong>pack.labelArabic</strong> أو <strong>شد_الاسم</strong></li>
+                            <li><strong>pack.quantity</strong> أو <strong>شد_الكمية</strong></li>
+                            <li><strong>pack.unit</strong> أو <strong>شد_الوحدة</strong></li>
+                            <li><strong>purchasePrice</strong> أو <strong>سعر_الشراء</strong></li>
+                            <li><strong>reorderLevel</strong> أو <strong>حد_الطلب</strong></li>
+                            <li><strong>processingFactor</strong> أو <strong>معامل_التجهيز</strong></li>
+                            <li><strong>location</strong> أو <strong>مكان_التخزين</strong></li>
+                            <li><strong>description</strong> أو <strong>الوصف</strong></li>
+                            <li><strong>quantity</strong> أو <strong>الرصيد</strong></li>
+                          </ul>
+                          <p class="text-muted small">سلوك الخيارات عند تكرار الباركود: سيتم تحديث السجل الموجود ببيانات الصف (تحديث الحقول غير الفارغة).</p>
+                        </div>
+                      </div>
+                      <div class="card p-2">
+                        <h6>معاينة البيانات</h6>
+                        <div id="importPreview" style="max-height:400px; overflow:auto"><table id="importPreviewTable" class="table table-sm table-striped"><thead></thead><tbody></tbody></table></div>
+                        <div id="importErrors" class="mt-2"></div>
+                        <div id="importProgress" class="mt-2"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button></div>
+              </div>
+            </div>
+          </div>
+  </div>
+
+  <!-- Product Query Modal -->
+  <div class="modal fade" id="productQueryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">بحث الأصناف</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="mb-2"><input id="productQueryFilter" class="form-control" placeholder="ابحث بالاسم أو الباركود..."></div>
+          <div class="list-group" id="productQueryList" style="max-height:50vh;overflow:auto"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+  <!-- SheetJS for Excel parsing -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="product-import.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const type = document.getElementById('costCenterType');
+      const detail = document.getElementById('costCenterDetail');
+      const factoryOptions = [
+        'قسم البيكري',
+        'قسم الغربي',
+        'قسم الجارد مانجيه',
+        'قسم الالبان',
+        'قسم الشرقي',
+        'قسم حلاوة المولد',
+        'اخري'
+      ];
+      const branchesOptions = [
+        'فرع الكوربه',
+        'فرع العبور',
+        'فرع الدقي',
+        'فرع التجمع',
+        'فرع العباسيه',
+        'فرع حلو منه فيه - الناصيه',
+        'فرع بيست الزيتون',
+        'فرع حلو منه حلوان',
+        'فرع بيست اول جمال'
+      ];
+
+      function populate(kind) {
+        detail.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'اختر...';
+        detail.appendChild(placeholder);
+        const arr = kind === 'المصنع' ? factoryOptions : branchesOptions;
+        arr.forEach(function (v) {
+          const o = document.createElement('option');
+          o.value = v;
+          o.textContent = v;
+          detail.appendChild(o);
+        });
+        detail.style.display = '';
+      }
+
+      type && type.addEventListener('change', function () {
+        if (!type.value) {
+          detail.style.display = 'none';
+          detail.innerHTML = '';
+          return;
+        }
+        if (type.value === 'المصنع') populate('المصنع');
+        else if (type.value === 'الفروع') populate('الفروع');
+        else {
+          detail.style.display = 'none';
+          detail.innerHTML = '';
+        }
+      });
+    });
+  </script>
+  <script src="product-add.js"></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إرسال الكميات للفروع</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+  <style>
+    /* General styles */
+    body {
+      font-family: 'Cairo', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e6e6e6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #0f3460;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      padding: 24px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      color: #ffd166;
+      font-size: 28px;
+    }
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      color: #ffd166;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .form-group select,
+    .form-group input {
+      padding: 10px;
+      background: #1a1a2e;
+      border: 1px solid #ff2a4d;
+      color: #e6e6e6;
+      border-radius: 6px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1a1a2e;
+    }
+    table thead {
+      background: linear-gradient(135deg, #ff2a4d, #ff6b6b);
+      color: white;
+    }
+    table th, table td {
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #333;
+    }
+    button {
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #ff2a4d, #ff6b6b);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #ff6b6b, #ff2a4d);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📦 إرسال الكميات للفروع</h1>
+      <button onclick="fetchData()">عرض البيانات</button>
+    </div>
+
+    <!-- Form Section -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="orderDate">📅 تاريخ الطلبية</label>
+        <input type="date" id="orderDate">
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-wrap">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>📦 الكود</th>
+            <th>📦 المنتج</th>
+            <th>كوربة - المطلوب</th>
+            <th>كوربة - المرسل</th>
+            <th>دقي - المطلوب</th>
+            <th>دقي - المرسل</th>
+            <th>تجمع - المطلوب</th>
+            <th>تجمع - المرسل</th>
+            <th>عبور - المطلوب</th>
+            <th>عبور - المرسل</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dynamic rows will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Branch-specific Send Buttons -->
+    <div class="form-row">
+      <button onclick="sendToBranch('كوربة')">إرسال إلى فرع كوربة</button>
+      <button onclick="sendToBranch('دقي')">إرسال إلى فرع دقي</button>
+      <button onclick="sendToBranch('تجمع')">إرسال إلى فرع تجمع</button>
+      <button onclick="sendToBranch('عبور')">إرسال إلى فرع عبور</button>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+
+    // Function to fetch data from Firebase
+    function fetchData() {
+      const tableBody = document.querySelector('#dataTable tbody');
+      tableBody.innerHTML = ''; // Clear existing rows
+
+      db.collection('send-orders').get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const row = document.createElement('tr');
+
+          row.innerHTML = `
+            <td>${data.code || ''}</td>
+            <td>${data.product || ''}</td>
+            <td>${data.korbaRequested || ''}</td>
+            <td>${data.korbaSent || ''}</td>
+            <td>${data.dokkiRequested || ''}</td>
+            <td>${data.dokkiSent || ''}</td>
+            <td>${data.tagamoRequested || ''}</td>
+            <td>${data.tagamoSent || ''}</td>
+            <td>${data.obourRequested || ''}</td>
+            <td>${data.obourSent || ''}</td>
+          `;
+
+          tableBody.appendChild(row);
+        });
+      }).catch((error) => {
+        console.error('Error fetching data: ', error);
+      });
+    }
+
+    // Function to send data to a specific branch
+    function sendToBranch(branch) {
+      const orderDate = document.getElementById('orderDate').value;
+      if (!orderDate) {
+        alert('يرجى اختيار تاريخ الطلبية أولاً');
+        return;
+      }
+
+      // Example: Sending data logic
+      alert(`تم إرسال البيانات إلى فرع ${branch}`);
+    }
+  </script>
+</body>
+</html>

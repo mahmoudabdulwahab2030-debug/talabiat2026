@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>بيست سويت - فرع فيصل - رفع الطلبات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* نسخ ستايلات korba.html (مبسطة داخلية) */
+    .container{--transition:350ms;--folder-W:90px;--folder-H:60px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:10px;background:linear-gradient(135deg,#2c2c2c,#3a2f1d);border-radius:15px;box-shadow:0 15px 30px rgba(0,0,0,0.2);height:calc(var(--folder-H)*1.7);position:relative;margin-bottom:20px;}
+    .folder{position:absolute;top:-20px;left:calc(50% - 60px);animation:float 2.5s infinite ease-in-out;transition:transform var(--transition) ease;}
+    .custom-file-upload{font-size:1.1em;color:#fff;text-align:center;background:rgba(255,255,255,0.2);border-radius:10px;padding:10px 35px;cursor:pointer;display:inline-block;}
+    .custom-file-upload input[type="file"]{display:none;}
+    @keyframes float{0%{transform:translateY(0);}50%{transform:translateY(-20px);}100%{transform:translateY(0);}}
+    .content-wrapper{max-width:1200px;margin:0 auto;padding:20px;}
+    .controls-section{background:linear-gradient(135deg,#2c2c2c,#3a2f1d);border-radius:15px;padding:20px;margin-bottom:30px;box-shadow:0 5px 15px rgba(0,0,0,0.2);}
+    .form-row{display:flex;gap:20px;margin-bottom:20px;align-items:center;}
+    .form-group{flex:1;}
+    .form-group label{display:block;margin-bottom:8px;color:#ffd166;font-weight:bold;}
+    .form-group input,.form-group select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:white;}
+    .buttons-container{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;}
+    .action-button{padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:bold;display:flex;align-items:center;gap:8px;}
+    .action-button.primary{background:linear-gradient(135deg,#ffd166,#f0ad4e);color:#000;}
+    .action-button.secondary{background:rgba(255,255,255,0.1);color:#fff;}
+    .table-wrapper{background:rgba(0,0,0,0.2);border-radius:12px;padding:15px;margin-top:20px;overflow-x:auto;}
+    .data-table{width:100%;border-collapse:collapse;}
+    .data-table th{background:linear-gradient(135deg,#2c2c2c,#3a2f1d);color:#ffd166;padding:12px;text-align:center;}
+    .data-table td{padding:10px;text-align:center;border:1px solid rgba(255,255,255,0.1);}
+    .qty-input{width:80px;text-align:center;padding:5px;border-radius:4px;background:#2c2c2c;color:#fff;border:1px solid #444;}
+    .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:1000;}
+    /* catalog styles minimal */
+    .catalog-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(145deg,#1a1a1a,#202020);padding:20px;border-radius:20px;z-index:1001;width:95%;max-width:1000px;height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.05);}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:15px;}
+    .close-btn{background:#ff5f57;color:#fff;border:none;width:35px;height:35px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .catalog-table{width:100%;border-collapse:separate;border-spacing:0 8px;}
+    .catalog-table th,.catalog-table td{padding:12px 15px;}
+    .add-item-btn{width:40px;height:40px;border-radius:12px;background:linear-gradient(145deg,#ffd166,#f0ad4e);border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  </style>
+</head>
+<body>
+  <div class="content-wrapper">
+    <h2>📥 بيست سويت - فرع فيصل - رفع البيانات إلى Firestore</h2>
+
+    <div class="controls-section">
+      <div class="container">
+        <div class="folder"><div class="front-side"><div class="tip"></div><div class="cover"></div></div><div class="back-side cover"></div></div>
+        <label class="custom-file-upload"><input type="file" id="excelFile" accept=".xlsx, .xls" />اختر ملف Excel</label>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="orderDate">🗓️ تاريخ الطلبية:</label>
+          <input type="date" id="orderDate" />
+        </div>
+
+        <div class="form-group">
+          <label for="sheetSelector">🧾 اختر القسم:</label>
+          <select id="sheetSelector" disabled></select>
+        </div>
+      </div>
+
+      <div class="buttons-container">
+        <button id="uploadBtn" disabled class="action-button primary">☁️ رفع القسم المحدد</button>
+        <button id="uploadAllBtn" disabled class="action-button secondary">🚀 رفع كل الأقسام</button>
+        <button onclick="showLoadDialog()" class="action-button secondary">📂 استدعاء طلبية سابقة</button>
+      </div>
+    </div>
+
+    <div id="status" class="status-message"></div>
+
+    <div class="table-wrapper">
+      <div id="tableContainer"></div>
+    </div>
+
+    <div id="editSection" style="display:none;">
+      <h3>تعديل طلبية بتاريخ: <span id="editDate"></span></h3>
+      <div class="edit-controls">
+        <button onclick="addNewItem()" class="action-button secondary">➕ إضافة صنف من الكتالوج</button>
+        <button onclick="saveChanges()" class="action-button primary">💾 حفظ التعديلات</button>
+      </div>
+      <div id="editTable" class="table-wrapper"></div>
+    </div>
+  </div>
+
+  <script>
+    // filepath: c:\Users\retal\Desktop\ORDER\best-sweet-market-zaytoun.html
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch(e) {}
+    const db = firebase.firestore();
+
+    const BRANCH = 'best_sweet_market_zaytoun';
+    const ORDERS_COLLECTION = 'orders_best_sweet';
+
+    let workbookData = {};
+    let currentSheetName = "";
+    let currentData = [];
+    let editingData = [];
+    let isUploading = false;
+
+    function setUploadBusy(value) {
+      isUploading = value;
+      const uploadBtn = document.getElementById('uploadBtn');
+      const uploadAllBtn = document.getElementById('uploadAllBtn');
+      if (uploadBtn) uploadBtn.disabled = value;
+      if (uploadAllBtn) uploadAllBtn.disabled = value;
+    }
+
+    function normalizeIdPart(value) {
+      return String(value || '').trim().toLowerCase()
+        .replace(/[\/\\#\?\[\]]+/g, ' ')
+        .replace(/[^a-z0-9\-_. ]+/g, '')
+        .replace(/\s+/g, '_')
+        .slice(0, 40);
+    }
+
+    function getOrdersCollectionName() {
+      return typeof ORDERS_COLLECTION !== 'undefined' ? ORDERS_COLLECTION : 'orders';
+    }
+
+    function getOrderDocId(item, orderDate) {
+      const parts = [
+        typeof BRANCH !== 'undefined' ? BRANCH : '',
+        orderDate || '',
+        item.sheet || '',
+        item.code || '',
+        item.name || '',
+        String(item.rowIdx || '')
+      ].map(normalizeIdPart).filter(Boolean);
+      const id = parts.join('__').slice(0, 150);
+      return id || db.collection(getOrdersCollectionName()).doc().id;
+    }
+
+    function escapeHtml(text){ if(!text) return ''; const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; return String(text).replace(/[&<>"']/g,m=>map[m]); }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('excelFile');
+      const sheetSelector = document.getElementById('sheetSelector');
+      const orderDateInput = document.getElementById('orderDate');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const uploadAllBtn = document.getElementById('uploadAllBtn');
+      const tableContainer = document.getElementById('tableContainer');
+      const statusEl = document.getElementById('status');
+      const editSection = document.getElementById('editSection');
+      const editDateSpan = document.getElementById('editDate');
+      const editTableEl = document.getElementById('editTable');
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) { statusEl.textContent='⚠️ لم يتم اختيار ملف.'; return; }
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            workbookData = {};
+            wb.SheetNames.forEach(name => {
+              const sheet = wb.Sheets[name];
+              const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+              const filtered = rows.filter(r => r.length >= 2);
+              workbookData[name] = filtered;
+            });
+            sheetSelector.innerHTML = '';
+            Object.keys(workbookData).forEach(n => { const opt = document.createElement('option'); opt.value=n; opt.textContent=n; sheetSelector.appendChild(opt); });
+            sheetSelector.disabled = false; uploadBtn.disabled = false; uploadAllBtn.disabled = false;
+            sheetSelector.value = Object.keys(workbookData)[0] || '';
+            handleSheetSelect(sheetSelector.value);
+            Swal.fire({ icon:'success', title:'✅ تم رفع الملف', text:'اختر القسم والتاريخ للرفع' });
+          } catch(err) { console.error('Error parsing Excel', err); Swal.fire('خطأ','فشل قراءة ملف Excel','error'); }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      sheetSelector.addEventListener('change', () => handleSheetSelect(sheetSelector.value));
+
+      window.handleSheetSelect = function(sheetName){
+        currentSheetName = sheetName;
+        const rows = workbookData[sheetName];
+        if(!rows || rows.length<2){ tableContainer.innerHTML="<p>⚠️ لا توجد بيانات قابلة للعرض.</p>"; currentData=[]; return; }
+        currentData = [];
+        const [headers,...dataRows] = rows;
+        const validRows = dataRows.filter(r => (parseFloat(r[2])||0) > 0);
+        if(validRows.length===0){ tableContainer.innerHTML="<p>⚠️ لا توجد بيانات بكميات صالحة للعرض.</p>"; return; }
+        let html = "<table class='data-table'><thead><tr><th>📄 الكود</th><th>📦 الصنف</th><th>🔢 الكمية</th></tr></thead><tbody>";
+        validRows.forEach((r, rowIdx) => { const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0; currentData.push({code,name,qty,sheet:sheetName,rowIdx}); html+=`<tr><td>${escapeHtml(code)}</td><td>${escapeHtml(name)}</td><td>${qty}</td></tr>`; });
+        html+="</tbody></table>"; tableContainer.innerHTML=html;
+      };
+
+      window.uploadNewOrder = async function(){
+        const orderDate = orderDateInput.value; if(!orderDate || !currentData.length) return;
+        if(isUploading) return;
+        setUploadBusy(true);
+        try {
+          const batch = db.batch();
+          currentData.forEach(item => {
+            const docId = getOrderDocId(item, orderDate);
+            const ref = db.collection(getOrdersCollectionName()).doc(docId);
+            batch.set(ref, {...item, branch:BRANCH, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
+          });
+          await batch.commit();
+          try { if (window.activityLogger) activityLogger.logActivity('upload_all', window.location.pathname || '/best-sweet-market-zaytoun.html', { branch: BRANCH, orderDate, rows: currentData.length }); } catch (e) { console.warn('activity log failed', e); }
+        } finally {
+          setUploadBusy(false);
+        }
+      };
+
+      window.uploadAllSheets = async function(orderDate){
+        if(!orderDate) return;
+        if(isUploading) return;
+        setUploadBusy(true);
+        const sheetNames = Object.keys(workbookData);
+        let totalRows = 0;
+        Swal.fire({ title:'🚀 جاري رفع البيانات...', html:'<progress id="uploadProgress" value="0" max="100" style="width:100%"></progress>', allowOutsideClick:false, showConfirmButton:false });
+        try {
+          for(const sheetName of sheetNames){
+            const rows = workbookData[sheetName]; if(!rows || rows.length<2) continue;
+            const [, ...dataRows] = rows;
+            const batch = db.batch();
+            dataRows.forEach((r, rowIdx) => {
+              const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0;
+              if(code && name && qty>0){ const item={code,name,qty,sheet:sheetName,rowIdx}; const docId = getOrderDocId(item, orderDate); const ref=db.collection(getOrdersCollectionName()).doc(docId); batch.set(ref,{...item,branch:BRANCH,orderDate,timestamp: firebase.firestore.FieldValue.serverTimestamp()}); totalRows++; }
+            });
+            await batch.commit();
+            const p = document.getElementById('uploadProgress'); if(p) p.value = Math.min(100, Math.round((totalRows/(sheetNames.length*50))*100));
+          }
+          Swal.close(); Swal.fire('✅ تم','تم رفع '+totalRows+' صف','success');
+        } finally {
+          Swal.close();
+          setUploadBusy(false);
+        }
+
+        try { if (window.activityLogger) activityLogger.logActivity('upload_all', window.location.pathname || '/best-sweet-market-zaytoun.html', { branch: BRANCH, orderDate: orderDate, rows: totalRows }); } catch (e) { console.warn('activity log failed', e); }
+      };
+
+      uploadBtn.addEventListener('click', async () => {
+        const orderDate = orderDateInput.value;
+        if(isUploading){ Swal.fire('تنبيه','جاري رفع البيانات بالفعل، انتظر لحظة.','warning'); return; }
+        if(!orderDate){ statusEl.textContent='⚠️ اختر تاريخ'; return; } if(!currentData.length){ statusEl.textContent='⚠️ لا توجد بيانات'; return; }
+        try {
+          const [ordersSnap, reservationsSnap] = await Promise.all([
+            db.collection(ORDERS_COLLECTION).where('branch','==',BRANCH).where('orderDate','==',orderDate).get(),
+            db.collection('reservations').where('branch','==',BRANCH).where('orderDate','==',orderDate).get().catch(()=>({ empty:true }))
+          ]);
+          const hasOrders = !ordersSnap.empty; const hasRes = reservationsSnap && !reservationsSnap.empty;
+          if(hasOrders || hasRes){
+            const resp = await Swal.fire({ title:'توجد بيانات لهذا التاريخ', html:'يوجد بالفعل سجلات. اختر الإجراء:', icon:'question', showDenyButton:true, showCancelButton:true, confirmButtonText:'استبدال الموجود', denyButtonText:'ضم (إضافة صفوف جديدة)', cancelButtonText:'إلغاء' });
+            if(resp.isDismissed) return;
+            if(resp.isConfirmed){ const batchDel = db.batch(); ordersSnap.forEach(d=>batchDel.delete(d.ref)); if(reservationsSnap && !reservationsSnap.empty) reservationsSnap.forEach(d=>batchDel.delete(d.ref)); await batchDel.commit(); await uploadNewOrder(); statusEl.textContent = `✅ تم استبدال وحفظ ${currentData.length} صف بتاريخ ${orderDate}`; Swal.fire('تم الاستبدال','تم حذف القديم ورفع الجديد','success'); return; }
+            if(resp.isDenied){ await uploadNewOrder(); statusEl.textContent = `✅ تم إضافة ${currentData.length} صف بتاريخ ${orderDate}`; Swal.fire('تم الإضافة','تم ضم الصفوف الجديدة','success'); return; }
+          } else { await uploadNewOrder(); statusEl.textContent = `✅ تم حفظ ${currentData.length} صف بتاريخ ${orderDate}`; Swal.fire('نجاح','تم الرفع','success'); }
+        } catch(err){ console.error(err); Swal.fire('خطأ','فشل رفع البيانات','error'); }
+      });
+
+      uploadAllBtn.addEventListener('click', async () => {
+        const orderDate = orderDateInput.value;
+        if(isUploading){ Swal.fire('تنبيه','جاري رفع البيانات بالفعل، انتظر لحظة.','warning'); return; }
+        if(!orderDate){ Swal.fire('تنبيه','حدد التاريخ','warning'); return; }
+        try {
+          const ordersSnap = await db.collection(ORDERS_COLLECTION).where('branch','==',BRANCH).where('orderDate','==',orderDate).get();
+          if(!ordersSnap.empty){
+            const resp = await Swal.fire({ title:'توجد بيانات لهذا التاريخ', html:'يوجد بالفعل سجلات. اختر الإجراء:', icon:'question', showDenyButton:true, showCancelButton:true, confirmButtonText:'استبدال الموجود', denyButtonText:'ضم (إضافة صفوف جديدة)', cancelButtonText:'إلغاء' });
+            if(resp.isDismissed) return;
+            if(resp.isConfirmed){ const batchDel=db.batch(); ordersSnap.forEach(d=>batchDel.delete(d.ref)); await batchDel.commit(); await uploadAllSheets(orderDate); Swal.fire('تم الاستبدال','تم حذف القديم ورفع الجديد','success'); return; }
+            if(resp.isDenied){ await uploadAllSheets(orderDate); Swal.fire('تم الإضافة','تم ضم الصفوف الجديدة','success'); return; }
+          } else { await uploadAllSheets(orderDate); }
+        } catch(err){ console.error(err); Swal.fire('خطأ','حدث خطأ','error'); }
+      });
+
+      window.showLoadDialog = async function(){
+        const { value: password } = await Swal.fire({ title:'ادخل كلمة المرور', input:'password', showCancelButton:true, confirmButtonText:'تأكيد' });
+        if(password===undefined) return; if(password!=='15121996'){ Swal.fire('خطأ','كلمة المرور غير صحيحة','error'); return; }
+        const { value: date } = await Swal.fire({ title:'اختر التاريخ', input:'date', showCancelButton:true, confirmButtonText:'استدعاء' });
+        if(date) loadOrderForEdit(date);
+      };
+
+      window.loadOrderForEdit = async function(date){
+        try {
+          const snap = await db.collection(ORDERS_COLLECTION).where('branch','==',BRANCH).where('orderDate','==',date).get();
+          if(snap.empty){ Swal.fire('تنبيه','لا توجد طلبية','info'); return; }
+          editingData = []; snap.forEach(doc=>editingData.push({ id: doc.id, ...doc.data() }));
+          editDateSpan.textContent = date; if(orderDateInput) orderDateInput.value = date; renderEditTable(); editSection.style.display = 'block';
+        } catch(err){ console.error(err); Swal.fire('خطأ','فشل تحميل الطلبية','error'); }
+      };
+
+      async function commitInBatches(writeOps=[]){ const BATCH_LIMIT = 400; for(let i=0;i<writeOps.length;i+=BATCH_LIMIT){ const batch=db.batch(); const chunk=writeOps.slice(i,i+BATCH_LIMIT); chunk.forEach(fn=>fn(batch)); await batch.commit(); } }
+
+      window.saveChanges = async function(){
+        const date = editDateSpan.textContent || (orderDateInput && orderDateInput.value);
+        if(!date){ Swal.fire('تنبيه','لا يوجد تاريخ للحفظ','warning'); return; }
+        if(!editingData || !Array.isArray(editingData)){ Swal.fire('تنبيه','لا توجد تغييرات للحفظ','info'); return; }
+        const res = await Swal.fire({ title:'حفظ التعديلات', html:`سيتم حفظ التعديلات لطلبية الفرع <strong>بيست سويت</strong> بتاريخ <strong>${escapeHtml(date)}</strong>.<br>هل تريد المتابعة؟`, icon:'question', showCancelButton:true, confirmButtonText:'نعم، احفظ التعديلات', cancelButtonText:'إلغاء' });
+        if(!res.isConfirmed) return;
+        Swal.fire({ title:'🔄 جاري حفظ التعديلات...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+        try{
+          const toDeleteSnap = await db.collection(ORDERS_COLLECTION).where('branch','==',BRANCH).where('orderDate','==',date).get();
+          const deleteOps=[]; toDeleteSnap.forEach(doc=>deleteOps.push(batch=>batch.delete(doc.ref)));
+          const insertOps=[];
+          editingData.forEach(item=>{ const code=item.code||(item.name?String(item.name).toLowerCase().replace(/\s+/g,'_'):''), name=item.name||'', qty=Number(item.qty)||0, sheet=item.sheet||currentSheetName||''; if(!name||qty<=0)return; insertOps.push(batch=>{ const ref=db.collection(ORDERS_COLLECTION).doc(); batch.set(ref,{code,name,qty,sheet,branch:BRANCH,orderDate:date,timestamp:firebase.firestore.FieldValue.serverTimestamp()}); }); });
+          if(deleteOps.length) await commitInBatches(deleteOps);
+          if(insertOps.length) await commitInBatches(insertOps);
+          Swal.close(); Swal.fire('✅ تم الحفظ', `تم حفظ ${insertOps.length} صنف للطّلبية بتاريخ ${date}`, 'success');
+          editSection.style.display='none'; editingData=[]; editTableEl.innerHTML=''; statusEl.textContent=`✅ تم حفظ التعديلات لطلبية ${date}`;
+        }catch(err){ console.error('saveChanges error:',err); Swal.close(); Swal.fire('خطأ','فشل حفظ التعديلات. حاول مرة أخرى','error'); }
+      };
+
+      window.updateQty = function(index,value){ if(editingData[index]) editingData[index].qty = Number(value)||0; };
+      window.deleteItem = function(index){ Swal.fire({ title:'تأكيد', text:'حذف صنف؟', icon:'warning', showCancelButton:true, confirmButtonText:'نعم' }).then(res=>{ if(res.isConfirmed){ editingData.splice(index,1); renderEditTable(); } }); };
+
+      window.addNewItem = async function(){
+        try{
+          const catalogSnap = await db.collection('catalog').get();
+          if(catalogSnap.empty){ Swal.fire('تنبيه','لا توجد أقسام في الكتالوج','info'); return; }
+          const modal = document.createElement('div'); modal.className='modal-overlay';
+          modal.innerHTML = `<div class="catalog-modal"><div class="modal-header"><h3>📋 اختر صنف من الكتالوج</h3><button class="close-btn" onclick="closeCatalogModal()">×</button></div><div class="search-section"><div class="catalog-sections" id="sectionButtons"></div><input type="text" class="catalog-search" id="catalogSearch" placeholder="🔍 ابحث..." style="display:none"></div><div class="catalog-items-container"><div id="catalogItems"><p style="text-align:center;color:#ffd166;padding:20px;">👆 اختر قسم لعرض الأصناف المتوفرة</p></div></div></div>`;
+          document.body.appendChild(modal);
+          const sectionButtons = modal.querySelector('#sectionButtons');
+          catalogSnap.forEach(doc=>{ const btn=document.createElement('button'); btn.className='section-btn'; btn.textContent=doc.id; btn.onclick=()=>{ modal.querySelectorAll('.section-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('catalogSearch').style.display='block'; loadSectionItems(doc.id); }; sectionButtons.appendChild(btn); });
+          const searchInput = modal.querySelector('#catalogSearch'); searchInput.addEventListener('input', (e)=>{ const t=e.target.value.toLowerCase().trim(); const rows=modal.querySelectorAll('.catalog-table tbody tr'); rows.forEach(row=>{ const code=row.cells[0].textContent.toLowerCase(); const name=row.cells[1].textContent.toLowerCase(); row.style.display=(code.includes(t)||name.includes(t))?'' :'none'; }); });
+        }catch(err){ console.error(err); Swal.fire('خطأ','فشل تحميل الكتالوج','error'); }
+      };
+
+      async function loadSectionItems(sectionId){
+        const container = document.getElementById('catalogItems'); container.innerHTML="⏳ جاري تحميل الأصناف...";
+        try{
+          const doc = await db.collection('catalog').doc(sectionId).get();
+          if(!doc.exists){ container.innerHTML="❌ لا يوجد هذا القسم."; return; }
+          const items = doc.data().items || []; if(items.length===0){ container.innerHTML="⚠️ لا توجد أصناف في هذا القسم."; return; }
+          const tableHtml = `<table class="catalog-table"><thead><tr><th>الكود</th><th>اسم الصنف</th><th>إضافة</th></tr></thead><tbody>${items.map(item=>{ const code=item.code|| (item.name||'').toLowerCase().replace(/\s+/g,'_'); return `<tr><td title="${escapeHtml(code)}">${escapeHtml(code)}</td><td title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</td><td><button class="add-item-btn" onclick="insertItem('${escapeHtml(item.name)}','${sectionId}','${escapeHtml(code)}')" title="إضافة ${escapeHtml(item.name)}">➕</button></td></tr>`; }).join('')}</tbody></table>`;
+          container.innerHTML = tableHtml;
+        }catch(err){ console.error(err); container.innerHTML="❌ حدث خطأ أثناء تحميل الأصناف."; }
+      }
+
+      window.insertItem = function(name, section, code){ if(!editingData||!Array.isArray(editingData)) editingData=[]; editingData.push({ code,name,qty:1,sheet:section }); renderEditTable(); closeCatalogModal(); };
+      window.closeCatalogModal = function(){ const modal=document.querySelector('.modal-overlay'); if(modal){ modal.style.opacity='0'; setTimeout(()=>modal.remove(),200); } };
+
+      window.renderEditTable = function(){ const container=document.getElementById('editTable'); if(!container) return; if(!editingData||editingData.length===0){ container.innerHTML='<p style="padding:12px;color:#ffd166;">لا توجد عناصر للتعديل.</p>'; return; } let html=`<table class="data-table"><thead><tr><th>الكود</th><th>الصنف</th><th>الكمية</th><th>حذف</th></tr></thead><tbody>`; editingData.forEach((it,idx)=>{ const code=escapeHtml(it.code||''); const name=escapeHtml(it.name||''); const qty=Number(it.qty)||0; html+=`<tr><td>${code}</td><td style="text-align:right">${name}</td><td><input type="number" class="qty-input" value="${qty}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`; }); html+=`</tbody></table>`; container.innerHTML=html; };
+
+    }); // DOMContentLoaded end
+  </script>
+  <script src="activity-logger.js"></script>
+</body>
+</html>

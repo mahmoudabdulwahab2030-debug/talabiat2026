@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>بيست سويت - إدارة الطلبات</title>
+  <link href="style.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css?family=Cairo:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root{
+      --bg-1: #141416;
+      --bg-2: #1b1c20;
+      --panel: #1f2024;
+      --accent: #ff3b55;
+      --accent-2: #ffb300;
+      --muted: #9aa0a6;
+      --glass: rgba(255,42,77,0.06);
+      --surface-contrast: rgba(255,255,255,0.04);
+      --shadow: 0 6px 30px rgba(0,0,0,0.6);
+      --max-width: 1400px;
+    }
+    /* ثيم دارك احترافي مع الأحمر الغامق والرصاصي */
+    body {
+      background: linear-gradient(135deg, var(--bg-2) 0%, var(--bg-1) 100%);
+      color: #e9ecef;
+      font-family: 'Cairo', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      transition: background 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    .container {
+      background: linear-gradient(180deg,var(--panel), #151516 120%);
+      margin: 24px auto;
+      padding: 26px;
+      border-radius: 16px;
+      max-width: var(--max-width);
+      box-shadow: 0 2px 24px #000a;
+      animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+      border: 1px solid var(--surface-contrast);
+      position: relative;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    h2 {
+      color: #ff2a4d;
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #000a;
+    }
+    .form-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    /* infographics row (animated counters) */
+    .infographics {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      margin: 12px 0 18px 0;
+    }
+    .infographic-card{
+      flex: 1 1 180px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid var(--surface-contrast);
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: #fff;
+      box-shadow: var(--shadow);
+      display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+      transition: transform .28s ease, box-shadow .28s ease;
+    }
+    .infographic-card:hover{ transform: translateY(-6px); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+    .infographic-title{ font-size:0.9rem; color:var(--muted); margin-bottom:6px }
+    .infographic-value{ font-size:1.6rem; font-weight:800; color:var(--accent-2); }
+
+    /* Sticky actions toolbar above table */
+    .actions-row {
+      display: none;
+    }
+    .floating-actions-group {
+      position: fixed;
+      top: 72px;
+      left: 14px;
+      z-index: 1400;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .main-group-btn {
+      width: 52px;
+      height: 52px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 1.3rem;
+      padding: 0;
+      background: linear-gradient(90deg, #ff2a4d 40%, #ffb300 100%);
+      border: 2px solid #fff;
+      color: #121212;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.32);
+    }
+    .group-menu {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(18,18,20,0.95);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 16px 38px rgba(0,0,0,0.35);
+      backdrop-filter: blur(16px);
+      min-width: 60px;
+    }
+    .group-menu.open {
+      display: flex;
+    }
+    .group-menu button {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      margin: 0;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: linear-gradient(90deg, #2c2c33 40%, #18181c 100%);
+      color: #fff;
+    }
+    .group-menu button:hover {
+      transform: translateY(-1px);
+      border-color: #ff2a4d;
+      box-shadow: 0 6px 18px rgba(255,59,85,0.18);
+    }
+    .analysis-panel.hidden {
+      display: none !important;
+    }
+    @media (max-width: 900px) {
+      .floating-actions-group {
+        top: auto;
+        bottom: 14px;
+        right: 14px;
+      }
+    }
+    .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ff2a4d;
+      font-weight: bold;
+    }
+    select, input[type="date"], input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      background: #23232a;
+      border: 2px solid #444;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 1em;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      box-shadow: 0 0 0 0 #ff2a4d;
+    }
+    select:focus, input:focus {
+      border-color: #ff2a4d;
+      box-shadow: 0 0 8px 2px #ff2a4d88;
+      animation: outlinePulse 1.2s infinite;
+    }
+    @keyframes outlinePulse {
+      0% { box-shadow: 0 0 0 0 #ff2a4d88; }
+      50% { box-shadow: 0 0 8px 2px #ff2a4d88; }
+      100% { box-shadow: 0 0 0 0 #ff2a4d88; }
+    }
+    .actions-row {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    button {
+      background: linear-gradient(90deg, #3a3b3c 60%, #23232a 100%);
+      color: #fff;
+      border: 2px solid #ff2a4d;
+      padding: 8px 18px;
+      margin: 4px;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0004;
+      transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(.4,0,.2,1), border-color 0.3s;
+      outline: none;
+      position: relative;
+      overflow: hidden;
+    }
+    button:hover, button:focus {
+      background: linear-gradient(90deg, #ff2a4d 60%, #ffb300 100%);
+      color: #23232a;
+      box-shadow: 0 8px 32px #ff2a4d44, 0 2px 12px #0004;
+      transform: translateY(-2px) scale(1.04) rotate(-1deg);
+      border-color: #ffb300;
+      animation: outlinePulse 1.2s infinite;
+    }
+    table {
+      width: 100%;
+      max-width: calc(var(--max-width) - 40px);
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: #23232a;
+      border-radius: 16px;
+      overflow: auto;
+      box-shadow: 0 4px 32px #0008;
+      table-layout: auto;
+      animation: fadeInTable 0.7s cubic-bezier(.4,0,.2,1);
+      border: 2px solid #ff2a4d;
+    }
+    @keyframes fadeInTable {
+      from { opacity: 0; transform: scale(0.98);}
+      to { opacity: 1; transform: scale(1);}
+    }
+    th, td {
+      border: 1.5px solid #444;
+      padding: 14px 12px;
+      text-align: center;
+      vertical-align: middle;
+      white-space: pre-line;
+      word-break: break-word;
+      font-size: 1.08em;
+      transition: background 0.25s, color 0.25s;
+      min-width: 120px;
+      max-width: 600px;
+    }
+    /* difference cell styling */
+    .diff-cell {
+      font-weight: 800;
+      color: #e9ecef;
+      background: transparent;
+      transition: background 0.24s, color 0.24s;
+      text-align: center;
+      min-width: 110px;
+    }
+    .diff-cell.negative {
+      background: linear-gradient(90deg, rgba(231,76,60,0.14), rgba(231,76,60,0.06));
+      color: #ffdddd;
+      border-radius: 6px;
+      box-shadow: inset 0 -2px 8px rgba(0,0,0,0.25);
+    }
+    .section-footer-row td {
+      background: rgba(35, 50, 90, 0.15);
+      color: #c4d8ff;
+      font-weight: bold;
+      text-align: right;
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .section-add-item-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(30, 60, 145, 0.92);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .section-add-item-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(58, 96, 186, 0.98);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.16);
+    }
+    th {
+      background: linear-gradient(90deg, #444 60%, #23232a 100%);
+      color: #ff2a4d;
+      font-weight: bold;
+      font-size: 1.1em;
+      border-bottom: 2.5px solid #ff2a4d;
+      letter-spacing: 0.5px;
+      transition: background 0.25s, color 0.25s;
+      position: relative;
+    }
+    tr {
+      transition: background 0.25s;
+    }
+    tr:nth-child(even) {
+      background: #292929;
+    }
+    tr:nth-child(odd) {
+      background: #23272b;
+    }
+    tr:hover td {
+      background: rgba(255,255,255,0.02);
+      color: var(--accent-2);
+      transition: background 0.25s, color 0.25s;
+      border-color: #ff2a4d;
+      animation: outlinePulse 1.2s infinite;
+    }
+    /* subtle pulsing accent for interactive elements */
+    @keyframes pulseAccent { 0%{ box-shadow: 0 0 0 0 rgba(255,59,85,0.12);}50%{ box-shadow: 0 0 30px 6px rgba(255,59,85,0.02);}100%{ box-shadow: 0 0 0 0 rgba(255,59,85,0.00);} }
+    /* نافذة الجدول العائم */
+    #floating-table-modal {
+      display: none;
+      position: fixed;
+      top: 40px;
+      left: 0;
+      right: 0;
+      margin: auto;
+      z-index: 9999;
+      max-width: 98vw;
+      background: #23232a;
+      border-radius: 18px;
+      box-shadow: 0 8px 40px #000b;
+      padding: 24px 12px 18px 12px;
+      border: 2px solid #ff2a4d;
+      animation: fadeInUp 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    #close-floating-table {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #ff2a4d;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 18px;
+      font-size: 1.1em;
+      cursor: pointer;
+      z-index: 10001;
+      transition: background 0.2s;
+    }
+    #close-floating-table:hover {
+      background: #ffb300;
+      color: #23232a;
+    }
+    /* Responsive for mobile */
+    button.mobile-only {
+      display: none;
+    }
+    @media (max-width: 700px) {
+      .container {
+        padding: 8px;
+        margin: 10px auto;
+        max-width: 99vw;
+      }
+      table, th, td {
+        font-size: 12px;
+      }
+      th, td {
+        min-width: 60px;
+        padding: 8px 4px;
+      }
+      button {
+        width: 100%;
+        font-size: 1em;
+      }
+      table {
+        display: block;
+        overflow-x: auto;
+        width: 100%;
+        min-width: 320px;
+      }
+      #floating-table-modal {
+        max-width: 99vw;
+        padding: 10px 2px 10px 2px;
+        left: 1vw;
+        right: 1vw;
+      }
+      button.mobile-only {
+        display: inline-block;
+        width: auto;
+      }
+    }
+    @media (max-width: 400px) {
+      .container {
+        padding: 2px;
+      }
+      th, td {
+        font-size: 10px;
+        padding: 4px 2px;
+      }
+      #floating-table-modal {
+        padding: 4px 1px 4px 1px;
+      }
+    }
+    /* أوتلاين متحرك للعناصر التفاعلية */
+    input:focus, select:focus, button:focus {
+      outline: none;
+      border-color: #ff2a4d;
+      box-shadow: 0 0 8px 2px #ff2a4d88;
+      animation: outlinePulse 1.2s infinite;
+    }
+    /* analysis panel (left side) — dark style matching the page */
+    .analysis-panel {
+      position: fixed;
+      left: 12px;
+      top: 110px;
+      width: 320px;
+      max-height: calc(100vh - 160px);
+      overflow: auto;
+      z-index: 1300;
+      background: linear-gradient(180deg, rgba(20,20,22,0.96), rgba(14,14,16,0.98));
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      font-family: 'Cairo', Arial, sans-serif;
+      color: #e9ecef;
+      backdrop-filter: blur(4px);
+    }
+    .analysis-panel h4{ margin:6px 0 10px 0; color: #e9ecef; font-size:1rem }
+    .analysis-card{ background: linear-gradient(180deg,#151517,#1b1c1f); border-radius:10px; padding:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.03); }
+    .analysis-card .title{ font-weight:800; color:#f5f5f5; }
+    .analysis-card .value{ font-size:1.15rem; font-weight:900; color:#f5f5f5; margin-top:6px }
+    .analysis-table{ width:100%; border-collapse:collapse; margin-top:8px; background:transparent }
+    .analysis-table th, .analysis-table td{ border:1px solid rgba(255,255,255,0.04); padding:6px 8px; text-align:right; font-size:0.95rem; color:#e9ecef }
+    .analysis-table th{ background: rgba(255,255,255,0.02); font-weight:800 }
+    .analysis-table tbody tr:nth-child(even){ background: rgba(255,255,255,0.01); }
+  </style>
+  <style>
+    /* simple motion graphics and floaters */
+    .floater{ position: absolute; border-radius:50%; opacity:0.12; filter: blur(18px); pointer-events:none }
+    .floater.f1{ width:220px;height:220px;background:linear-gradient(90deg,var(--accent),var(--accent-2)); top:-40px; right:-60px; transform:rotate(12deg); }
+    .floater.f2{ width:160px;height:160px;background:linear-gradient(90deg,#3a7bd5,#00d2ff); bottom:-60px; left:-40px; }
+    @keyframes floaty { 0%{ transform: translateY(0) }50%{ transform: translateY(-8px) }100%{ transform: translateY(0) } }
+    .floater{ animation: floaty 6s ease-in-out infinite; }
+    button{ transition: transform .18s ease, box-shadow .18s ease; }
+    button:hover{ transform: translateY(-4px) scale(1.02); }
+  </style>
+
+  <!-- PRINT FIXES: force exact color output, remove shadows, thicker borders, show only invoice section -->
+  <style>
+    @media print {
+      /* force printers to render colors and backgrounds as specified */
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+
+      /* ensure page background and text are high-contrast */
+      body { background: #fff !important; color: #000 !important; }
+
+      /* only show the invoice print section to avoid page chrome */
+      body > * { visibility: hidden !important; }
+      #invoicePrintSection, #invoicePrintSection * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+
+      /* layout and sizing */
+      #invoicePrintSection { position: static !important; display: block !important; width: auto !important; margin: 0 !important; padding: 0 !important; }
+
+      /* Make table visuals very strong and black */
+      #invoicePrintSection table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+        background: #fff !important;
+      }
+      #invoicePrintSection th, #invoicePrintSection td {
+        border: 3px solid #000 !important;         /* thicker black borders */
+        padding: 8px 10px !important;
+        background: #fff !important;
+        color: #000 !important;
+        font-weight: 700 !important;              /* bold text */
+        font-size: 12pt !important;               /* ensure readable size */
+        opacity: 1 !important;                    /* remove any transparency */
+        filter: none !important;
+        -webkit-filter: none !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        -webkit-font-smoothing: none !important;
+      }
+
+      /* headings and text */
+      #invoicePrintSection h2, #invoicePrintSection h1, #invoicePrintSection p, #invoicePrintSection div { color: #000 !important; background: #fff !important; font-weight:700 !important; }
+
+      /* remove visual effects that might render faint */
+      * { box-shadow: none !important; text-shadow: none !important; filter: none !important; opacity: 1 !important; }
+
+      /* page margins */
+      @page { size: auto; margin: 10mm; }
+    }
+  </style>
+  <link href="print.css" rel="stylesheet" media="print">
+</head>
+<body>
+  <h2>📦 إدارة طلبات بيست سويت</h2>
+  <!-- Floating summary icon (top-left) -->
+  <button id="summaryFloatBtn" title="تحليلات الانتاج" aria-label="تحليلات الانتاج" style="display:none">
+    📈
+    <span class="label">تحليلات الانتاج</span>
+  </button>
+  <div id="floatingActionsGroup" class="floating-actions-group" aria-label="أدوات الطلب">
+    <button id="actionsGroupToggle" class="main-group-btn" type="button" title="فتح أدوات الطلب">⚙️</button>
+    <div id="groupMenu" class="group-menu" aria-hidden="true">
+      <button id="loadTableBtn" type="button" title="عرض">⬇️</button>
+      <button id="copyRequestedToSentBtn" type="button" title="نسخ المطلوب إلى المرسَل">📋</button>
+      <button id="addRowBtn" type="button" title="إضافة صنف">➕</button>
+      <button id="saveDraftBtnBest" type="button" title="حفظ مؤقت">💾</button>
+      <button id="sendQuantitiesBtn" type="button" title="إرسال الكميات">📤</button>
+      <button id="toggleAnalysisBtn" type="button" title="عرض / إخفاء تحليل النواقص و الزيادات">📊</button>
+      <button id="btnManageInvoices" type="button" onclick="openInvoiceManagement()" title="إدارة الفواتير">🔍</button>
+      <button id="issueInvoiceBtn" type="button" title="إصدار فاتورة">🧾</button>
+      <button id="openCatalogBtnMobile" type="button" class="mobile-only" aria-label="فتح الكتالوج" title="فتح الكتالوج">📋</button>
+      <button id="btnOpenSummary" type="button" style="display:none" title="تحليلات الانتاج">📈</button>
+    </div>
+  </div>
+  <!-- Analysis panel: shortages / excesses (copied from send-to-branches) -->
+  <aside class="analysis-panel" id="analysisPanel" aria-hidden="false">
+    <h4>تحليل النواقص و الزيادات</h4>
+    <div class="analysis-card">
+      <div class="title">النواقص</div>
+      <div class="value" id="shortageCount">0</div>
+      <table class="analysis-table" id="shortageTable">
+        <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+        <tbody id="shortageList"><tr><td colspan="2" style="text-align:center">لا توجد نواقص</td></tr></tbody>
+      </table>
+    </div>
+    <div class="analysis-card">
+      <div class="title">الزيادات</div>
+      <div class="value" id="excessCount">0</div>
+      <table class="analysis-table" id="excessTable">
+        <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+        <tbody id="excessList"><tr><td colspan="2" style="text-align:center">لا توجد زيادات</td></tr></tbody>
+      </table>
+    </div>
+  </aside>
+  <form id="manageOrderForm">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="branch">🏬 اختر الفرع</label>
+        <select id="branch" name="branch" required>
+          <option value="">-- اختر الفرع --</option>
+          <!-- use values that match Firestore document data -->
+          <option value="best_sweet_1">فرع أول جمال</option>
+          <option value="best_sweet_abbassia">فرع العباسية</option>
+          <option value="best_sweet_helw_zaytoun">فرع حلو منه فيه الزيتون</option>
+          <option value="best_sweet_market_zaytoun">فرع الزيتون ماركت</option>
+          <option value="best_sweet_helwan">فرع حلوان</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="orderDate">📅 تاريخ الطلبية</label>
+        <input type="date" id="orderDate" name="orderDate" required>
+      </div>
+      <div class="form-group">
+        <label for="section">📂 اختر القسم</label>
+        <div class="section-row">
+          <select id="section" name="section" required>
+            <option value="">-- اختر القسم --</option>
+            <option value="all">كل الأقسام</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="orderDataTable" border="1">
+       <thead>
+         <tr>
+           <th>الكود</th>
+           <th>المنتج</th>
+           <th>الكمية المطلوبة</th>
+            <th>الكمية المرسلة</th>
+            <th>الفارق (مرسلة - مطلوبة)</th>
+         </tr>
+       </thead>
+       <tbody>
+         <!-- سيتم ملء البيانات هنا ديناميكياً -->
+       </tbody>
+      </table>
+    </div>
+   </form>
+
+  <!-- نافذة اختيار القسم -->
+  <div id="sectionModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 600px; background: #fff; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000; padding: 20px;">
+    <h3>📋 اختيار قسم</h3>
+    <select id="sectionSelect" style="width: 100%; padding: 10px; margin-bottom: 20px;">
+      <option value="">-- اختر القسم --</option>
+    </select>
+    <button onclick="loadSectionItems()">عرض الأصناف</button>
+    <button onclick="closeSectionModal()">❌ إغلاق</button>
+  </div>
+
+  <!-- نافذة اختيار الصنف -->
+  <div id="catalogModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; max-width: 800px; height: 60%; background: #2c2c2c; border: 1px solid #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(255,0,0,0.2); z-index: 1000; padding: 20px; overflow-y: auto;">
+    <h3 style="text-align: center; color: #ff2a4d;">📋 اختيار صنف</h3>
+    <table border="1" style="width: 100%; border-collapse: collapse; text-align: center; color: #fff;">
+      <thead>
+        <tr style="background-color: #444; color: #fff;">
+          <th>كود الصنف</th>
+          <th>اسم الصنف</th>
+          <th>اختيار</th>
+        </tr>
+      </thead>
+      <tbody id="catalogTableBody">
+        <!-- سيتم تحميل البيانات هنا -->
+      </tbody>
+    </table>
+    <button onclick="closeCatalogModal()" style="margin-top: 10px; display: block; margin-left: auto; margin-right: auto; background-color: #ff2a4d; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">❌ إغلاق</button>
+  </div>
+
+  <!-- تظليل الخلفية عند فتح النافذة -->
+  <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999;"></div>
+
+  <div id="invoicePrintSection" style="display:none;"></div>
+  <div id="mobileViewModal" style="display:none; position: fixed; top: 8vh; left: 4vw; right: 4vw; max-width: 92vw; z-index: 12000; background: #23232a; border-radius: 12px; padding: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.04);">
+    <button id="closeMobileView" style="float:left;background:#ff2a4d;color:#fff;border:none;border-radius:8px;padding:6px 12px;margin-bottom:8px;">إغلاق</button>
+    <h3 style="text-align:center;color:#ff2a4d;margin-top:4px">عرض موبايل - ملخص الأصناف</h3>
+    <div id="mobileViewContent" style="max-height:60vh;overflow:auto;margin-top:8px;"></div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+/* Interactive script: mirrors send-to-branches behavior but uses orders_best_sweet */
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+// initialize firebase (compat build included above)
+if (window.firebase && firebase.initializeApp) {
+  try {
+    if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  } catch (e) { console.warn('firebase init warning', e); }
+} else {
+  console.error('Firebase SDK not loaded. Make sure the compat scripts are reachable.');
+}
+const db = (window.firebase && firebase.firestore) ? firebase.firestore() : null;
+
+// DOM refs
+const branchSelect = document.getElementById('branch');
+const orderDateInput = document.getElementById('orderDate');
+const sectionSelect = document.getElementById('section');
+const orderDataBody = document.getElementById('orderDataTable').querySelector('tbody');
+const loadTableBtn = document.getElementById('loadTableBtn');
+const addRowBtn = document.getElementById('addRowBtn');
+const sendQuantitiesBtn = document.getElementById('sendQuantitiesBtn');
+const issueInvoiceBtn = document.getElementById('issueInvoiceBtn');
+
+let allowLoadTable = false;
+let nextInvoiceNumber = 1;
+
+// helpers
+function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function escapeJs(s){ return String(s||'').replace(/'/g,"\\'").replace(/\n/g,' '); }
+
+// lightweight transient toast used for draft save/load feedback
+function showToast(message, type = 'info', duration = 3000) {
+  try{
+    const colors = { success: '#2ecc71', error: '#e74c3c', warning: '#f1c40f', info: '#3498db' };
+    const bg = colors[type] || colors.info;
+    const toast = document.createElement('div');
+    toast.className = 'simple-toast';
+    toast.textContent = message;
+    toast.style.position = 'fixed';
+    toast.style.top = '12px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.zIndex = 99999;
+    toast.style.background = bg;
+    toast.style.color = '#fff';
+    toast.style.padding = '10px 14px';
+    toast.style.borderRadius = '8px';
+    toast.style.boxShadow = '0 8px 30px rgba(0,0,0,0.45)';
+    toast.style.fontWeight = '700';
+    toast.style.fontFamily = "'Cairo', Arial, sans-serif";
+    toast.style.opacity = '1';
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.transition = 'opacity 0.35s ease'; toast.style.opacity = '0'; setTimeout(()=>toast.remove(), 380); }, duration);
+  }catch(e){ console.warn('showToast', e); }
+}
+
+<!-- Add mapping of branch id => Arabic label -->
+const branchLabels = {
+  'best_sweet_1': 'فرع أول جمال',            // actual id in Firestore
+  'best_sweet_branch1': 'فرع أول جمال',     // keep alias in case used elsewhere
+  'best_sweet_abbassia': 'فرع العباسية',
+  'best_sweet_helw_zaytoun': 'فرع حلو منه فيه الزيتون',
+  'best_sweet_market_zaytoun': 'فرع الزيتون ماركت',
+  'best_sweet_helwan': 'فرع حلوان'
+};
+
+async function fetchLastInvoiceNumber(){
+  if(!db) return;
+  try{
+    // اجلب كل الأرقام ثم حدد أول رقم موجب غير موجود (fill gap)
+    const snap = await db.collection('invoices').get();
+    const nums = [];
+    snap.forEach(d => {
+      const val = d.data().invoiceNumber;
+      const n = Number(val);
+      if(Number.isInteger(n) && n > 0) nums.push(n);
+    });
+    if(nums.length === 0){
+      nextInvoiceNumber = 1;
+      return;
+    }
+    const setNums = new Set(nums);
+    let candidate = 1;
+    while(setNums.has(candidate)) candidate++;
+    nextInvoiceNumber = candidate;
+  }catch(e){ console.warn('fetchLastInvoiceNumber',e); }
+}
+
+// New: fill date select from orders_best_sweet for chosen branch
+async function populateDatesForBranch(branch){
+  if(!db) return;
+  if(!branch){
+    orderDateInput.innerHTML = '<option value="">-- اختر التاريخ --</option>';
+    return;
+  }
+  try{
+    const snap = await db.collection('orders_best_sweet')
+      .where('branch','==',branch)
+      .get();
+    const dates = new Set();
+    snap.forEach(d => { const data = d.data(); if(data && data.orderDate) dates.add(data.orderDate); });
+    orderDateInput.innerHTML = '<option value="">-- اختر التاريخ --</option>';
+    if(dates.size === 0){
+      console.info('populateDatesForBranch: no dates found for branch', branch);
+      orderDateInput.innerHTML = '<option value="">-- لا توجد تواريخ لهذا الفرع --</option>';
+      Swal.fire('معلومة','لا توجد طلبيات مسجلة في هذا الفرع. تحقق من الفرع أو البيانات في Firestore','info');
+      return;
+    }
+    Array.from(dates).sort().forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = d;
+      orderDateInput.appendChild(opt);
+    });
+    console.info('populateDatesForBranch: dates loaded', Array.from(dates));
+  }catch(err){
+    console.error('populateDatesForBranch error', err);
+    orderDateInput.innerHTML = '<option value="">خطأ أثناء جلب التواريخ</option>';
+  }
+}
+
+// ملء قائمة الأقسام عند اختيار الفرع والتاريخ (يقرأ من orders_best_sweet)
+async function loadSections(){
+  sectionSelect.innerHTML = '<option value="">-- اختر القسم --</option><option value="all">كل الأقسام</option>';
+  const branch = branchSelect ? branchSelect.value : '';
+  const orderDate = orderDateInput.value;
+  if(!db || !branch || !orderDate) {
+    console.log('loadSections: missing inputs', {branch, orderDate});
+    return;
+  }
+
+  try {
+    const snap = await db.collection('orders_best_sweet')
+      .where('branch', '==', branch)
+      .where('orderDate', '==', orderDate)
+      .get();
+
+    if(!snap || snap.empty){
+      console.warn('loadSections: no documents for', { branch, orderDate });
+      // Diagnostic: show dates that exist for this branch (helps detect mismatched branch id)
+      const otherSnap = await db.collection('orders_best_sweet').where('branch','==',branch).get();
+      const datesFound = new Set();
+      otherSnap.forEach(d=>{ const dt=d.data(); if(dt && dt.orderDate) datesFound.add(dt.orderDate); });
+      const dateDisplay = Array.from(datesFound).sort().join(', ');
+      console.info('Dates existing for that branch:', dateDisplay);
+      if(datesFound.size > 0){
+        Swal.fire('تنبيه','لا توجد بيانات للتاريخ المحدد. القيم المتاحة لهذا الفرع: ' + dateDisplay,'warning');
+      } else {
+        Swal.fire('تنبيه','لا توجد بيانات لذلك الفرع','warning');
+      }
+      sectionSelect.innerHTML = '<option value="">-- لا توجد أقسام --</option>';
+      return;
+    }
+
+    const sections = new Set();
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (data && data.sheet) sections.add(data.sheet);
+    });
+
+    if (sections.size === 0) {
+      sectionSelect.innerHTML = '<option value="">-- لا توجد أقسام --</option>';
+      console.info('loadSections: no sections found for', { branch, orderDate });
+      return;
+    }
+
+    sections.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      sectionSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('loadSections error', err);
+    sectionSelect.innerHTML = '<option value="">خطأ أثناء التحميل</option>';
+  }
+}
+
+// عرض الطلبية (تجميع حسب الكود) عند الضغط على زر "عرض"
+async function loadOrderData(){
+  if(!allowLoadTable) return;
+  const branch = branchSelect.value, orderDate = orderDateInput.value, section = sectionSelect.value;
+  if(!db || !branch || !orderDate || !section){ Swal.fire('تنبيه','اختر الفرع والتاريخ والقسم ثم اضغط عرض','warning'); return; }
+  orderDataBody.innerHTML = '<tr><td colspan="5">⏳ جارٍ التحميل...</td></tr>';
+    try{
+    let query = db.collection('orders_best_sweet')
+      .where('branch','==',branch)
+      .where('orderDate','==',orderDate);
+    if(section !== 'all'){
+      query = query.where('sheet','==',section);
+    }
+    const snap = await query.get();
+
+    const sectionGroups = new Map();
+    snap.forEach(doc=>{
+      const o = doc.data(); if(!o) return;
+      const code = o.code || '';
+      const name = o.name || '';
+      const qty = Number(o.qty)||0;
+      const sheetName = o.sheet || 'غير محدد';
+      if(!code && !name) return;
+      if(!sectionGroups.has(sheetName)){
+        sectionGroups.set(sheetName, new Map());
+      }
+      const groupMap = sectionGroups.get(sheetName);
+      const key = code || name;
+      if(groupMap.has(key)){
+        groupMap.get(key).qty += qty;
+      } else {
+        groupMap.set(key,{ code, name, qty, idx: groupMap.size });
+      }
+    });
+
+    orderDataBody.innerHTML = '';
+    if(sectionGroups.size===0){ orderDataBody.innerHTML = '<tr><td colspan="5">لا توجد بيانات</td></tr>'; return; }
+
+    function leadingSeqCode(s){
+      if (!s) return NaN;
+      const m = String(s).trim().match(/^(\d+)\s*-/);
+      return m ? parseInt(m[1], 10) : NaN;
+    }
+
+    const groupKeys = Array.from(sectionGroups.keys());
+    groupKeys.forEach(sheetName => {
+      const groupMap = sectionGroups.get(sheetName);
+      const entries = Array.from(groupMap.values());
+      const withIdx = entries.map((e, idx) => ({ ...e, idx }));
+      withIdx.sort((a,b) => {
+        const seqA = leadingSeqCode(a.code);
+        const seqB = leadingSeqCode(b.code);
+        const aHas = !isNaN(seqA);
+        const bHas = !isNaN(seqB);
+        if (aHas && bHas) return seqA - seqB;
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+        return (a.idx || 0) - (b.idx || 0);
+      });
+
+      if(section === 'all' || sectionGroups.size > 1){
+        const headerRow = document.createElement('tr');
+        headerRow.className = 'section-header-row';
+        headerRow.innerHTML = `<td colspan="5">📁 ${escapeHtml(sheetName)}</td>`;
+        orderDataBody.appendChild(headerRow);
+      }
+
+      withIdx.forEach(v=>{
+        const tr = document.createElement('tr');
+        tr.dataset.sheet = sheetName;
+        tr.innerHTML = `<td>${escapeHtml(v.code)}</td>` +
+                       `<td>${escapeHtml(v.name)}</td>` +
+                       `<td>${v.qty}</td>` +
+                       `<td><input type="number" value="0" min="0" class="sent-qty"></td>` +
+                       `<td class="diff-cell">0</td>`;
+        orderDataBody.appendChild(tr);
+        const sentInput = tr.querySelector('.sent-qty');
+        if(sentInput){ sentInput.addEventListener('input', ()=>{ updateRowDiff(tr); updateAnalysisCards(); }); updateRowDiff(tr); }
+      });
+
+      if (section === 'all') {
+        const footerRow = document.createElement('tr');
+        footerRow.className = 'section-footer-row';
+        footerRow.innerHTML = `<td colspan="5"><button type="button" class="section-add-item-btn">＋ إضافة صنف جديد</button></td>`;
+        orderDataBody.appendChild(footerRow);
+        footerRow.querySelector('.section-add-item-btn')?.addEventListener('click', () => addBlankRowForSection(sheetName, footerRow));
+      }
+    });
+    try{ await loadDraftBest(branch, orderDate, section); }catch(e){ console.warn('loadDraftBest',e); }
+    updateAnalysisCards();
+  }catch(e){ console.error('loadOrderData',e); Swal.fire('خطأ','فشل تحميل البيانات','error'); }
+}
+
+// إضافة صف يدوي
+function addBlankRow(){
+  const unique = Date.now();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" id="itemCode-${unique}" class="item-code" placeholder="كود الصنف"></td>
+                  <td><input type="text" id="itemName-${unique}" class="item-name" placeholder="اسم الصنف"></td>
+                  <td><input type="number" value="0" min="0" class="requested-qty"></td>
+                  <td><input type="number" value="0" min="0" class="sent-qty"></td>
+                  <td class="diff-cell">0</td>`;
+  orderDataBody.appendChild(tr);
+  const codeEl = document.getElementById(`itemCode-${unique}`);
+  const nameEl = document.getElementById(`itemName-${unique}`);
+  // attach listener for analysis updates
+  const sentElNew = tr.querySelector('.sent-qty');
+  if(sentElNew){ sentElNew.addEventListener('input', ()=>{ updateRowDiff(tr); updateAnalysisCards(); }); updateRowDiff(tr); }
+  if(codeEl) codeEl.addEventListener('keydown', (ev) => { if (ev.key === 'F1') { ev.preventDefault(); openCatalogModal(codeEl, nameEl); } });
+}
+
+function addBlankRowForSection(sheetName, referenceRow){
+  const tr = document.createElement('tr');
+  tr.dataset.sheet = sheetName;
+  tr.innerHTML = `
+    <td><input type="text" class="item-code" placeholder="كود الصنف"></td>
+    <td><input type="text" class="item-name" placeholder="اسم الصنف"></td>
+    <td><input type="number" value="0" min="0" class="requested-qty"></td>
+    <td><input type="number" value="0" min="0" class="sent-qty"></td>
+    <td class="diff-cell">0</td>
+  `;
+  referenceRow.parentNode.insertBefore(tr, referenceRow);
+  const inputs = tr.querySelectorAll('.requested-qty, .sent-qty');
+  inputs.forEach(input => input.addEventListener('input', ()=>{ updateRowDiff(tr); updateAnalysisCards(); }));
+  updateRowDiff(tr);
+}
+
+// كتالوج: عرض أقسام الكتالوج ثم تحميل الأصناف
+function openCatalogModal(codeInput, nameInput){
+  const modal = document.getElementById('catalogModal');
+  const overlay = document.getElementById('modalOverlay');
+  const tbody = document.getElementById('catalogTableBody');
+  modal.style.display='block'; overlay.style.display='block';
+  tbody.innerHTML = '<tr><td colspan="3">⏳ جاري تحميل الأقسام...</td></tr>';
+  if(!db) { tbody.innerHTML = '<tr><td colspan="3">قاعدة البيانات غير متاحة</td></tr>'; return; }
+  db.collection('catalog').get().then(snap=>{
+    tbody.innerHTML = '';
+    snap.forEach(doc=>{
+      const row = document.createElement('tr');
+      const id = doc.id;
+      row.innerHTML = `<td colspan="2" style="font-weight:bold">${escapeHtml(id)}</td>
+                       <td><button onclick="loadItemsForSection('${escapeJs(id)}','${codeInput?codeInput.id:''}','${nameInput?nameInput.id:''}')">عرض</button></td>`;
+      tbody.appendChild(row);
+    });
+  }).catch(e=>{
+    console.error('openCatalogModal',e); tbody.innerHTML='<tr><td colspan="3">فشل تحميل الأقسام</td></tr>';
+  });
+}
+function loadItemsForSection(sectionId, codeInputId, nameInputId){
+  const tbody = document.getElementById('catalogTableBody');
+  tbody.innerHTML = '<tr><td colspan="3">⏳ جاري تحميل الأصناف...</td></tr>';
+  db.collection('catalog').doc(sectionId).get().then(doc=>{
+    if(!doc.exists){ tbody.innerHTML = '<tr><td colspan="3">لا يوجد قسم</td></tr>'; return; }
+    const items = doc.data().items || [];
+    if(items.length===0){ tbody.innerHTML = '<tr><td colspan="3">لا توجد أصناف</td></tr>'; return; }
+    tbody.innerHTML = '';
+    items.forEach(item=>{
+      const code = item.code || (item.name?item.name.toLowerCase().replace(/\s+/g,'_'):'');
+      const row = document.createElement('tr');
+      if(codeInputId && nameInputId){
+        row.innerHTML = `<td>${escapeHtml(code)}</td><td>${escapeHtml(item.name)}</td>
+                         <td><button onclick="selectCatalogItem('${escapeJs(code)}','${escapeJs(item.name)}','${codeInputId}','${nameInputId}')">اختيار</button></td>`;
+      } else {
+        row.innerHTML = `<td>${escapeHtml(code)}</td><td>${escapeHtml(item.name)}</td>
+                         <td><button onclick="selectCatalogItem('${escapeJs(code)}','${escapeJs(item.name)}')">اختيار</button></td>`;
+      }
+      tbody.appendChild(row);
+    });
+  }).catch(e=>{ console.error('loadItemsForSection',e); tbody.innerHTML='<tr><td colspan="3">خطأ</td></tr>'; });
+}
+function selectCatalogItem(code, name, codeInputId, nameInputId){
+  if(codeInputId && nameInputId){
+    const codeEl = document.getElementById(codeInputId);
+    const nameEl = document.getElementById(nameInputId);
+    if(codeEl && nameEl){ codeEl.value = code; nameEl.value = name; closeCatalogModal(); return; }
+  }
+  const rows = orderDataBody.querySelectorAll('tr');
+  const last = rows[rows.length-1];
+  if(last){
+    const codeInput = last.querySelector('.item-code');
+    const nameInput = last.querySelector('.item-name');
+    if(codeInput && nameInput){ codeInput.value = code; nameInput.value = name; closeCatalogModal(); return; }
+  }
+  const unique = Date.now();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" id="itemCode-${unique}" class="item-code" value="${escapeHtml(code)}"></td>
+                  <td><input type="text" id="itemName-${unique}" class="item-name" value="${escapeHtml(name)}"></td>
+                  <td><input type="number" value="0" min="0" class="requested-qty"></td>
+                  <td><input type="number" value="0" min="0" class="sent-qty"></td>
+                  <td class="diff-cell">0</td>`;
+  orderDataBody.appendChild(tr);
+  // attach listener for analysis & diff updates when selecting from catalog
+  const sentNew = tr.querySelector('.sent-qty'); if(sentNew) sentNew.addEventListener('input', ()=>{ updateRowDiff(tr); updateAnalysisCards(); });
+  closeCatalogModal();
+}
+function closeCatalogModal(){ document.getElementById('catalogModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; }
+
+// إرسال الكميات => حفظ/تعديل فاتورة في مجموعة invoices
+async function sendQuantities(){
+  if(!db){ Swal.fire('خطأ','قاعدة البيانات غير متاحة','error'); return; }
+  const branch = branchSelect.value, orderDate = orderDateInput.value, section = sectionSelect.value;
+  if(!branch || !orderDate || !section){ Swal.fire('خطأ','اختر الفرع والتاريخ والقسم','error'); return; }
+  const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+  if(rows.length===0){ Swal.fire('تنبيه','لا توجد أصناف','warning'); return; }
+  const products = rows.map(row=>{
+    const cells = row.querySelectorAll('td');
+    const read = idx => {
+      const c = cells[idx];
+      if(!c) return '';
+      const f = c.querySelector('input,select,textarea');
+      return f ? f.value.trim() : c.textContent.trim();
+    };
+    const code = read(0), name = read(1);
+    const requestedQuantity = Number(read(2)||0) || 0;
+    const sentQuantity = Number(read(3) ? row.querySelector('.sent-qty')?.value || 0 : 0) || 0;
+    return { code, name, requestedQuantity, sentQuantity };
+  }).filter(p=>p.code||p.name);
+  if(products.length===0){ Swal.fire('تنبيه','لا توجد بيانات صالحة','warning'); return; }
+
+  // compute shortages/excesses and attach to invoice document
+  const shortages = [];
+  const excesses = [];
+  products.forEach(p => {
+    const diff = (Number(p.sentQuantity)||0) - (Number(p.requestedQuantity)||0);
+    if(diff < 0) shortages.push({ code: p.code, name: p.name, qty: Math.abs(diff) });
+    else if(diff > 0) excesses.push({ code: p.code, name: p.name, qty: diff });
+  });
+  const invoice = { branch, orderDate, section, products, shortages, excesses, createdAt: new Date().toISOString() };
+  const docId = `${branch}_${orderDate}_${section}`;
+  const ref = db.collection('invoices').doc(docId);
+
+  try{
+    const snap = await ref.get();
+    let savedInvoice = null;
+
+    if(snap.exists){
+      const res = await Swal.fire({ title:'تنبيه', text:'تم العثور على فاتورة بنفس المعطيات. اختر:', icon:'warning', showDenyButton:true, showCancelButton:true, confirmButtonText:'تعديل', denyButtonText:'حفظ جديد', cancelButtonText:'إلغاء' });
+      if(res.isConfirmed){
+        const existing = snap.data()||{};
+        const toUpdate = Object.assign({}, invoice, { invoiceNumber: existing.invoiceNumber || nextInvoiceNumber });
+        await ref.update(toUpdate);
+        savedInvoice = Object.assign({}, toUpdate);
+        Swal.fire('تم التعديل','تم تعديل الفاتورة','success');
+        // بعد التعديل أعِد حساب الأرقام المتاحة
+        await fetchLastInvoiceNumber();
+      } else if(res.isDenied){
+        const toSave = Object.assign({}, invoice, { invoiceNumber: nextInvoiceNumber });
+        const docRef = await db.collection('invoices').add(toSave);
+        savedInvoice = Object.assign({}, toSave, { id: docRef.id });
+        Swal.fire('تم الحفظ','حفظ كفاتورة جديدة','success');
+        // بعد الإضافة أعِد حساب الأرقام المتاحة (سيملأ أي فراغات لاحقاً)
+        await fetchLastInvoiceNumber();
+      } else { return; }
+    } else {
+      const toSave = Object.assign({}, invoice, { invoiceNumber: nextInvoiceNumber });
+      await ref.set(toSave);
+      savedInvoice = Object.assign({}, toSave);
+      Swal.fire('تم','تم إنشاء الفاتورة رقم '+nextInvoiceNumber,'success');
+      // بعد الإنشاء أعِد حساب الأرقام المتاحة
+      await fetchLastInvoiceNumber();
+    }
+
+    // بعد الحفظ/التعديل: اعرض سوِيت ألارِت مع زر طباعة
+    if(savedInvoice){
+      const printConfirm = await Swal.fire({
+        title: 'طباعة الفاتورة',
+        text: 'هل تريد طباعة الفاتورة الآن؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'طباعة',
+        cancelButtonText: 'لاحقاً'
+      });
+      if(printConfirm.isConfirmed){
+        printInvoice(savedInvoice);
+      }
+    }
+
+  }catch(e){ console.error('sendQuantities',e); Swal.fire('خطأ','حدث خطأ أثناء حفظ الفاتورة','error'); }
+}
+
+// طباعة فاتورة: نستخدم نفس مظهر وسلوك الطباعة الموجود في manage-invoices.html
+function printInvoice(invoice){
+  const printSection = document.getElementById('invoicePrintSection');
+  const branchLabel = (typeof branchLabels !== 'undefined' && branchLabels[invoice.branch]) ? branchLabels[invoice.branch] : invoice.branch;
+
+  const invoiceContent = `
+    <div class="print-invoice-container">
+      <h2 style="color:#ff2a4d;text-align:center;margin-bottom:16px;font-family:'Cairo',Arial,sans-serif;">فاتورة رقم ${invoice.invoiceNumber||''}</h2>
+      <table class="print-invoice-table" style="width:100%;margin-bottom:20px;border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:#23232a;color:#ff2a4d;">
+            <th>الفرع</th>
+            <th>التاريخ</th>
+            <th>القسم</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#292929;">
+            <td>${escapeHtml(branchLabel)}</td>
+            <td>${escapeHtml(invoice.orderDate)}</td>
+            <td>${escapeHtml(invoice.section)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3 style="color:#ff2a4d;text-align:right;margin-bottom:8px;">المنتجات</h3>
+      <table class="print-invoice-table" style="width:100%;border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:#23232a;color:#ff2a4d;">
+            <th>كود المنتج</th>
+            <th>اسم المنتج</th>
+            <th>الكمية المطلوبة</th>
+            <th>الكمية المرسلة</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(invoice.products||[]).filter(p => Number(p.sentQuantity||0) > 0).map(p => `
+            <tr style="background:#292929;color:#e0e0e0;">
+              <td>${escapeHtml(p.code)}</td>
+              <td>${escapeHtml(p.name)}</td>
+              <td>${p.requestedQuantity}</td>
+              <td>${p.sentQuantity}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <!-- طباعة: جدولان منفصلان - النواقص و الزيادات (مصغران ووضعان جنبًا إلى جنب) -->
+      <div class="print-analysis-row" style="display:flex;gap:12px;justify-content:space-between;margin-top:12px;margin-bottom:6px;">
+        <div style="flex:1;min-width:220px;max-width:48%;">
+          <h3 style="text-align:right;margin-bottom:6px;">النواقص</h3>
+          <table class="print-invoice-table print-shortage-table" style="width:100%;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>الكمية</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${( () => {
+                const shortages = [];
+                (invoice.products||[]).forEach(p => {
+                  const req = Number(p.requestedQuantity||0);
+                  const sent = Number(p.sentQuantity||0);
+                  const diff = sent - req;
+                  if(diff < 0) shortages.push({ name: p.name, qty: Math.abs(diff) });
+                });
+                if(shortages.length===0) return '<tr><td colspan="2" style="text-align:center;color:#000">لا توجد نواقص</td></tr>';
+                return shortages.map(s => `<tr style="background:#fff;color:#000;"><td style="vertical-align:top;text-align:right;padding:8px;color:#000">${s.name}</td><td style="vertical-align:top;text-align:center;padding:8px;color:#000">${s.qty}</td></tr>`).join('');
+              })() }
+            </tbody>
+          </table>
+        </div>
+        <div style="flex:1;min-width:220px;max-width:48%;">
+          <h3 style="text-align:right;margin-bottom:6px;">الزيادات</h3>
+          <table class="print-invoice-table print-excess-table" style="width:100%;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>الكمية</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${( () => {
+                const excesses = [];
+                (invoice.products||[]).forEach(p => {
+                  const req = Number(p.requestedQuantity||0);
+                  const sent = Number(p.sentQuantity||0);
+                  const diff = sent - req;
+                  if(diff > 0) excesses.push({ name: p.name, qty: diff });
+                });
+                if(excesses.length===0) return '<tr><td colspan="2" style="text-align:center;color:#000">لا توجد زيادات</td></tr>';
+                return excesses.map(e => `<tr style="background:#fff;color:#000;"><td style="vertical-align:top;text-align:right;padding:8px;color:#000">${e.name}</td><td style="vertical-align:top;text-align:center;padding:8px;color:#000">${e.qty}</td></tr>`).join('');
+              })() }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;text-align:left;color:#000;font-size:0.95em;">
+        <span>تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')}</span>
+      </div>
+
+      <!-- Signature table with headers in first row (match send-to-branches layout) -->
+      <table style="width:100%;margin-top:32px;border-collapse:collapse;">
+        <tr>
+          <td style="width:50%;color:#000;font-weight:bold;font-size:1.1em;padding:12px 0;text-align:center;">توقيع الكنترول</td>
+          <td style="width:50%;color:#000;font-weight:bold;font-size:1.1em;padding:12px 0;text-align:center;">توقيع المستلم من الفرع</td>
+        </tr>
+        <tr>
+          <td style="height:48px;border-bottom:1px solid #000;"></td>
+          <td style="height:48px;border-bottom:1px solid #000;"></td>
+        </tr>
+      </table>
+
+    </div>
+    <style>
+      /* Force black-on-white print: remove any color and ensure strong black borders/text */
+      @media print {
+        body * { visibility: hidden !important; }
+        #invoicePrintSection, #invoicePrintSection * { visibility: visible !important; }
+        #invoicePrintSection {
+          position: absolute;
+          left: 0; top: 0; width: 100vw; min-height: 100vh;
+          background: #fff !important;
+          color: #000 !important;
+          padding: 16px !important;
+          font-family: 'Cairo', Arial, sans-serif;
+        }
+        .print-invoice-container {
+          background: #fff !important;
+          border-radius: 6px !important;
+          border: 3px solid #000 !important;
+          padding: 18px !important;
+          margin: auto !important;
+          max-width: 1000px !important;
+        }
+        .print-invoice-table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin-bottom: 12px !important;
+          font-size: 12pt !important;
+        }
+        .print-invoice-table th, .print-invoice-table td {
+          border: 3px solid #000 !important;
+          padding: 8px 10px !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          background: #fff !important;
+          color: #000 !important;
+          font-weight: 700 !important;
+        }
+        /* layout for shortages/excesses printed side-by-side */
+        .print-analysis-row { display: flex !important; gap: 12px !important; justify-content: space-between !important; align-items: flex-start !important; }
+        .print-invoice-table.print-shortage-table, .print-invoice-table.print-excess-table { width: 48% !important; }
+        .print-invoice-table.print-shortage-table th, .print-invoice-table.print-excess-table th,
+        .print-invoice-table.print-shortage-table td, .print-invoice-table.print-excess-table td { text-align: right !important; }
+        .print-invoice-table th { font-size: 12pt !important; }
+        .print-invoice-table td { font-weight: 600 !important; }
+        /* signature table styling */
+        .print-signatures td { background: #fff !important; color: #000 !important; }
+        @page { size: auto; margin: 10mm; }
+      }
+    </style>
+  `;
+
+  printSection.innerHTML = invoiceContent;
+  printSection.style.display = 'block';
+
+  setTimeout(() => {
+    try { window.print(); }
+    finally { printSection.style.display = 'none'; printSection.innerHTML = ''; }
+  }, 100);
+}
+
+// navigation / invoice management
+function navigateWithRoles(url){ try{ const s = localStorage.getItem('roles'); if(s){ const sep = url.includes('?')?'&':'?'; window.location.href = url + sep + 'roles=' + encodeURIComponent(s); return; } }catch(e){} window.location.href = url; }
+function openInvoiceManagement(){ navigateWithRoles('manage-invoices.html'); }
+
+// refresh UI
+async function refreshUI(){
+  await fetchLastInvoiceNumber();
+  const roles = (new URLSearchParams(window.location.search).get('roles')) || localStorage.getItem('roles') || '';
+  try{ if(window.location.search.includes('roles=')){ localStorage.setItem('roles', roles); } }catch(e){}
+  const btnManage = document.getElementById('btnManageInvoices');
+  if(btnManage){ const rArr = (localStorage.getItem('roles')||'').split(','); if(!rArr.includes('all') && !rArr.includes('manage_invoices_page')) btnManage.style.display='none'; else btnManage.style.display=''; }
+}
+
+// event bindings
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(branchSelect) branchSelect.addEventListener('change', async () => {
+    await populateDatesForBranch(branchSelect.value);
+    // if date already selected, try loading sections for it
+    if(orderDateInput.value) loadSections();
+  });
+  if(orderDateInput) orderDateInput.addEventListener('change', loadSections);
+  if(addRowBtn) addRowBtn.addEventListener('click', (e)=>{ e.preventDefault(); addBlankRow(); });
+  // wire save draft button
+  const saveDraftBtnBest = document.getElementById('saveDraftBtnBest');
+  if(saveDraftBtnBest) saveDraftBtnBest.addEventListener('click', (e)=>{ e.preventDefault(); saveDraftBest(); });
+  if(loadTableBtn) loadTableBtn.addEventListener('click', async (e)=>{ e.preventDefault(); allowLoadTable=true; loadTableBtn.disabled=true; loadTableBtn.textContent='⏳ جارٍ التحميل...'; try{ await loadOrderData(); } finally{ allowLoadTable=false; loadTableBtn.disabled=false; loadTableBtn.textContent='⬇️ عرض'; } });
+  if(sendQuantitiesBtn) sendQuantitiesBtn.addEventListener('click', sendQuantities);
+  // mobile view binding
+  const mobileViewBtn = document.getElementById('mobileViewBtn');
+  if(mobileViewBtn) mobileViewBtn.addEventListener('click', (e)=>{ e.preventDefault(); openMobileView(); });
+  if(issueInvoiceBtn) issueInvoiceBtn.addEventListener('click', (e)=>{ e.preventDefault(); loadSectionsFromCatalog(); });
+  document.getElementById('openCatalogBtnMobile')?.addEventListener('click', (e)=>{ e.preventDefault(); openCatalogModal(); });
+
+  const actionsGroupToggle = document.getElementById('actionsGroupToggle');
+  const groupMenu = document.getElementById('groupMenu');
+  const toggleAnalysisBtn = document.getElementById('toggleAnalysisBtn');
+  const analysisPanel = document.getElementById('analysisPanel');
+
+  if (actionsGroupToggle && groupMenu) {
+    actionsGroupToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const open = groupMenu.classList.toggle('open');
+      groupMenu.setAttribute('aria-hidden', !open);
+    });
+  }
+
+  if (toggleAnalysisBtn && analysisPanel) {
+    toggleAnalysisBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      analysisPanel.classList.toggle('hidden');
+      const hidden = analysisPanel.classList.contains('hidden');
+      toggleAnalysisBtn.title = hidden ? 'عرض تحليل النواقص و الزيادات' : 'إخفاء تحليل النواقص و الزيادات';
+    });
+  }
+
+  const copyRequestedToSentBtn = document.getElementById('copyRequestedToSentBtn');
+  if (copyRequestedToSentBtn) {
+    copyRequestedToSentBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      copyRequestedToSentValues();
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!groupMenu || !actionsGroupToggle) return;
+    if (!groupMenu.classList.contains('open')) return;
+    const target = e.target;
+    const group = document.getElementById('floatingActionsGroup');
+    if (group && !group.contains(target)) {
+      groupMenu.classList.remove('open');
+      groupMenu.setAttribute('aria-hidden', 'true');
+    }
+  });
+
+  fetchLastInvoiceNumber();
+  refreshUI();
+
+  // initial attempt: if a branch is already filled, populate dates (helps debugging)
+  if(branchSelect && branchSelect.value) populateDatesForBranch(branchSelect.value);
+
+  // Move actions toolbar above the table so it appears fixed at top of table
+  try{
+    const actions = document.querySelector('.actions-row');
+    const tableWrap = document.querySelector('.table-wrap');
+    if(actions && tableWrap) tableWrap.parentNode.insertBefore(actions, tableWrap);
+  }catch(e){ console.warn('move toolbar',e); }
+
+  // (infographics removed per user request)
+  document.getElementById('closeMobileView')?.addEventListener('click', (e)=>{ e.preventDefault(); closeMobileView(); });
+});
+
+// save/load helpers for best-sweet page (Firestore-backed drafts)
+function _buildDraftDocIdBest(branch, orderDate, section){
+  return `draft_best_${branch}_${orderDate}_${section}`.replace(/[^a-zA-Z0-9_\-]/g,'_');
+}
+
+async function saveDraftBest(){
+  const branch = branchSelect ? branchSelect.value : '';
+  const orderDate = orderDateInput ? orderDateInput.value : '';
+  const section = sectionSelect ? sectionSelect.value : '';
+  if(!branch || !orderDate || !section){ showToast('اختر الفرع والتاريخ والقسم ثم اضغط حفظ مؤقت','warning',3000); return; }
+
+  const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+  const products = rows.map(row => {
+    const code = row.querySelector('.item-code') ? row.querySelector('.item-code').value.trim() : (row.cells[0]?row.cells[0].textContent.trim(): '');
+    const name = row.querySelector('.item-name') ? row.querySelector('.item-name').value.trim() : (row.cells[1]?row.cells[1].textContent.trim(): '');
+    const requested = row.querySelector('.requested-qty') ? Number(row.querySelector('.requested-qty').value || 0) : Number((row.cells[2]?row.cells[2].textContent:0)) || 0;
+    const sentEl = row.querySelector('.sent-qty') ? row.querySelector('.sent-qty') : (row.cells[3]? row.cells[3].querySelector('input') : null);
+    const sent = sentEl ? Number(sentEl.value || 0) : 0;
+    return { code, name, requested, sent, sheet: row.dataset.sheet || section };
+  }).filter(p => p.code || p.name);
+
+  const docId = _buildDraftDocIdBest(branch, orderDate, section);
+  try {
+    await db.collection('drafts').doc(docId).set({ branch, orderDate, section, products, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    showToast('تم حفظ المسودة بنجاح','success',3000);
+  } catch (e) {
+    console.error('saveDraftBest', e);
+    showToast('فشل حفظ المسودة، حاول مرة أخرى','error',3000);
+  }
+}
+
+async function loadDraftBest(branch, orderDate, section){
+  const b = branch || (branchSelect ? branchSelect.value : '');
+  const od = orderDate || (orderDateInput ? orderDateInput.value : '');
+  const s = section || (sectionSelect ? sectionSelect.value : '');
+  if(!b || !od || !s) return;
+  try{
+    let products = [];
+    if (s === 'all') {
+      const snapshot = await db.collection('drafts')
+        .where('branch', '==', b)
+        .where('orderDate', '==', od)
+        .get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data && Array.isArray(data.products)) {
+          products = products.concat(data.products);
+        }
+      });
+    } else {
+      const docId = _buildDraftDocIdBest(b, od, s);
+      const snap = await db.collection('drafts').doc(docId).get();
+      if (snap.exists) {
+        const data = snap.data();
+        if (data && Array.isArray(data.products)) {
+          products = products.concat(data.products);
+        }
+      }
+      const allDocId = _buildDraftDocIdBest(b, od, 'all');
+      const allSnap = await db.collection('drafts').doc(allDocId).get();
+      if (allSnap.exists) {
+        const allData = allSnap.data();
+        if (allData && Array.isArray(allData.products)) {
+          products = products.concat(allData.products.filter(p => {
+            const sheet = (p.sheet||'').toString().trim().toLowerCase();
+            return sheet === s;
+          }));
+        }
+      }
+    }
+    if(!Array.isArray(products) || products.length===0) return;
+    const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+    const map = new Map();
+    products.forEach(p=>{
+      const code = (p.code||'').toString().trim().toLowerCase();
+      const name = (p.name||'').toString().trim().toLowerCase();
+      const sheet = (p.sheet||'').toString().trim().toLowerCase();
+      if(code||name){
+        const key = `${sheet}|${code}`;
+        const alt = `${sheet}|${name}`;
+        if(!map.has(key) && key !== '|') map.set(key,p);
+        if(!map.has(alt) && alt !== '|') map.set(alt,p);
+        if(!map.has(code) && code) map.set(code,p);
+        if(!map.has(name) && name) map.set(name,p);
+      }
+    });
+    let restored = false;
+    rows.forEach(row=>{
+      const code = row.querySelector('.item-code') ? row.querySelector('.item-code').value.trim() : (row.cells[0]?row.cells[0].textContent.trim(): '');
+      const name = row.querySelector('.item-name') ? row.querySelector('.item-name').value.trim() : (row.cells[1]?row.cells[1].textContent.trim():'');
+      const sheet = (row.dataset.sheet||'').toString().trim().toLowerCase();
+      const k1 = `${sheet}|${code.toLowerCase()}`;
+      const k2 = `${sheet}|${name.toLowerCase()}`;
+      const found = map.get(k1) || map.get(k2) || map.get(code.toLowerCase()) || map.get(name.toLowerCase());
+      if(found){
+        const sentEl = row.querySelector('.sent-qty') ? row.querySelector('.sent-qty') : (row.cells[3]? row.cells[3].querySelector('input') : null);
+        if(sentEl){ sentEl.value = found.sent || 0; restored = true; }
+        updateRowDiff(row);
+      }
+    });
+    if(restored){ showToast(s === 'all' ? 'تم استرجاع المسودات لجميع الأقسام' : 'تم استرجاع المسودة لهذا القسم', 'success', 2800); updateAnalysisCards(); }
+  }catch(e){ console.error('loadDraftBest',e); }
+}
+
+// Mobile view: compact touch-friendly summary for small screens
+function openMobileView(){
+  try{
+    const modal = document.getElementById('mobileViewModal');
+    const content = document.getElementById('mobileViewContent');
+    if(!modal || !content) return;
+    const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+    if(rows.length===0){ content.innerHTML = '<div style="text-align:center;padding:12px;color:#ccc">لا توجد أصناف</div>'; }
+    else{
+      const html = rows.map(r=>{
+        const code = (r.querySelector('.item-code') ? r.querySelector('.item-code').value : (r.cells[0]?r.cells[0].textContent:'')) || '';
+        const name = (r.querySelector('.item-name') ? r.querySelector('.item-name').value : (r.cells[1]?r.cells[1].textContent:'')) || '';
+        const req = r.querySelector('.requested-qty') ? Number(r.querySelector('.requested-qty').value||0) : Number(r.cells[2]?r.cells[2].textContent:0) || 0;
+        const sentEl = r.querySelector('.sent-qty') ? r.querySelector('.sent-qty') : (r.cells[3]? r.cells[3].querySelector('input') : null);
+        const sent = sentEl ? Number(sentEl.value||0) : Number(r.cells[3]?r.cells[3].textContent:0) || 0;
+        const diff = sent - req;
+        return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;gap:8px;align-items:center;justify-content:space-between;"><div style="flex:1;text-align:right"><div style="font-weight:800">${escapeHtml(name)}</div><div style="color:#aaa;font-size:0.95rem">${escapeHtml(code)}</div></div><div style="min-width:110px;text-align:center;font-weight:800;">${req} → ${sent}<div style="font-size:0.85rem;color:${diff<0? '#ffbbbb': (diff>0? '#baffc9':'#ccc')};">${diff}</div></div></div>`;
+      }).join('');
+      content.innerHTML = html;
+    }
+    modal.style.display = 'block';
+  }catch(e){ console.error('openMobileView',e); }
+}
+function closeMobileView(){ const modal = document.getElementById('mobileViewModal'); if(modal) modal.style.display='none'; }
+
+// --- Diff & Analysis helpers (for the left analysis panel) ---
+function getRequestedFromRow_bs(row){
+  const rqInput = row.querySelector('.requested-qty');
+  if(rqInput) return Number(rqInput.value || 0);
+  const txt = row.cells && row.cells[2] ? row.cells[2].textContent : '0';
+  return Number(txt || 0);
+}
+function getSentFromRow_bs(row){
+  const s = row.querySelector('.sent-qty');
+  if(s) return Number(s.value || 0);
+  const txt = row.cells && row.cells[3] ? (row.cells[3].querySelector('input') ? row.cells[3].querySelector('input').value : row.cells[3].textContent) : '0';
+  return Number(txt || 0);
+}
+
+function updateRowDiff(row){
+  try{
+    const requested = getRequestedFromRow_bs(row);
+    const sent = getSentFromRow_bs(row);
+    const diff = (Number(sent) || 0) - (Number(requested) || 0);
+    const cell = row.querySelector('.diff-cell') || row.insertCell(4);
+    cell.textContent = diff;
+    if(diff < 0){ cell.classList.add('negative'); } else { cell.classList.remove('negative'); }
+  }catch(e){ console.warn('updateRowDiff', e); }
+}
+
+function updateAnalysisCards(){
+  try{
+    const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+    const shortages = [];
+    const excesses = [];
+    rows.forEach(row=>{
+      const requested = getRequestedFromRow_bs(row);
+      const sent = getSentFromRow_bs(row);
+      const diff = (Number(sent)||0) - (Number(requested)||0);
+      const name = (row.querySelector('.item-name') ? row.querySelector('.item-name').value : (row.cells[1]?row.cells[1].textContent:'')).trim();
+      if(!name) return;
+      if(diff < 0) shortages.push({ name, qty: Math.abs(diff) });
+      else if(diff > 0) excesses.push({ name, qty: diff });
+    });
+
+    const sList = document.getElementById('shortageList');
+    const eList = document.getElementById('excessList');
+    const sCount = document.getElementById('shortageCount');
+    const eCount = document.getElementById('excessCount');
+    if(sList){
+      sList.innerHTML = '';
+      if(shortages.length===0) sList.innerHTML = '<tr><td colspan="2" style="text-align:center">لا توجد نواقص</td></tr>';
+      else shortages.forEach(it=>{ const tr = document.createElement('tr'); const td1 = document.createElement('td'); const td2 = document.createElement('td'); td1.textContent = it.name; td2.textContent = it.qty; tr.appendChild(td1); tr.appendChild(td2); sList.appendChild(tr); });
+    }
+    if(eList){
+      eList.innerHTML = '';
+      if(excesses.length===0) eList.innerHTML = '<tr><td colspan="2" style="text-align:center">لا توجد زيادات</td></tr>';
+      else excesses.forEach(it=>{ const tr = document.createElement('tr'); const td1 = document.createElement('td'); const td2 = document.createElement('td'); td1.textContent = it.name; td2.textContent = it.qty; tr.appendChild(td1); tr.appendChild(td2); eList.appendChild(tr); });
+    }
+    if(sCount) sCount.textContent = shortages.length;
+    if(eCount) eCount.textContent = excesses.length;
+  }catch(e){ console.warn('updateAnalysisCards', e); }
+}
+
+function copyRequestedToSentValues() {
+  const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+  let updated = false;
+  rows.forEach(row => {
+    const requested = getRequestedFromRow_bs(row);
+    const sentInput = row.querySelector('.sent-qty');
+    if (sentInput && !Number.isNaN(requested)) {
+      sentInput.value = requested;
+      updateRowDiff(row);
+      updated = true;
+    }
+  });
+  if (updated) {
+    updateAnalysisCards();
+    showToast('تم نسخ الكميات المطلوبة إلى المرسلة', 'success', 2600);
+  }
+}
+  </script>
+</body>
+</html>

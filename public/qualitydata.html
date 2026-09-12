@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>عرض التقارير المخزنة</title>
+    <link href="style.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Cairo:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+    body {
+        background: #18191a;
+        color: #f1f1f1;
+        font-family: 'Cairo', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        transition: background 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    .container {
+        background: #242526;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 18px;
+        max-width: 1000px;
+        box-shadow: 0 2px 24px #000a;
+        animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(40px);}
+        to { opacity: 1; transform: translateY(0);}
+    }
+    h2 {
+        color: #ffb300;
+        text-align: center;
+        margin-bottom: 24px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 8px #000a;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: #23232a;
+        border-radius: 16px;
+        overflow: auto;
+        box-shadow: 0 4px 32px #0008;
+        table-layout: auto;
+        animation: fadeInTable 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInTable {
+        from { opacity: 0; transform: scale(0.98);}
+        to { opacity: 1; transform: scale(1);}
+    }
+    th, td {
+        border: 1px solid #444;
+        padding: 14px 12px;
+        text-align: center;
+        vertical-align: middle;
+        white-space: pre-line;
+        word-break: break-word;
+        font-size: 1.08em;
+        transition: background 0.25s, color 0.25s;
+        min-width: 120px;
+        max-width: 600px;
+    }
+    th {
+        background: linear-gradient(90deg, #333 60%, #23232a 100%);
+        color: #ffb300;
+        font-weight: bold;
+        font-size: 1.1em;
+        border-bottom: 2.5px solid #ffb300;
+        letter-spacing: 0.5px;
+        transition: background 0.25s, color 0.25s;
+    }
+    tr {
+        transition: background 0.25s;
+    }
+    tr:nth-child(even) {
+        background: #292929;
+    }
+    tr:nth-child(odd) {
+        background: #23272b;
+    }
+    tr:hover td {
+        background: #18191a;
+        color: #ffb300;
+        transition: background 0.25s, color 0.25s;
+    }
+    button {
+        background: linear-gradient(90deg, #3a3b3c 60%, #23232a 100%);
+        color: #fff;
+        border: none;
+        padding: 8px 18px;
+        margin: 4px;
+        border-radius: 8px;
+        font-size: 1em;
+        cursor: pointer;
+        box-shadow: 0 2px 8px #0004;
+        transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(.4,0,.2,1);
+        will-change: background, color, box-shadow, transform;
+        outline: none;
+    }
+    button:hover, button:focus {
+        background: linear-gradient(90deg, #ffb300 60%, #ff1744 100%);
+        color: #18191a;
+        box-shadow: 0 8px 32px #ffb30044, 0 2px 12px #0004;
+        transform: translateY(-2px) scale(1.04) rotate(-1deg);
+    }
+    /* عائم */
+    #floating-table-modal {
+        display: none;
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        margin: auto;
+        z-index: 9999;
+        max-width: 98vw;
+        background: #23232a;
+        border-radius: 18px;
+        box-shadow: 0 8px 40px #000b;
+        padding: 24px 12px 18px 12px;
+        border: 2px solid #ffb300;
+        animation: fadeInUp 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    #close-floating-table {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: #ff1744;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 18px;
+        font-size: 1.1em;
+        cursor: pointer;
+        z-index: 10001;
+        transition: background 0.2s;
+    }
+    #close-floating-table:hover {
+        background: #ffb300;
+        color: #23232a;
+    }
+    /* Responsive for mobile */
+    @media (max-width: 700px) {
+        .container {
+            padding: 8px;
+            margin: 10px auto;
+            max-width: 99vw;
+        }
+        table, th, td {
+            font-size: 12px;
+        }
+        th, td {
+            min-width: 60px;
+            padding: 8px 4px;
+        }
+        button {
+            width: 100%;
+            font-size: 1em;
+        }
+        /* جدول أفقي قابل للتمرير */
+        table {
+            display: block;
+            overflow-x: auto;
+            width: 100%;
+            min-width: 320px;
+        }
+        /* نافذة الجدول العائم */
+        #floating-table-modal {
+            max-width: 99vw;
+            padding: 10px 2px 10px 2px;
+            left: 1vw;
+            right: 1vw;
+        }
+    }
+    @media (max-width: 400px) {
+        .container {
+            padding: 2px;
+        }
+        th, td {
+            font-size: 10px;
+            padding: 4px 2px;
+        }
+        #floating-table-modal {
+            padding: 4px 1px 4px 1px;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>عرض التقارير المخزنة</h2>
+        <table id="reports-table">
+            <thead>
+                <tr>
+                    <th>رقم التقرير</th>
+                    <th>تاريخ التقرير</th>
+                    <th>عرض</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody id="reports-body">
+                <tr><td colspan="4">جاري التحميل...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- جدول عائم لعرض التفاصيل -->
+    <div id="floating-table-modal">
+        <button id="close-floating-table">إغلاق</button>
+        <div id="floating-table-content"></div>
+    </div>
+    <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function loadReports() {
+        const tbody = document.getElementById('reports-body');
+        tbody.innerHTML = '<tr><td colspan="4">جاري التحميل...</td></tr>';
+        try {
+            const snapshot = await db.collection("reports").orderBy("report_number", "desc").get();
+            if (snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="4">لا توجد تقارير</td></tr>';
+                return;
+            }
+            const uniqueReports = {};
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (!uniqueReports[data.report_number]) {
+                    uniqueReports[data.report_number] = {
+                        id: doc.id,
+                        report_number: data.report_number,
+                        report_date: data.report_date
+                    };
+                }
+            });
+            tbody.innerHTML = '';
+            Object.values(uniqueReports).forEach(rep => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${rep.report_number}</td>
+                    <td>${rep.report_date}</td>
+                    <td><button onclick="viewReport('${rep.report_number}','${rep.report_date}')">عرض</button></td>
+                    <td><button onclick="deleteReport('${rep.report_number}','${rep.report_date}', this)">حذف</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="4">حدث خطأ في جلب البيانات</td></tr>';
+        }
+    }
+
+    // عرض التقرير (جدول عائم)
+    async function viewReport(reportNumber, reportDate) {
+        const modal = document.getElementById('floating-table-modal');
+        const content = document.getElementById('floating-table-content');
+        content.innerHTML = '<div style="color:#ffb300;text-align:center;">جاري التحميل...</div>';
+        modal.style.display = 'block';
+
+        try {
+            const snapshot = await db.collection("reports")
+                .where("report_number", "==", Number(reportNumber))
+                .where("report_date", "==", reportDate)
+                .get();
+            if (snapshot.empty) {
+                content.innerHTML = '<div style="color:#ff1744;text-align:center;">لا توجد بيانات لهذا التقرير</div>';
+                return;
+            }
+            let html = `<table style="width:100%;border-radius:12px;overflow:auto;box-shadow:0 2px 16px #0008;background:#23232a;">
+                <thead>
+                    <tr>
+                        <th>الملاحظة</th>
+                        <th>القسم</th>
+                        <th>القسم (أخرى)</th>
+                        <th>الإجراء المتخذ</th>
+                        <th>تم التصحيح</th>
+                        <th>لم يتم التصحيح</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            snapshot.forEach(doc => {
+                const r = doc.data();
+                html += `<tr>
+                    <td>${r.note || ''}</td>
+                    <td>${r.department || ''}</td>
+                    <td>${r.department_other || ''}</td>
+                    <td>${r.action || ''}</td>
+                    <td>${r.corrected ? "✔" : "✖"}</td>
+                    <td>${r.not_corrected ? "✔" : "✖"}</td>
+                </tr>`;
+            });
+            html += "</tbody></table>";
+            content.innerHTML = html;
+        } catch (err) {
+            content.innerHTML = '<div style="color:#ff1744;text-align:center;">حدث خطأ في جلب البيانات</div>';
+        }
+    }
+
+    // حذف جميع الصفوف المرتبطة بنفس رقم وتاريخ التقرير
+    async function deleteReport(reportNumber, reportDate, btn) {
+        // استبدال confirm بـ SweetAlert2
+        Swal.fire({
+            title: 'تأكيد الحذف',
+            text: 'هل أنت متأكد من حذف هذا التقرير بالكامل؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، احذف',
+            cancelButtonText: 'إلغاء',
+            reverseButtons: true
+        }).then(async (result) => {
+            if (!result.isConfirmed) return;
+            btn.disabled = true;
+            try {
+                const snapshot = await db.collection("reports")
+                    .where("report_number", "==", Number(reportNumber))
+                    .where("report_date", "==", reportDate)
+                    .get();
+                const batch = db.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                btn.closest('tr').remove();
+                Swal.fire('تم الحذف', 'تم حذف التقرير بنجاح', 'success');
+            } catch (err) {
+                Swal.fire('خطأ', 'حدث خطأ أثناء الحذف', 'error');
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // زر إغلاق الجدول العائم
+    document.getElementById('close-floating-table').onclick = function() {
+        document.getElementById('floating-table-modal').style.display = 'none';
+        document.getElementById('floating-table-content').innerHTML = '';
+    };
+
+    window.onload = loadReports;
+    </script>
+</body>
+</html>

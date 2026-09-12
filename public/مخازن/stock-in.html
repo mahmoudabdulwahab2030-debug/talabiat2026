@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل وارد - مخازن غذائية</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-5">
+    <h2 class="mb-4 text-primary"><i class="bi bi-box-arrow-in-down"></i> تسجيل فاتورة وارد</h2>
+
+    <div class="card shadow-sm p-3 mb-4">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small">رقم الفاتورة</label>
+          <input id="invoiceNumber" type="text" class="form-control form-control-sm" value="INV-2026-001">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">تاريخ الاستلام</label>
+          <input id="invoiceDate" type="date" class="form-control form-control-sm" value="2026-01-03">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">القسم</label>
+          <select id="invoiceSection" class="form-select form-select-sm section-select" data-static="true">
+            <option value="">اختر القسم...</option>
+            <option value="مواد غذائية">مواد غذائية</option>
+            <option value="تعبئة وتغليف">تعبئة وتغليف</option>
+            <option value="نظافة">نظافة</option>
+            <option value="اخري">اخري</option>
+          </select>
+          <select id="invoiceSubsection" class="form-select form-select-sm mt-2" style="display:none"></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">المورد</label>
+          <select id="invoiceSupplier" class="form-select form-select-sm"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <table class="table table-sm table-bordered exportable-table">
+          <thead class="table-secondary">
+            <tr>
+              <th>البحث عن صنف</th>
+              <th style="width: 10%;">الكود</th>
+              <th style="width: 8%;">الرصيد</th>
+              <th style="width: 14%;">شد الصنف</th>
+              <th style="width: 10%;">الوحدة</th>
+              <th style="width: 8%;">عدد الشد</th>
+              <th style="width: 10%;">الكمية</th>
+              <th style="width: 12%;">سعر شراء الوحدة</th>
+              <th style="width: 12%;">الإجمالي</th>
+              <th style="width: 4%;">#</th>
+            </tr>
+          </thead>
+          <tbody id="inboundRows">
+            <tr>
+              <td><input type="text" class="form-control form-control-sm product-search" placeholder="أدخل اسم الصنف أو الكود"></td>
+              <td><input class="form-control form-control-sm product-code" readonly placeholder="الكود"></td>
+              <td class="text-center"><span class="row-current">-</span></td>
+              <td><input type="text" class="form-control form-control-sm row-pack" readonly placeholder="شد الصنف"></td>
+              <td><input type="text" class="form-control form-control-sm row-unit" readonly placeholder="الوحدة"></td>
+              <td><input type="number" class="form-control form-control-sm row-packs" value="0" min="0" placeholder="عدد الشد"></td>
+              <td><input type="number" class="form-control form-control-sm row-qty" value="100"></td>
+              <td><input type="number" class="form-control form-control-sm row-price" value="15.50"></td>
+              <td class="align-middle row-total">1550.00</td>
+              <td><button class="btn btn-outline-danger btn-sm remove-row"><i class="bi bi-trash"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+        <button id="addInboundRowBtn" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-circle"></i> إضافة صنف آخر للفاتورة</button>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <h4 id="invoiceTotal" class="mb-0 text-success">إجمالي الفاتورة: 1550.00 ج.م</h4>
+        <button id="postInboundBtn" class="btn btn-primary px-5">ترحيل للمخازن</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+  <script src="inbound.js"></script>
+
+  <!-- Inbound summary modal -->
+  <div class="modal fade" id="inboundSummaryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">ملخص الترحيل</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div id="inboundSummaryContent"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="printInboundSummary" class="btn btn-outline-primary">طباعة</button>
+          <button id="pdfInboundSummary" class="btn btn-outline-secondary">حفظ PDF</button>
+          <button id="excelInboundSummary" class="btn btn-success">تصدير اكسيل</button>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التقارير - مخازن غذائية</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-5">
+    <h2 class="mb-4">مركز التقارير والتحليلات</h2>
+
+    <div class="card mb-4 border-0 shadow-sm">
+      <div class="card-body row g-3">
+        <div class="col-md-4">
+          <label class="form-label">نوع التقرير</label>
+          <select class="form-select" id="reportType">
+            <option value="movement">تقرير حركة الصنف (وارد/صادر)</option>
+            <option value="under_reorder">تقرير الأصناف تحت حد الطلب (النواقص)</option>
+            <option value="stock_value">تقرير قيمة المخازن المالية</option>
+            <option value="sections_balance">تقرير أرصدة الأقسام</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">من تاريخ</label>
+          <input id="reportFrom" type="date" class="form-control" value="2026-01-01">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">إلى تاريخ</label>
+          <input id="reportTo" type="date" class="form-control" value="2026-01-03">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button id="runReportBtn" class="btn btn-dark w-100"><i class="bi bi-printer"></i> استخراج</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white"><strong>نتائج التقرير</strong></div>
+      <div class="card-body">
+        <div id="reportResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+  <script src="reports.js"></script>
+</body>
+</html>

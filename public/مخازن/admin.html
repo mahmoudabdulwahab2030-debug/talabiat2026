@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الإدارة - مخازن</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+    <div class="container mt-5">
+    <h3>لوحة الإدارة</h3>
+    <div class="list-group mt-4">
+        <div class="mt-3">
+          <div class="row g-2">
+            <div class="col-auto">
+              <button id="openSectionsBtn" class="btn btn-secondary">إنشاء قسم</button>
+            </div>
+            <div class="col-auto">
+              <button id="openReqsBtn" class="btn btn-primary">طلبات الصرف</button>
+            </div>
+            <div class="col-auto">
+              <button id="openIssuesBtn" class="btn btn-warning">أذون الصرف</button>
+            </div>
+            <div class="col-auto">
+              <button id="openInboundBtn" class="btn btn-success">الوارد</button>
+            </div>
+            <div class="col-auto">
+              <button id="openProductsBtn" class="btn btn-info">الأصناف</button>
+            </div>
+            <div class="col-auto">
+              <button id="openUsersBtn" class="btn btn-secondary">المستخدمين</button>
+            </div>
+            <div class="col-auto">
+              <button id="openRecentBtn" class="btn btn-dark">آخر التحركات</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Movements Modal (for admin) -->
+    <div class="modal fade" id="adminRecentModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="adminRecentModalTitle">آخر التحركات</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="adminRecentSubtitle" class="mb-2"></div>
+            <div class="table-responsive">
+              <table class="table table-sm table-striped">
+                <thead id="adminRecentHead"></thead>
+                <tbody id="adminRecentBody"></tbody>
+              </table>
+            </div>
+            <div class="mt-3 d-flex gap-2 align-items-center">
+              <div class="btn-group" role="group" aria-label="تحكم التحركات">
+                <button id="adminRecentSelectAllBtn" class="btn btn-sm btn-outline-secondary">تحديد الكل</button>
+                <button id="adminRecentClearSelectionBtn" class="btn btn-sm btn-outline-secondary">مسح التحديد</button>
+                <button id="adminRecentDeleteSelected" class="btn btn-sm btn-danger">حذف المحدد</button>
+              </div>
+              <div class="btn-group ms-2" role="group">
+                <button id="adminRecentShowBtn" class="btn btn-sm btn-outline-success">إظهار في اللوحة</button>
+                <button id="adminRecentHideBtn" class="btn btn-sm btn-outline-warning">إخفاء من اللوحة</button>
+              </div>
+              <div class="ms-3">
+                <button id="adminPrintRecent" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i> طباعة</button>
+                <button id="adminExportRecentPdf" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+                <button id="adminExportRecentExcel" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary modal-back-btn d-none">رجوع</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Management Modals -->
+    <div class="modal fade" id="manageModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="manageModalTitle">قائمة</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-2">
+              <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                  <input id="manageSearch" class="form-control form-control-sm" placeholder="بحث عام: رقم، اسم، كود صنف، مورد...">
+                </div>
+                <div class="col-auto">
+                  <input id="manageDateFrom" type="date" class="form-control form-control-sm" placeholder="من">
+                </div>
+                <div class="col-auto">
+                  <input id="manageDateTo" type="date" class="form-control form-control-sm" placeholder="إلى">
+                </div>
+                <div class="col-md-3">
+                  <input id="manageSectionFilter" class="form-control form-control-sm" placeholder="القسم (اختياري)">
+                </div>
+                <div class="col-auto">
+                  <button id="runFilterBtn" class="btn btn-sm btn-outline-primary">تطبيق الفلتر</button>
+                  <button id="clearFilterBtn" class="btn btn-sm btn-outline-secondary">مسح الفلاتر</button>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <button id="selectAllBtn" class="btn btn-sm btn-outline-secondary">تحديد الكل</button>
+                  <button id="clearSelectionBtn" class="btn btn-sm btn-outline-secondary">مسح التحديد</button>
+                </div>
+                <div>
+                  <button id="deleteSelectedBtn" class="btn btn-sm btn-danger">حذف المحدد</button>
+                </div>
+              </div>
+            </div>
+            <div id="manageContent">
+              <!-- table inserted here -->
+              <div class="table-responsive">
+                <table class="table table-hover table-striped" id="manageTable">
+                  <thead class="table-light"><tr id="manageThead"></tr></thead>
+                  <tbody id="manageTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary modal-back-btn d-none">رجوع</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      /* Admin polished accents */
+      #manageTable thead th { font-weight:700; }
+      #manageTable tbody tr td { vertical-align: middle; }
+      .modal-xl { max-width: 1200px; }
+      .btn-primary { background: linear-gradient(90deg,#1e88e5,#4f7ef6); border:none }
+      .btn-warning { background: linear-gradient(90deg,#ffb74d,#ff8a65); border:none }
+      .btn-success { background: linear-gradient(90deg,#66bb6a,#43a047); border:none }
+      /* Users list styling */
+      #usersTable tbody td { vertical-align: middle; }
+      #usersTable .action-btn { margin-inline-start: 6px; }
+      #usersSearch { max-width: 420px; margin-bottom: 8px; }
+      /* make action icons compact */
+      .users-action { display:inline-flex; gap:6px; }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script src="exports.js"></script>
+    <script src="app.js"></script>
+    <script src="admin.js"></script>
+
+    <!-- Users Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">إدارة المستخدم</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="userForm">
+              <input id="userId" type="hidden" />
+              <div class="mb-3">
+                <label class="form-label">كود المستخدم</label>
+                <input id="userCode" class="form-control" required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">اسم المستخدم</label>
+                <input id="userName" class="form-control" required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">الرقم السري</label>
+                <input id="userPassword" type="password" class="form-control" required />
+              </div>
+              <div id="userFormAlert" class="alert d-none" role="alert"></div>
+              <div class="d-flex justify-content-end">
+                <button type="button" id="openUsersListBtn" class="btn btn-outline-secondary me-2">الحالي</button>
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary" id="userFormSubmit">حفظ</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users List Modal -->
+    <div class="modal fade" id="usersListModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">قائمة المستخدمين</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-2">
+              <input id="usersSearch" class="form-control form-control-sm" placeholder="بحث بكود أو اسم" />
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-striped" id="usersTable">
+                <thead><tr><th>كود</th><th>اسم</th><th>أنشئ في</th><th>إجراءات</th></tr></thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary modal-back-btn d-none">رجوع</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>إدارة الفواتير</title>
+  <link href="style.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Cairo:400,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+        background: #18191a;
+        color: #f1f1f1;
+        font-family: 'Cairo', Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+    }
+    .container {
+        background: #242526;
+        margin: 20px auto;
+        padding: 30px;
+        border-radius: 18px;
+        max-width: 1000px;
+        box-shadow: 0 2px 24px #000a;
+    }
+    h2 {
+        color: #ffb300;
+        text-align: center;
+        margin-bottom: 24px;
+        font-weight: bold;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: #23232a;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 32px #0008;
+    }
+    th, td {
+        border: 1px solid #444;
+        padding: 14px 12px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    th {
+        background: linear-gradient(90deg, #333 60%, #23232a 100%);
+        color: #ffb300;
+        font-weight: bold;
+        border-bottom: 2.5px solid #ffb300;
+    }
+    tr:nth-child(even) {
+        background: #292929;
+    }
+    tr:nth-child(odd) {
+        background: #23272b;
+    }
+    tr:hover td {
+        background: #18191a;
+        color: #ffb300;
+    }
+    button {
+        background: linear-gradient(90deg, #3a3b3c 60%, #23232a 100%);
+        color: #fff;
+        border: none;
+        padding: 8px 18px;
+        margin: 4px;
+        border-radius: 8px;
+        font-size: 1em;
+        cursor: pointer;
+        box-shadow: 0 2px 8px #0004;
+        transition: all 0.2s ease;
+    }
+    button:hover, button:focus {
+        background: linear-gradient(90deg, #ffb300 60%, #ff1744 100%);
+        color: #18191a;
+        box-shadow: 0 8px 32px #ffb30044;
+        transform: translateY(-2px);
+    }
+
+    /* --- Styles from manage-invoices to keep --- */
+
+    #openFilterBtn {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 1000;
+    }
+
+    #filterSidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 320px;
+      background: #242526;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.4);
+      transform: translateX(-105%);
+      transition: transform 0.25s ease-in-out;
+      z-index: 1100;
+      padding: 20px;
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      border-left: 1px solid #444;
+    }
+
+    #filterSidebar.open {
+      transform: translateX(0);
+    }
+
+    #filterSidebar h3 { margin-top: 0; color: #ffb300; }
+    #filterSidebar label { display: block; margin-top: 12px; }
+    #filterSidebar select, #filterSidebar input[type="date"] { 
+        width: 100%; 
+        padding: 8px; 
+        margin-top: 6px; 
+        box-sizing: border-box;
+        background: #18191a;
+        border: 1px solid #444;
+        color: #f1f1f1;
+        border-radius: 6px;
+    }
+    #filterSidebar button { margin-top: 12px; padding: 8px 12px; width: calc(50% - 8px); }
+    #closeFilterBtn { 
+        position: absolute; 
+        left: 8px; 
+        right: auto;
+        top: 8px; 
+        background: transparent; 
+        border: none; 
+        font-size: 24px; 
+        cursor: pointer; 
+        color: #aaa;
+    }
+    #closeFilterBtn:hover {
+        color: #ffb300;
+        transform: none; /* Override general button hover */
+        background: none;
+        box-shadow: none;
+    }
+    
+    #invoiceDetails {
+      background: #242526;
+      border: 1px solid #444;
+      padding: 20px; 
+      margin-top: 20px;
+      border-radius: 18px;
+      box-shadow: 0 2px 24px #000a;
+    }
+    #invoiceDetails h3, #invoiceDetails h4 {
+        color: #ffb300;
+        text-align: center;
+    }
+
+    /* Specific button overrides */
+    button[onclick*="deleteInvoice"] { background: #d9534f; }
+    button[onclick*="viewInvoice"] { background: #5bc0de; }
+    button[onclick*="printInvoiceDetails"] { background: #5cb85c; }
+
+    @media (max-width: 700px) {
+        .container {
+            padding: 8px;
+            margin: 10px auto;
+        }
+        table, th, td {
+            font-size: 12px;
+        }
+        th, td {
+            padding: 8px 4px;
+        }
+        button {
+            width: auto; /* Revert from 100% */
+            font-size: 1em;
+        }
+        table {
+            display: block;
+            overflow-x: auto;
+            width: 100%;
+        }
+        #filterSidebar { width: 100%; }
+    }
+  </style>
+  <link href="print.css" rel="stylesheet" media="print">
+</head>
+<body>
+  <button id="openFilterBtn" title="تصفية">فلترة</button>
+
+  <div id="filterSidebar" aria-hidden="true">
+    <button id="closeFilterBtn" aria-label="إغلاق">×</button>
+    <h3>خيارات الفلترة</h3>
+    <label for="branchFilter">الفرع</label>
+    <select id="branchFilter">
+      <option value="">كل الفروع</option>
+    </select>
+    <label for="sectionFilter">القسم</label>
+    <select id="sectionFilter">
+      <option value="">كل الأقسام</option>
+    </select>
+
+    <label for="dateFrom">التاريخ من</label>
+    <input type="date" id="dateFrom">
+
+    <label for="dateTo">إلى</label>
+    <input type="date" id="dateTo">
+
+    <button id="applyFilterBtn">تطبيق</button>
+    <button id="clearFilterBtn">مسح الفلاتر</button>
+  </div>
+
+  <div class="container">
+    <h2>🔍 إدارة الفواتير</h2>
+    <table id="invoiceTable" border="1">
+      <thead>
+        <tr>
+          <th>رقم الفاتورة</th>
+          <th>الفرع</th>
+          <th>القسم</th>
+          <th>التاريخ</th>
+          <th>عرض الفاتورة</th>
+          <th>حذف الفاتورة</th>
+        </tr>
+      </thead>
+      <tbody id="invoiceTableBody">
+        <!-- سيتم ملء البيانات هنا ديناميكياً -->
+      </tbody>
+    </table>
+
+    <div id="invoiceDetails" style="display: none;">
+      <h3>تفاصيل الفاتورة</h3>
+      <table id="invoiceDetailsTable" border="1">
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>الفرع</th>
+            <th>التاريخ</th>
+            <th>القسم</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceSummary">
+          <!-- سيتم ملء البيانات هنا ديناميكياً -->
+        </tbody>
+      </table>
+      <h4>المنتجات</h4>
+      <table id="invoiceProductsTable" border="1">
+        <thead>
+          <tr>
+            <th>كود المنتج</th>
+            <th>اسم المنتج</th>
+            <th>الكمية المطلوبة</th>
+            <th>الكمية المرسلة</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceProducts">
+          <!-- سيتم ملء البيانات هنا ديناميكياً -->
+        </tbody>
+      </table>
+      <!-- Shortages / Excesses summary (mobile and details) -->
+      <div id="invoiceAnalysis" style="margin-top:12px; display:flex; gap:12px; justify-content:space-between;">
+        <div style="flex:1; min-width:200px; max-width:48%;">
+          <h4 style="color:#ffb300; text-align:right;">النواقص</h4>
+          <table id="invoiceShortages" border="1" style="width:100%; margin-bottom:8px;">
+            <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+            <tbody><tr><td colspan="2" style="text-align:center;color:#ccc">لا توجد نواقص</td></tr></tbody>
+          </table>
+          <!-- printed analysis removed from static HTML (rendered dynamically in JS) -->
+        </div>
+        <div style="flex:1; min-width:200px; max-width:48%;">
+          <h4 style="color:#ffb300; text-align:right;">الزيادات</h4>
+          <table id="invoiceExcesses" border="1" style="width:100%; margin-bottom:8px;">
+            <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+            <tbody><tr><td colspan="2" style="text-align:center;color:#ccc">لا توجد زيادات</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <button onclick="printInvoiceDetails()" style="margin-top: 20px;">طباعة</button>
+      <button onclick="closeInvoiceDetails()" style="margin-top: 20px;">إغلاق</button>
+    </div>
+</div>
+
+<div id="invoicePrintSection" style="display:none;"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    let currentInvoiceData = null;
+
+    // branch id -> Arabic display name mapping
+    const branchLabels = {
+      'korba': 'كوربة',
+      'dokki': 'الدقي',
+      'tagamo3': 'التجمع',
+      'obour': 'العبور',
+      'best_sweet_1': 'فرع أول جمال',
+      'best_sweet_abbassia': 'فرع العباسية',
+      'best_sweet_helw_zaytoun': 'فرع حلو منه فيه الزيتون',
+      'best_sweet_market_zaytoun': 'فرع الزيتون ماركت',
+      'best_sweet_helwan': 'فرع حلوان'
+    };
+
+    // Populate section combobox with unique section names
+    function populateSectionFilter() {
+      const sectionSelect = document.getElementById('sectionFilter');
+      const branchSelect = document.getElementById('branchFilter');
+      sectionSelect.innerHTML = '<option value="">كل الأقسام</option>';
+      branchSelect.innerHTML = '<option value="">كل الفروع</option>';
+      db.collection('invoices').get().then(snapshot => {
+        const sections = new Set();
+        const branches = new Set();
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data) {
+            if (data.section) sections.add(data.section);
+            if (data.branch) branches.add(data.branch);
+          }
+        });
+        Array.from(branches).sort().forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b;
+          opt.textContent = branchLabels[b] || b;
+          branchSelect.appendChild(opt);
+        });
+        Array.from(sections).sort().forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          sectionSelect.appendChild(opt);
+        });
+      }).catch(error => {
+        console.error('Error populating sections/branches: ', error);
+      });
+    }
+
+    // Apply filters to the invoice table rows
+    function applyFilters() {
+      const branch = document.getElementById('branchFilter').value;
+      const section = document.getElementById('sectionFilter').value;
+      const from = document.getElementById('dateFrom').value;
+      const to = document.getElementById('dateTo').value;
+      const rows = document.getElementById('invoiceTable').querySelector('tbody').querySelectorAll('tr');
+      rows.forEach(row => {
+        let visible = true;
+        const rowSection = (row.getAttribute('data-section') || '').toString();
+        const rowBranch = (row.getAttribute('data-branch') || '').toString();
+        const rowDateStr = row.getAttribute('data-date') || '';
+        if (branch && rowBranch !== branch) visible = false;
+        if (section && rowSection !== section) visible = false;
+
+        if ((from || to) && rowDateStr) {
+          const rowDate = new Date(rowDateStr);
+          if (!isNaN(rowDate)) {
+            if (from) { const f = new Date(from); if (rowDate < f) visible = false; }
+            if (to) { const t = new Date(to); if (rowDate > t) visible = false; }
+          } else {
+            // fallback to string comparison for non-standard date formats
+            if (from && rowDateStr < from) visible = false;
+            if (to && rowDateStr > to) visible = false;
+          }
+        }
+
+        row.style.display = visible ? '' : 'none';
+      });
+    }
+
+    // Open/close sidebar
+    document.addEventListener('DOMContentLoaded', () => {
+      const openBtn = document.getElementById('openFilterBtn');
+      const closeBtn = document.getElementById('closeFilterBtn');
+      const sidebar = document.getElementById('filterSidebar');
+      const applyBtn = document.getElementById('applyFilterBtn');
+      const clearBtn = document.getElementById('clearFilterBtn');
+
+      openBtn.addEventListener('click', () => { sidebar.classList.add('open'); sidebar.setAttribute('aria-hidden', 'false'); });
+      closeBtn.addEventListener('click', () => { sidebar.classList.remove('open'); sidebar.setAttribute('aria-hidden', 'true'); });
+      applyBtn.addEventListener('click', () => { applyFilters(); sidebar.classList.remove('open'); });
+      clearBtn.addEventListener('click', () => {
+        document.getElementById('sectionFilter').value = '';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        applyFilters();
+      });
+
+  // apply filter when selection or dates change
+  document.getElementById('branchFilter').addEventListener('change', applyFilters);
+  document.getElementById('sectionFilter').addEventListener('change', applyFilters);
+  document.getElementById('dateFrom').addEventListener('change', applyFilters);
+  document.getElementById('dateTo').addEventListener('change', applyFilters);
+    });
+
+    function fetchInvoices() {
+      const invoiceTableBody = document.getElementById('invoiceTable').querySelector('tbody');
+      invoiceTableBody.innerHTML = '';
+
+      db.collection('invoices').orderBy('invoiceNumber', 'asc').get().then(snapshot => {
+        const invoiceTableBody = document.getElementById('invoiceTableBody'); // Corrected selector
+        snapshot.forEach(doc => {
+          const invoice = doc.data();
+          const row = document.createElement('tr');
+    row.setAttribute('data-section', invoice.section || '');
+    row.setAttribute('data-date', invoice.orderDate || '');
+    row.setAttribute('data-branch', invoice.branch || '');
+          row.innerHTML = `
+            <td>${invoice.invoiceNumber}</td>
+            <td>${branchLabels[invoice.branch] || invoice.branch || ''}</td>
+            <td>${invoice.section}</td>
+            <td>${invoice.orderDate || ''}</td>
+            <td><button onclick="viewInvoice('${doc.id}')">عرض</button></td>
+            <td><button onclick="deleteInvoice('${doc.id}')">حذف</button></td>
+          `;
+          invoiceTableBody.appendChild(row);
+        });
+        // After rendering, ensure filters are applied (in case user set defaults)
+        applyFilters();
+      }).catch(error => {
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ',
+          text: 'حدث خطأ أثناء جلب الفواتير. يرجى المحاولة مرة أخرى.',
+        });
+        console.error('Error fetching invoices: ', error);
+      });
+    }
+
+    function viewInvoice(invoiceId) {
+      const invoiceDetailsDiv = document.getElementById('invoiceDetails');
+      const invoiceSummary = document.getElementById('invoiceSummary');
+      const invoiceProducts = document.getElementById('invoiceProducts');
+      invoiceSummary.innerHTML = '';
+      invoiceProducts.innerHTML = '';
+
+      db.collection('invoices').doc(invoiceId).get().then((doc) => {
+        if (doc.exists) {
+          const invoice = doc.data();
+          currentInvoiceData = invoice; // Store for printing
+          const branchLabel = branchLabels[invoice.branch] || invoice.branch || '';
+          invoiceSummary.innerHTML = `
+            <tr>
+              <td>${invoice.invoiceNumber}</td>
+              <td>${branchLabel}</td>
+              <td>${invoice.orderDate}</td>
+              <td>${invoice.section}</td>
+            </tr>
+          `;
+          invoice.products.forEach((product) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${product.code}</td>
+              <td>${product.name}</td>
+              <td>${product.requestedQuantity}</td>
+              <td>${product.sentQuantity}</td>
+            `;
+            invoiceProducts.appendChild(row);
+          });
+          // populate shortages/excesses tables (use stored arrays if present, otherwise compute)
+          try{
+            const sTbody = document.getElementById('invoiceShortages').querySelector('tbody');
+            const eTbody = document.getElementById('invoiceExcesses').querySelector('tbody');
+            const shortages = Array.isArray(invoice.shortages) ? invoice.shortages : [];
+            const excesses = Array.isArray(invoice.excesses) ? invoice.excesses : [];
+            // fallback: compute from products if not present
+            if(shortages.length === 0 && excesses.length === 0){
+              (invoice.products||[]).forEach(p=>{
+                const req = Number(p.requestedQuantity||0);
+                const sent = Number(p.sentQuantity||0);
+                const diff = sent - req;
+                if(diff < 0) shortages.push({ name: p.name, qty: Math.abs(diff) });
+                else if(diff > 0) excesses.push({ name: p.name, qty: diff });
+              });
+            }
+            // render shortages
+            if(sTbody){
+              sTbody.innerHTML = '';
+              if(shortages.length===0) sTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#ccc">لا توجد نواقص</td></tr>';
+              else shortages.forEach(it=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${it.name}</td><td>${it.qty}</td>`; sTbody.appendChild(tr); });
+            }
+            if(eTbody){
+              eTbody.innerHTML = '';
+              if(excesses.length===0) eTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#ccc">لا توجد زيادات</td></tr>';
+              else excesses.forEach(it=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${it.name}</td><td>${it.qty}</td>`; eTbody.appendChild(tr); });
+            }
+          }catch(err){ console.warn('populate shortages/excesses', err); }
+          invoiceDetailsDiv.style.display = 'block';
+        } else {
+          currentInvoiceData = null;
+          Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: 'لم يتم العثور على الفاتورة.',
+          });
+        }
+      }).catch((error) => {
+        currentInvoiceData = null;
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ',
+          text: 'حدث خطأ أثناء جلب تفاصيل الفاتورة.',
+        });
+        console.error('Error fetching invoice details: ', error);
+      });
+    }
+
+    function closeInvoiceDetails() {
+      document.getElementById('invoiceDetails').style.display = 'none';
+    }
+
+    function deleteInvoice(invoiceId) {
+      Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: 'لن تتمكن من التراجع عن هذا الإجراء!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'نعم، احذفها!',
+        cancelButtonText: 'إلغاء'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          db.collection('invoices').doc(invoiceId).delete().then(() => {
+            Swal.fire(
+              'تم الحذف!',
+              'تم حذف الفاتورة بنجاح.',
+              'success'
+            );
+            fetchInvoices();
+          }).catch((error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'خطأ',
+              text: 'حدث خطأ أثناء حذف الفاتورة. يرجى المحاولة مرة أخرى.',
+            });
+            console.error('Error deleting invoice: ', error);
+          });
+        }
+      });
+    }
+
+    function printInvoiceDetails() {
+      if (!currentInvoiceData) {
+        Swal.fire('خطأ', 'لا توجد بيانات فاتورة لعرضها.', 'error');
+        return;
+      }
+      const invoice = currentInvoiceData;
+      const printSection = document.getElementById('invoicePrintSection');
+      const invoiceContent = `
+        <div class="print-invoice-container">
+          <h2 style="color:#ff2a4d;text-align:center;margin-bottom:16px;font-family:'Cairo',Arial,sans-serif;">فاتورة رقم ${invoice.invoiceNumber}</h2>
+          <table class="print-invoice-table" style="width:100%;margin-bottom:20px;border-radius:10px;overflow:hidden;">
+            <thead>
+              <tr style="background:#23232a;color:#ff2a4d;">
+                <th>الفرع</th>
+                <th>التاريخ</th>
+                <th>القسم</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:#292929;">
+                <td>${branchLabels[invoice.branch] || invoice.branch || ''}</td>
+                <td>${invoice.orderDate}</td>
+                <td>${invoice.section}</td>
+              </tr>
+            </tbody>
+          </table>
+          <h3 style="color:#ff2a4d;text-align:right;margin-bottom:8px;">المنتجات</h3>
+          <table class="print-invoice-table" style="width:100%;border-radius:10px;overflow:hidden;">
+            <thead>
+              <tr style="background:#23232a;color:#ff2a4d;">
+                <th>كود المنتج</th>
+                <th>اسم المنتج</th>
+                <th>الكمية المطلوبة</th>
+                <th>الكمية المرسلة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.products.map(product => `
+                <tr style="background:#292929;color:#e0e0e0;">
+                  <td>${product.code}</td>
+                  <td>${product.name}</td>
+                  <td>${product.requestedQuantity}</td>
+                  <td>${product.sentQuantity}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div style="margin-top:24px;text-align:left;color:#888;font-size:0.95em;">
+            <span>تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')}</span>
+          </div>
+        </div>
+        <style>
+          @media print {
+            body * { visibility: hidden !important; }
+            #invoicePrintSection, #invoicePrintSection * { visibility: visible !important; }
+            #invoicePrintSection {
+              position: absolute;
+              left: 0; top: 0; width: 100vw; min-height: 100vh;
+              background: #18191a !important;
+              color: #e0e0e0 !important;
+              padding: 32px 16px;
+              font-family: 'Cairo', Arial, sans-serif;
+            }
+            .print-invoice-container {
+              background: #23232a;
+              border-radius: 18px;
+              box-shadow: 0 2px 24px #000a;
+              border: 2px solid #ff2a4d;
+              padding: 32px 24px;
+              margin: auto;
+              max-width: 800px;
+            }
+            .print-invoice-table {
+              border-collapse: collapse;
+              width: 100%;
+              margin-bottom: 18px;
+              font-size: 1.08em;
+              box-shadow: 0 2px 12px #0006;
+            }
+            .print-invoice-table th, .print-invoice-table td {
+              border: 1.5px solid #444;
+              padding: 12px 10px;
+              text-align: center;
+              vertical-align: middle;
+            }
+            .print-invoice-table th {
+              background: linear-gradient(90deg, #444 60%, #23232a 100%);
+              color: #ff2a4d;
+              font-weight: bold;
+              font-size: 1.1em;
+              border-bottom: 2.5px solid #ff2a4d;
+              letter-spacing: 0.5px;
+            }
+            .print-invoice-table tr:nth-child(even) { background: #292929; }
+            .print-invoice-table tr:nth-child(odd) { background: #23272b; }
+          }
+        </style>
+      `;
+      printSection.innerHTML = invoiceContent;
+      printSection.style.display = 'block';
+      setTimeout(() => {
+        window.print();
+        printSection.style.display = 'none';
+        printSection.innerHTML = '';
+      }, 100);
+    }
+
+    // Populate filters and fetch invoices on load
+    populateSectionFilter();
+    fetchInvoices();
+  </script>
+</body>
+</html>

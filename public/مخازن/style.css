@@ -1,0 +1,234 @@
+/* استيراد خط تجاري عصري */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Vibrant palette for light theme */
+    --primary-color: #1e88e5; /* vivid blue */
+    --secondary-color: #ff7043; /* warm orange */
+    --success-color: #66bb6a; /* green */
+    --danger-color: #ef5350; /* red */
+    --bg-light: #f6f7fb;
+    --card-bg: rgba(255,255,255,0.95);
+    --text-color: #1f2937;
+    --muted-color: #6b7280;
+    --card-shadow: 0 10px 30px rgba(16,24,40,0.06);
+    --transition: all 0.25s cubic-bezier(.4,.0,.2,1);
+}
+
+/* Dark theme variables (applied when [data-theme="dark"]) */
+:root[data-theme="dark"] {
+    --primary-color: #0ea5e9; /* aqua */
+    --secondary-color: #fb923c; /* orange */
+    --success-color: #34d399;
+    --danger-color: #fb7185;
+    --bg-light: #0b1220; /* page background */
+    --card-bg: rgba(6,8,12,0.6);
+    --text-color: #0f0f0f;
+    --muted-color: #9aa6b2;
+    --card-shadow: 0 8px 30px rgba(2,6,23,0.6);
+}
+
+/* CSS utility to make switching easy */
+body {
+    background-color: var(--bg-light);
+    color: var(--text-color);
+}
+
+/* Ensure consistent readable text colors across light/dark themes */
+.navbar .nav-link,
+.navbar .navbar-brand { color: rgba(255,255,255,0.95) !important; }
+
+/* Theme toggle should always be visible on both light/dark */
+#themeToggle { color: var(--text-color) !important; background: transparent !important; border: 1px solid rgba(0,0,0,0.06); }
+#themeToggle:hover { color: var(--primary-color) !important; background: rgba(255,255,255,0.03) !important; }
+
+/* Make outline-light usable on light backgrounds (improve contrast) */
+.btn-outline-light { color: var(--text-color) !important; border-color: rgba(0,0,0,0.06) !important; background: transparent !important; }
+
+/* Ensure table heads are readable even with colorful header */
+.table thead { background-color: var(--primary-color); color: #fff; }
+
+/* Ensure cards and table content use readable text color */
+.card, .table, .container, .form-control, .form-select { color: var(--text-color); }
+
+.card {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+}
+
+.navbar {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+}
+
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border: none !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: rgba(255,255,255,0.08) !important;
+}
+
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--bg-light);
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* تحسين شكل البطاقات (Cards) */
+.card {
+    border: none !important;
+    border-radius: 15px !important;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(67, 97, 238, 0.15);
+}
+
+/* تأثيرات الأزرار */
+.btn {
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    transition: var(--transition) !important;
+    letter-spacing: 0.5px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border: none !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-color) !important;
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+/* تحسين الجداول */
+.table {
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+.table thead {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(67, 97, 238, 0.05) !important;
+    cursor: pointer;
+}
+
+/* أنيميشن بسيط عند تحميل الصفحة */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.container {
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* تخصيص الـ Badges (الأوسمة) */
+.badge {
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-weight: 500;
+}
+
+/* small barcode input used in rows */
+.product-code {
+    width: 110px !important;
+    text-align: center;
+    padding: .35rem .5rem !important;
+}
+
+/* current stock cell */
+.row-current {
+    font-weight: 700;
+    min-width: 40px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Details modal styling */
+.detail-dl dt { font-weight: 700; }
+.detail-dl dd { margin-bottom: .5rem; }
+.detail-table thead th { background: var(--primary-color); color: #fff; }
+.detail-table td { vertical-align: middle; }
+
+/* مدخلات البيانات (Inputs) */
+.form-control, .form-select {
+    border-radius: 10px !important;
+    border: 1px solid #e0e0e0 !important;
+    padding: 12px !important;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.1) !important;
+}
+
+/* شريط التنقل العلوي */
+.navbar {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
+
+/* تحسين شكل إحصائيات لوحة التحكم */
+.card-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.card-text {
+    font-weight: 700;
+}
+
+/* Theme toggle button in navbar */
+#themeToggle {
+    background: transparent !important;
+    color: var(--text-color) !important;
+    border: none !important;
+}
+#themeToggle:hover {
+    color: #fff !important;
+}
+
+/* Print styles: professional, compact, and readable */
+@media print {
+  /* Hide navigation and controls */
+  .navbar, .btn, .btn-group, .export-toolbar, #themeToggle, .page-footer, .no-print { display: none !important; }
+  /* Make tables use full width and high contrast */
+  body { background: #fff !important; color: #000 !important; }
+  .container, .container-fluid { width: 100% !important; max-width: 100% !important; padding: 0.5cm !important; }
+  .card { box-shadow: none !important; border: none !important; background: transparent !important; }
+  table { font-size: 12pt !important; color: #000 !important; }
+  table thead { background-color: #eee !important; color: #000 !important; -webkit-print-color-adjust: exact; }
+  .table-responsive { overflow: visible !important; }
+  /* Ensure page breaks between major sections when needed */
+  .page-break { display: block; page-break-before: always; }
+}
+
+/* Small toolbar style inserted above tables */
+.export-toolbar { padding: 6px 0; }
+.export-toolbar .btn { font-size: 0.85rem; }
+
+
