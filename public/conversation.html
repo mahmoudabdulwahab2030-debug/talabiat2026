@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>Le Doux Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="style.css" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <h2 style="margin-top:18px">💬 Le Doux Chat</h2>
+    <div id="currentUser" style="text-align:right;margin-top:6px;color:#ffd4a6;font-weight:800"></div>
+    <div class="chat-container" role="application">
+      <aside class="chat-sidebar" aria-label="قائمة المستخدمين">
+        <div class="search"><input id="userSearch" placeholder="ابحث عن مستخدم..." /></div>
+        <div id="usersList"></div>
+      </aside>
+      <section class="chat-panel" aria-live="polite">
+        <div class="chat-header">
+          <div id="chatWith">اختر مستخدماً لبدء المحادثة</div>
+          <div>
+            <button id="newChat" class="icon-only" aria-label="بدء محادثة جديدة">🆕<span class="sr-only">بدء محادثة جديدة</span></button>
+            <button id="toggleUsers" class="icon-only" aria-label="قائمة المستخدمين" title="قائمة المستخدمين" style="display:none">👥<span class="sr-only">قائمة المستخدمين</span></button>
+            <button id="toggleMobileView" class="icon-only" aria-label="تبديل وضع الموبايل" title="عرض للموبايل">📱<span class="sr-only">عرض للموبايل</span></button>
+            <button id="backToMain" class="icon-only secondary" aria-label="العودة">↩<span class="sr-only">العودة</span></button>
+          </div>
+        </div>
+        <div id="messages" class="chat-messages"></div>
+        <div class="chat-input">
+          <div id="replyPreview" class="reply-preview" style="display:none;">
+            <div>
+              <div style="font-weight:700;color:#ffd4a6">رد على <span id="replyToWho"></span></div>
+              <div id="replyToText" class="reply-text" style="opacity:0.95;max-height:48px;overflow:hidden"></div>
+            </div>
+            <div><button id="cancelReply" class="link-btn">إلغاء</button></div>
+          </div>
+
+          <div class="input-row">
+            <textarea id="msgTxt" placeholder="اكتب رسالة..." aria-label="اكتب رسالة" rows="2"></textarea>
+            <button id="sendMsg" class="send-btn" aria-label="إرسال رسالة">📩<span class="sr-only">إرسال</span></button>
+          </div>
+        </div> 
+      </section>
+    </div>
+
+  </main>
+
+  <div id="mobileOverlay" class="mobile-overlay" aria-hidden="true" style="display:none"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    // Mark page as a chat-full layout (triggers fullscreen CSS overrides)
+    try{ document.body.classList.add('chat-full'); }catch(e){}
+
+    function escapeForHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // Ensure user identity
+    async function ensureUser(){
+      let userCode = localStorage.getItem('userCode');
+      let username = localStorage.getItem('username');
+      if (!userCode || !username){
+        const { value: name } = await Swal.fire({ title: 'أدخل اسمك', input: 'text', inputPlaceholder: 'اسمك', showCancelButton: false, confirmButtonText: 'حفظ' });
+        if (!name) return null;
+        username = name.trim();
+        userCode = 'u_' + Date.now();
+        localStorage.setItem('username', username);
+        localStorage.setItem('userCode', userCode);
+        // add or update chatusers list
+        try{ await db.collection('chatusers').doc(userCode).set({ username, userCode, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true }); }catch(e){ console.warn('could not save chatusers entry', e); }
+      }
+      // ensure we exist in chatusers
+      try{ db.collection('chatusers').doc(userCode).set({ username, userCode, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true }); }catch(e){ console.warn('could not upsert chatusers', e); }
+      return { userCode, username };
+    }
+
+    let me = null;
+    let usersListener = null;
+    let unreadListeners = {};
+    let chatListeners = [];
+    let selectedUser = null;
+
+    // persistent pending highlights for users who sent messages (persist across reloads)
+    let pendingHighlights = new Set();
+    function loadPending(){ try{ const arr = JSON.parse(localStorage.getItem('pendingChatHighlights')||'[]'); pendingHighlights = new Set(arr); }catch(e){ pendingHighlights = new Set(); } }
+    function savePending(){ try{ localStorage.setItem('pendingChatHighlights', JSON.stringify([...pendingHighlights])); }catch(e){} }
+    // load once at script init
+    loadPending();
+
+    function makeUserItem(u){
+      const el = document.createElement('div'); el.className='user-item'; el.dataset.id = u.userCode;
+      el.innerHTML = `<div class="avatar">${escapeForHtml((u.username||'؟').slice(0,2))}</div><div class="meta"><div class="name">${escapeForHtml(u.username||u.userCode||'-')}</div><div class="preview" id="preview-${u.userCode}"></div></div><div class="unread-dot" id="un-${u.userCode}" style="display:none">0</div>`;
+      // if there is a pending highlight for this user, show it immediately and mark visually
+      if (pendingHighlights.has(u.userCode)){
+        el.classList.add('persistent');
+        const d = el.querySelector('.unread-dot'); if (d){ d.style.display = 'inline-block'; d.classList.add('persistent'); d.textContent = 'جديد'; }
+      }
+      el.addEventListener('click', ()=> selectUser(u));
+      return el;
+    }
+
+    async function loadUsers(){
+      const list = document.getElementById('usersList'); list.innerHTML = '<div class="suggestions-empty">جارٍ التحميل...</div>';
+      try{
+        // We'll listen to both `chatusers` (chat participants) and `users` (project accounts), merge them and dedupe by userCode
+        let chUsers = {};
+        let projUsers = {};
+        let unsubscribeCh = null;
+        let unsubscribeProj = null;
+
+        function renderMerged(){
+          const merged = {};
+          // start with project users (they take precedence)
+          Object.values(projUsers).forEach(u=> merged[u.userCode] = { userCode: u.userCode, username: u.username });
+          // add chat users if missing
+          Object.values(chUsers).forEach(u=>{ if (!merged[u.userCode]) merged[u.userCode] = { userCode: u.userCode, username: u.username }; else if (!merged[u.userCode].username) merged[u.userCode].username = u.username; });
+          const arr = Object.values(merged).filter(u=> u.userCode !== me.userCode).sort((a,b)=> (a.username||'').localeCompare(b.username||''));
+          list.innerHTML = '';
+          arr.forEach(u=> list.appendChild(makeUserItem(u)));
+          // attach unread counters per user (debounced by clearing previous ones)
+          arr.forEach(u=> attachUnreadCounter(u.userCode));
+        }
+
+        // chatusers listener
+        unsubscribeCh = db.collection('chatusers').onSnapshot(snap=>{
+          chUsers = {};
+          snap.forEach(d=>{ const data = d.data(); if (data && data.userCode) chUsers[data.userCode] = { userCode: data.userCode, username: data.username || data.userCode }; });
+          renderMerged();
+        }, e=>{ console.error('chatusers listener', e); list.innerHTML = '<div class="suggestions-empty">تعذر تحميل المستخدمين</div>' });
+
+        // users (project accounts) listener
+        unsubscribeProj = db.collection('users').onSnapshot(snap=>{
+          projUsers = {};
+          snap.forEach(d=>{ const data = d.data(); const id = d.id; projUsers[id] = { userCode: id, username: data.name || data.username || id }; });
+          renderMerged();
+        }, e=>{ console.error('users listener', e); });
+
+        // store a combined unsubscribe so previous behavior (usersListener) can still be called to detach
+        usersListener = () => { try{ if (unsubscribeCh) unsubscribeCh(); if (unsubscribeProj) unsubscribeProj(); }catch(e){} };
+
+      }catch(e){ console.error('loadUsers', e); list.innerHTML = '<div class="suggestions-empty">تعذر التحميل</div>' }
+    }
+
+    function attachUnreadCounter(userCode){
+      if (unreadListeners[userCode]) return; // already listening
+      try{
+        const sub = db.collection('chat_messages').where('from','==', userCode).where('to','==', me.userCode).where('read','==', false)
+          .onSnapshot(snap=>{
+            const el = document.getElementById('un-'+userCode); if (!el) return;
+            if (snap.size > 0){
+              // new unread messages arrived — mark persistent until opened
+              pendingHighlights.add(userCode); savePending(); el.style.display = 'inline-block'; el.classList.add('persistent'); el.textContent = snap.size>99?'99+':String(snap.size);
+              const item = document.querySelector(`.user-item[data-id="${userCode}"]`); if (item) item.classList.add('persistent');
+            } else {
+              // no unread according to server — keep persistent highlight until opened
+              if (pendingHighlights.has(userCode)){
+                el.style.display = 'inline-block'; el.classList.add('persistent'); el.textContent = 'جديد';
+                const item = document.querySelector(`.user-item[data-id="${userCode}"]`); if (item) item.classList.add('persistent');
+              }else{
+                el.style.display = 'none'; el.classList.remove('persistent'); el.textContent = '0';
+                const item = document.querySelector(`.user-item[data-id="${userCode}"]`); if (item) item.classList.remove('persistent');
+              }
+            }
+          }, e=>console.warn('unread sub failed', e));
+        unreadListeners[userCode] = sub;
+      }catch(e){ console.warn('attachUnreadCounter', e); }
+    }
+
+    function detachAllUnread(){ Object.keys(unreadListeners).forEach(k=>{ try{ unreadListeners[k](); }catch(e){} }); unreadListeners = {} }
+
+    function clearChatListeners(){ chatListeners.forEach(cb=>{ try{ cb(); }catch(e){} }); chatListeners = []; }
+
+    // local deletes storage (delete for me)
+    const localDeletedKey = () => 'chat_deleted_local_' + (me? me.userCode : 'anon');
+    function loadLocalDeleted(){ try{ return new Set(JSON.parse(localStorage.getItem(localDeletedKey())||'[]')); }catch(e){ return new Set(); } }
+    function saveLocalDeleted(set){ try{ localStorage.setItem(localDeletedKey(), JSON.stringify([...set])); }catch(e){}
+    }
+
+    let editingMessageId = null;
+    let replyTo = null;
+
+    function renderMessages(msgs){ const wrap = document.getElementById('messages'); wrap.innerHTML=''; const localDeleted = loadLocalDeleted(); msgs.forEach(m=>{
+      if (localDeleted.has(m.id)) return; // skip local-deleted-for-me messages
+      const div = document.createElement('div'); div.className = 'message ' + (m.from===me.userCode? 'me':'them'); div.dataset.id = m.id;
+
+      if (m.deleted){ div.innerHTML = `<div class="deleted">تم حذف هذه الرسالة</div>`; wrap.appendChild(div); return; }
+
+      const replyHtml = (m.replyTo && m.replyTo.text) ? `<div class="msg-reply"><div class="reply-who">رد على ${escapeForHtml(m.replyTo.fromName||m.replyTo.from||'؟')}</div><div class="reply-text">${escapeForHtml(m.replyTo.text)}</div></div>` : '';
+      const editedHtml = m.edited ? '<span class="edited">(تم التعديل)</span>' : '';
+
+      div.innerHTML = `${replyHtml}<div class="msg-text">${escapeForHtml(m.text||'')}</div><div class="meta">${editedHtml}<span class="time">${new Date(m.createdAt).toLocaleString()}</span></div>`;
+
+      // right-click / context menu
+      div.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); openMessageMenuAt(m, ev.pageX, ev.pageY); });
+
+      // double click quick reply
+      div.addEventListener('dblclick', ()=>{ openReplyToMessage(m); });
+
+      wrap.appendChild(div);
+    }); wrap.scrollTop = wrap.scrollHeight; }
+
+    function openMessageMenuAt(m, x, y){ document.querySelectorAll('.msg-menu').forEach(n=> n.remove()); const menu = document.createElement('div'); menu.className='msg-menu';
+      const replyBtn = document.createElement('button'); replyBtn.className='menu-btn'; replyBtn.setAttribute('aria-label','رد'); replyBtn.innerHTML = `<span class="menu-icon">↩</span><span class="menu-text">رد</span>`; replyBtn.addEventListener('click', ()=>{ openReplyToMessage(m); menu.remove(); }); menu.appendChild(replyBtn);
+      const delMe = document.createElement('button'); delMe.className='menu-btn'; delMe.setAttribute('aria-label','حذف لي'); delMe.innerHTML = `<span class="menu-icon">🗑️</span><span class="menu-text">حذف لي</span>`; delMe.addEventListener('click', ()=>{ deleteForMe(m.id); menu.remove(); }); menu.appendChild(delMe);
+      if (m.from === me.userCode){ const editBtn = document.createElement('button'); editBtn.className='menu-btn'; editBtn.setAttribute('aria-label','تعديل'); editBtn.innerHTML = `<span class="menu-icon">✏️</span><span class="menu-text">تعديل</span>`; editBtn.addEventListener('click', ()=>{ startEditMessage(m); menu.remove(); }); menu.appendChild(editBtn);
+        const delAll = document.createElement('button'); delAll.className='menu-btn'; delAll.setAttribute('aria-label','حذف للجميع'); delAll.innerHTML = `<span class="menu-icon">🗑️</span><span class="menu-text">حذف للجميع</span>`; delAll.addEventListener('click', ()=>{ deleteForEveryone(m.id); menu.remove(); }); menu.appendChild(delAll); }
+      document.body.appendChild(menu); menu.style.left = (x+6) + 'px'; menu.style.top = (y+6) + 'px'; setTimeout(()=>{ const remover = ()=> menu.remove(); document.addEventListener('click', remover, { once:true }); }, 10);
+    }
+
+    function openReplyToMessage(m){ replyTo = { id: m.id, from: m.from, text: m.text, fromName: (m.from===me.userCode? me.username : (m.replyTo && m.replyTo.fromName) || m.from) }; document.getElementById('replyToWho').textContent = (replyTo.from===me.userCode? 'أنت' : (replyTo.fromName||replyTo.from)); document.getElementById('replyToText').textContent = replyTo.text||'(مرفق)'; document.getElementById('replyPreview').style.display='flex'; document.getElementById('msgTxt').focus(); }
+
+    function startEditMessage(m){ editingMessageId = m.id; document.getElementById('msgTxt').value = m.text||''; document.getElementById('sendMsg').innerHTML = 'حفظ'; document.getElementById('msgTxt').focus(); }
+
+    async function deleteForEveryone(id){ try{ await db.collection('chat_messages').doc(id).update({ deleted: true, deletedBy: me.userCode, deletedAt: firebase.firestore.FieldValue.serverTimestamp() }); // refresh
+        if (selectedUser) { const node = document.querySelector(`.user-item[data-id="${selectedUser.userCode}"]`); if (node) node.click(); }
+      }catch(e){ console.warn('delete failed', e); Swal.fire('خطأ','تعذر الحذف','error'); } }
+
+    function deleteForMe(id){ const set = loadLocalDeleted(); set.add(id); saveLocalDeleted(set); if (selectedUser) { const node = document.querySelector(`.user-item[data-id="${selectedUser.userCode}"]`); if (node) node.click(); } }
+
+    async function startNewChat(){ if (!selectedUser) return Swal.fire('تنبيه','اختر مستخدماً اولا','info');
+      const res = await Swal.fire({ icon:'warning', title:'حذف المحادثة', html:`هل تريد حذف المحادثة مع <b>${escapeForHtml(selectedUser.username||selectedUser.userCode)}</b> نهائياً وبدء محادثة جديدة؟`, showCancelButton:true, confirmButtonText:'نعم احذف وابدأ جديد', cancelButtonText:'إلغاء' });
+      if (!res.isConfirmed) return;
+      try{
+        // delete both directions
+        const q1 = await db.collection('chat_messages').where('from','==', me.userCode).where('to','==', selectedUser.userCode).get();
+        const q2 = await db.collection('chat_messages').where('from','==', selectedUser.userCode).where('to','==', me.userCode).get();
+        const batch = db.batch(); q1.forEach(d=> batch.delete(d.ref)); q2.forEach(d=> batch.delete(d.ref)); await batch.commit();
+        Swal.fire('تم','تم حذف المحادثة. يمكنك الآن بدء محادثة جديدة.','success');
+        // reload conversation view
+        const node = document.querySelector(`.user-item[data-id="${selectedUser.userCode}"]`); if (node) node.click();
+      }catch(e){ console.warn('startNewChat failed', e); Swal.fire('خطأ','تعذر حذف المحادثة','error'); }
+    }
+
+    document.getElementById('cancelReply')?.addEventListener('click', ()=>{ replyTo=null; document.getElementById('replyPreview').style.display='none'; });
+
+    document.getElementById('newChat')?.addEventListener('click', startNewChat);
+
+    function selectUser(u){
+      selectedUser = u;
+      document.getElementById('chatWith').textContent = 'المحادثة مع ' + (u.username||u.userCode);
+      // clear older listeners
+      clearChatListeners();
+
+      // helper: fetch both directions and render sorted (avoid orderBy in realtime listeners)
+      async function refreshConversation(){
+        try{
+          const q1 = await db.collection('chat_messages').where('from','==', me.userCode).where('to','==', u.userCode).get();
+          const q2 = await db.collection('chat_messages').where('from','==', u.userCode).where('to','==', me.userCode).get();
+          const all = [];
+          q1.forEach(d=> all.push(Object.assign({ id:d.id }, d.data())));
+          q2.forEach(d=> all.push(Object.assign({ id:d.id }, d.data())));
+          all.sort((a,b)=>{ const ta = (a.createdAt && a.createdAt.seconds)? a.createdAt.seconds*1000 : 0; const tb = (b.createdAt && b.createdAt.seconds)? b.createdAt.seconds*1000 : 0; return ta - tb; });
+          // normalize and include metadata
+          all.forEach(m=>{ m._createdAt = (m.createdAt && m.createdAt.seconds)? m.createdAt.seconds*1000 : Date.now(); if (m.replyTo && m.replyTo.from && !m.replyTo.fromName){ m.replyTo.fromName = (m.replyTo.from === me.userCode? me.username : m.replyTo.from); } });
+          all.sort((a,b)=> a._createdAt - b._createdAt );
+          renderMessages(all.map(m=>({ id: m.id, from:m.from, text:m.text, createdAt: m._createdAt, replyTo: m.replyTo, edited: m.edited, deleted: m.deleted, deletedBy: m.deletedBy })));
+
+          // mark as read: any messages from the other user that are not read should be marked now
+          try{
+            const batch = db.batch(); let marked = 0;
+            q2.forEach(doc=>{ const d = doc.data(); if (d && d.read !== true){ batch.update(doc.ref, { read: true }); marked++; } });
+            if (marked>0){ try{ await batch.commit(); }catch(e){ console.warn('mark read initial failed', e); } }
+            // UI: hide per-user unread dot immediately
+            try{ const uel = document.getElementById('un-'+u.userCode); if (uel){ uel.style.display = 'none'; uel.textContent = '0'; } }catch(e){}
+            // update global chat badge optimistically
+            try{ const glob = document.querySelector('body > #chatBtn .unread-count'); if (glob && marked>0){ const cur = parseInt(glob.textContent)||0; const next = Math.max(0, cur - marked); glob.textContent = next>99?'99+':String(next); if (next===0) document.getElementById('chatBtn')?.classList.remove('has-unread'); } }catch(e){}
+          }catch(e){ console.warn('mark read failed', e); }
+        }catch(e){ console.warn('refresh failed', e); }
+      }
+
+      // realtime listeners without orderBy — they trigger refresh and mark reads for incoming
+      try{
+        const s1 = db.collection('chat_messages').where('from','==', me.userCode).where('to','==', u.userCode).onSnapshot(()=>{ refreshConversation(); }, e=>console.warn('chat s1', e));
+        chatListeners.push(s1);
+      }catch(e){ console.warn('chat s1 fail', e); }
+
+      try{
+        const s2 = db.collection('chat_messages').where('from','==', u.userCode).where('to','==', me.userCode).onSnapshot(async snap=>{
+          refreshConversation();
+          // mark incoming messages as read when viewed
+          const batch = db.batch(); let hasToUpdate=false;
+          snap.docs.forEach(doc=>{ const data=doc.data(); if (data && data.read !== true){ batch.update(doc.ref, { read: true }); hasToUpdate=true; } });
+          if (hasToUpdate) try{ await batch.commit(); }catch(e){ console.warn('mark read failed', e); }
+        }, e=>console.warn('chat s2', e));
+        chatListeners.push(s2);
+      }catch(e){ console.warn('chat s2 fail', e); }
+
+      // initial load
+      refreshConversation();
+      // when opening this conversation, clear any pending highlight for this user
+      try{ if (pendingHighlights.has(u.userCode)){ pendingHighlights.delete(u.userCode); savePending(); const uel = document.getElementById('un-'+u.userCode); if (uel){ uel.style.display='none'; uel.classList.remove('persistent'); uel.textContent='0'; } const item = document.querySelector(`.user-item[data-id="${u.userCode}"]`); if (item) item.classList.remove('persistent'); } }catch(e){}
+      // close mobile sidebar if open (user tapped a contact)
+      try{ if (document.body.classList.contains('simulate-mobile')){ document.body.classList.remove('show-sidebar'); const ov = document.getElementById('mobileOverlay'); if (ov) ov.style.display='none'; } }catch(e){}
+    }
+
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      const u = await ensureUser(); if (!u) return Swal.fire('خطأ','لم يتم تعريف اسم المستخدم','error'); me = u;
+      // show current user's name below the page title
+      try{ const cu = document.getElementById('currentUser'); if (cu) cu.textContent = 'أنت: ' + (me.username || me.userCode); }catch(e){}
+      document.getElementById('backToMain').addEventListener('click', ()=> location.href='main.html');
+
+      // wire send and keyboard behavior
+      async function sendMessage(){ if (!selectedUser) return Swal.fire('تنبيه','اختر مستخدماً اولا','info');
+        const ta = document.getElementById('msgTxt'); const txt = ta.value.trim();
+        if (!txt && !replyTo) return;
+        if (editingMessageId){
+          try{ await db.collection('chat_messages').doc(editingMessageId).update({ text: txt, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() }); editingMessageId=null; document.getElementById('sendMsg').innerHTML = '📩<span class="sr-only">إرسال</span>'; ta.value=''; return; }catch(e){ console.warn('edit failed', e); Swal.fire('خطأ','تعذر تعديل الرسالة','error'); return; }
+        }
+        const payload = { from: me.userCode, to: selectedUser.userCode, text: txt, createdAt: firebase.firestore.FieldValue.serverTimestamp(), read:false };
+        if (replyTo) payload.replyTo = { id: replyTo.id, from: replyTo.from, text: replyTo.text, fromName: replyTo.fromName };
+        try{ await db.collection('chat_messages').add(payload); ta.value=''; replyTo=null; document.getElementById('replyPreview').style.display='none'; }catch(e){ console.error('send failed', e); Swal.fire('خطأ','تعذر إرسال الرسالة','error'); }
+      }
+
+      document.getElementById('sendMsg').addEventListener('click', sendMessage);
+      document.getElementById('msgTxt').addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+      });
+
+      document.getElementById('newChat')?.addEventListener('click', startNewChat);
+
+      // Toggle mobile simulation mode
+      const toggleBtn = document.getElementById('toggleMobileView');
+      function setMobileMode(on){
+        if (!toggleBtn) return;
+        if (on){ document.body.classList.add('simulate-mobile'); toggleBtn.setAttribute('aria-pressed','true'); toggleBtn.classList.add('active');
+          // show users toggle when mobile simulation is active
+          try{ document.getElementById('toggleUsers').style.display = 'inline-flex'; }catch(e){}
+        }
+        else { document.body.classList.remove('simulate-mobile'); toggleBtn.setAttribute('aria-pressed','false'); toggleBtn.classList.remove('active');
+          try{ document.getElementById('toggleUsers').style.display = 'none'; }catch(e){}
+        }
+        try{ localStorage.setItem('simulateMobile', on ? '1' : '0'); }catch(e){}
+      }
+      if (toggleBtn){
+        toggleBtn.addEventListener('click', ()=> setMobileMode(!document.body.classList.contains('simulate-mobile')));
+        // initialize from preference
+        setMobileMode(localStorage.getItem('simulateMobile') === '1');
+      }
+
+      // mobile users list toggle + overlay
+      const toggleUsers = document.getElementById('toggleUsers');
+      const overlay = document.getElementById('mobileOverlay');
+      if (toggleUsers && overlay){
+        toggleUsers.addEventListener('click', ()=>{
+          const show = !document.body.classList.contains('show-sidebar');
+          if (show){ document.body.classList.add('show-sidebar'); overlay.style.display='block'; overlay.setAttribute('aria-hidden','false'); }
+          else { document.body.classList.remove('show-sidebar'); overlay.style.display='none'; overlay.setAttribute('aria-hidden','true'); }
+        });
+        overlay.addEventListener('click', ()=>{ document.body.classList.remove('show-sidebar'); overlay.style.display='none'; overlay.setAttribute('aria-hidden','true'); });
+      }
+
+      // search
+      document.getElementById('userSearch').addEventListener('input',(e)=>{
+        const q = e.target.value.toLowerCase(); document.querySelectorAll('.user-item').forEach(it=>{ const name = it.querySelector('.name')?.textContent?.toLowerCase()||''; it.style.display = name.includes(q)?'flex':'none'; });
+      });
+
+      // show existing user list
+      loadUsers();
+
+      // try auto-select user from URL (?with=USERCODE)
+      (function trySelectFromParam(){ const params = new URLSearchParams(location.search); const target = params.get('with'); if (!target) return; let attempts = 0; const t = setInterval(()=>{ attempts++; const node = document.querySelector(`.user-item[data-id="${target}"]`); if (node){ node.click(); node.scrollIntoView({ behavior:'smooth', block:'center' }); clearInterval(t); } if (attempts>30) clearInterval(t); }, 300); })();
+
+      // global unread badge on main chat button - if present
+      try{ db.collection('chat_messages').where('to','==', me.userCode).where('read','==', false).onSnapshot(snap=>{ const el = document.querySelector('body > #chatBtn .unread-count'); if (el) { el.textContent = snap.size>99?'99+':String(snap.size); if (snap.size>0) document.getElementById('chatBtn')?.classList.add('has-unread'); else document.getElementById('chatBtn')?.classList.remove('has-unread'); } }); }catch(e){ /* ignore */ }
+
+      // clean up on unload
+      window.addEventListener('beforeunload', ()=>{ if (usersListener) try{ usersListener(); }catch(e){}; detachAllUnread(); clearChatListeners(); });
+    });
+  </script>
+</body>
+</html>

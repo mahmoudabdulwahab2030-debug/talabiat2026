@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>الأصناف - المولد النبوي</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="moled.css" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page-bg: #12131b;
+      --card-bg: rgba(18,20,30,0.92);
+      --panel-bg: rgba(25,28,40,0.96);
+      --border: rgba(255,255,255,0.08);
+      --text: #eceff4;
+      --muted: #b9bbc8;
+      --accent: #ff6b7a;
+      --accent-strong: #ff2a4d;
+      --surface: rgba(255,255,255,0.04);
+      --shadow: 0 24px 80px rgba(0,0,0,0.35);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Almarai', 'Cairo', Arial, sans-serif;
+      background: radial-gradient(circle at top left, rgba(255,107,122,0.12), transparent 20%),
+                  radial-gradient(circle at bottom right, rgba(255,42,77,0.14), transparent 18%),
+                  linear-gradient(180deg, #14151d 0%, #10121a 55%, #0b0d14 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      direction: rtl;
+      text-align: center;
+    }
+
+    .page-card {
+      width: 100%;
+      max-width: 920px;
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+    }
+
+    .page-header {
+      padding: 36px 36px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: clamp(2rem, 2.3vw, 2.5rem);
+      letter-spacing: 0.04em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 1rem;
+      max-width: 760px;
+      margin-inline: auto;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      padding: 24px 36px 12px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 22px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+      min-width: 180px;
+      backdrop-filter: blur(8px);
+    }
+
+    .button:hover {
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(0,0,0,0.18);
+    }
+
+    .panel {
+      display: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 260ms ease, padding 260ms ease;
+      padding: 0 36px;
+      background: var(--panel-bg);
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .panel.open {
+      display: block;
+      max-height: 80vh;
+      padding: 28px 36px 36px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .panel.open::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .panel.open::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+    }
+
+    .panel.open::-webkit-scrollbar-thumb {
+      background: rgba(255,107,122,0.4);
+      border-radius: 4px;
+    }
+
+    .panel.open::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,107,122,0.6);
+    }
+
+    .sections-panel-body {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .section-card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+      flex: 1 1 260px;
+      min-width: 220px;
+    }
+
+    .section-items-panel {
+      flex: 2 1 420px;
+      min-width: 320px;
+      margin-top: 0;
+    }
+
+    .section-card {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      padding: 16px 18px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      font-weight: 700;
+      text-align: center;
+      min-height: 72px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-card:hover,
+    .section-card.active {
+      border-color: rgba(255,107,122,0.8);
+      box-shadow: 0 12px 30px rgba(255,42,77,0.16);
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .section-items-panel {
+      margin-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 24px;
+      text-align: right;
+    }
+
+    .section-items-panel h2 {
+      margin: 0 0 18px;
+      color: var(--accent);
+      font-size: 1.25rem;
+    }
+
+    .section-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.04);
+      overflow: hidden;
+      border-radius: 18px;
+    }
+
+    .section-table th,
+    .section-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .section-table th {
+      background: rgba(255,255,255,0.06);
+      color: #ffd4a6;
+      font-weight: 700;
+    }
+
+    .section-table tbody tr:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .section-table td {
+      color: var(--muted);
+    }
+
+    .section-empty {
+      padding: 20px 16px;
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+      margin-top: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .form-tabs {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      margin: 18px 0 8px;
+      flex-wrap: wrap;
+    }
+
+    .form-tab {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 700;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .form-tab.active {
+      background: linear-gradient(180deg, rgba(255,107,122,0.2), rgba(255,42,77,0.16));
+      border-color: rgba(255,107,122,0.5);
+      color: #fff;
+    }
+
+    .tab-panel,
+    .materials-tab-panel {
+      display: none;
+      animation: fadeInPanel 220ms ease;
+    }
+
+    .tab-panel.active,
+    .materials-tab-panel.active {
+      display: block;
+    }
+
+    .excel-upload-box {
+      margin-top: 14px;
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .excel-note {
+      color: var(--muted);
+      margin-bottom: 18px;
+      line-height: 1.8;
+      font-size: 0.96rem;
+      text-align: right;
+    }
+
+    .file-input-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+
+    .excel-file-name {
+      color: var(--text);
+      font-size: 0.95rem;
+      min-height: 1.2em;
+      margin-bottom: 12px;
+    }
+
+    .excel-status {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+
+    @keyframes fadeInPanel {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ffd4a6;
+      font-weight: 700;
+      text-align: right;
+      letter-spacing: 0.01em;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      color: var(--text);
+      padding: 14px 16px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+      min-height: 52px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.25) 50%), linear-gradient(135deg, rgba(255,255,255,0.25) 50%, transparent 50%);
+      background-position: calc(100% - 22px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px);
+      background-size: 8px 8px, 8px 8px;
+      background-repeat: no-repeat;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(255,107,122,0.9);
+      box-shadow: 0 0 0 6px rgba(255,42,77,0.12);
+      transform: translateY(-1px);
+    }
+
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+
+    .form-actions {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .save-btn {
+      min-width: 200px;
+      border: none;
+      color: #fff;
+      background: linear-gradient(180deg, #ff6b7a 0%, #ff2a4d 100%);
+      box-shadow: 0 18px 36px rgba(255,42,77,0.24);
+    }
+
+    .save-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 48px rgba(255,42,77,0.28);
+    }
+
+    .status {
+      margin-top: 18px;
+      color: var(--muted);
+      min-height: 1.5em;
+      font-weight: 600;
+    }
+
+    .status.success { color: #8cf28c; }
+    .status.error { color: #ff8c8c; }
+
+    .note {
+      color: #9fa4b1;
+      font-size: 0.95rem;
+      text-align: center;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    .materials-table-wrapper {
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .materials-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .materials-table th,
+    .materials-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: right;
+      font-size: 0.85rem;
+    }
+
+    .materials-table th {
+      background: rgba(255,255,255,0.06);
+      color: #ffd4a6;
+      font-weight: 700;
+    }
+
+    .materials-table tbody tr:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .materials-table td {
+      color: var(--muted);
+    }
+
+    .materials-table input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      outline: none;
+      font-family: 'Almarai', 'Cairo', Arial, sans-serif;
+    }
+
+    .materials-table input:focus {
+      border-color: rgba(255,107,122,0.9);
+      box-shadow: 0 0 0 4px rgba(255,42,77,0.1);
+    }
+
+    .button-small {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,107,122,0.5);
+      background: rgba(255,107,122,0.1);
+      color: #ff6b7a;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 180ms ease, transform 180ms ease;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .button-small:hover {
+      background: rgba(255,107,122,0.15);
+      transform: translateY(-1px);
+    }
+
+    .delete-material-btn {
+      padding: 4px 12px;
+      border: 1px solid rgba(255,100,100,0.5);
+      background: rgba(255,100,100,0.1);
+      color: #ff6464;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 180ms ease;
+    }
+
+    .delete-material-btn:hover {
+      background: rgba(255,100,100,0.15);
+    }
+
+    .materials-panel-body {
+      padding: 0;
+    }
+
+    .materials-display-wrapper {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .materials-display-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.04);
+      font-size: 0.9rem;
+    }
+
+    .materials-display-table th,
+    .materials-display-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: right;
+    }
+
+    .materials-display-table th {
+      background: rgba(255,255,255,0.06);
+      color: #ffd4a6;
+      font-weight: 700;
+    }
+
+    .materials-display-table tbody tr:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .materials-display-table td {
+      color: var(--muted);
+    }
+
+    .show-items-btn {
+      padding: 6px 12px;
+      border: 1px solid rgba(255,107,122,0.5);
+      background: rgba(255,107,122,0.1);
+      color: #ff6b7a;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 180ms ease;
+    }
+
+    .show-items-btn:hover {
+      background: rgba(255,107,122,0.15);
+    }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      box-sizing: border-box;
+      direction: rtl;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      color: var(--accent);
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 180ms ease;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      color: var(--accent);
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .item-tag {
+      padding: 10px 14px;
+      background: rgba(255,107,122,0.1);
+      border: 1px solid rgba(255,107,122,0.3);
+      border-radius: 12px;
+      color: var(--text);
+      font-weight: 600;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 180ms ease, border-color 180ms ease;
+      white-space: nowrap;
+    }
+
+    .edit-item-btn {
+      background: rgba(100,200,255,0.1);
+      color: #64c8ff;
+      border-color: rgba(100,200,255,0.3);
+    }
+
+    .edit-item-btn:hover {
+      background: rgba(100,200,255,0.15);
+      border-color: rgba(100,200,255,0.5);
+    }
+
+    .delete-item-btn {
+      background: rgba(255,100,100,0.1);
+      color: #ff6464;
+      border-color: rgba(255,100,100,0.3);
+    }
+
+    .delete-item-btn:hover {
+      background: rgba(255,100,100,0.15);
+      border-color: rgba(255,100,100,0.5);
+    }
+
+    .materials-picker-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .material-picker-item {
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,107,122,0.3);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+      text-align: center;
+    }
+
+    .material-picker-item:hover {
+      background: rgba(255,107,122,0.15);
+      border-color: rgba(255,107,122,0.6);
+      transform: translateY(-2px);
+    }
+
+    .material-picker-item .code {
+      display: block;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .material-picker-item .name {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 780px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .controls { padding: 20px 24px 12px; }
+      .page-header { padding: 28px 24px 18px; }
+      .panel { padding: 0 24px; }
+      .panel.open { padding: 24px 24px 32px; overflow-y: auto; }
+      .button { min-width: 140px; }
+
+      .modal {
+        padding: 12px;
+      }
+
+      .modal-content {
+        max-height: 90vh;
+      }
+
+      .modal-header {
+        padding: 16px 20px;
+      }
+
+      .modal-header h2 {
+        font-size: 1.1rem;
+      }
+
+      .modal-body {
+        padding: 16px 20px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 20px; }
+      .page-card { border-radius: 18px; }
+      .page-header { padding: 24px 20px 16px; }
+      .panel.open { padding: 20px 20px 28px; overflow-y: auto; }
+      input, textarea { padding: 14px 14px; }
+
+      .modal {
+        padding: 10px;
+      }
+
+      .modal-content {
+        border-radius: 16px;
+      }
+
+      .modal-header {
+        padding: 14px 16px;
+      }
+
+      .modal-header h2 {
+        font-size: 1rem;
+      }
+
+      .modal-close {
+        width: 28px;
+        height: 28px;
+        font-size: 1.2rem;
+      }
+
+      .modal-body {
+        padding: 14px 16px;
+        max-height: calc(80vh - 50px);
+      }
+
+      .item-tag {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+
+      .materials-display-table th,
+      .materials-display-table td {
+        padding: 8px 10px;
+        font-size: 0.75rem;
+      }
+
+      .show-items-btn {
+        padding: 5px 10px;
+        font-size: 0.7rem;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .action-btn {
+        padding: 5px 10px;
+        font-size: 0.7rem;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-card">
+    <div class="page-header">
+      <h1>الأصناف - المولد النبوي</h1>
+      <p>مشروع متابعة موسم المولد النبوي الشريف.</p>
+    </div>
+
+    <div class="controls">
+      <button id="openFormBtn" class="button" type="button">إضافة صنف</button>
+      <button id="openSectionsBtn" class="button" type="button">عرض الأقسام</button>
+      <button id="openMaterialsBtn" class="button" type="button">الخامات</button>
+    </div>
+
+    <div id="sectionsPanel" class="panel" aria-hidden="true">
+      <div class="sections-panel-body">
+        <div class="section-card-list">
+          <button type="button" class="section-card" data-section="قسم اللبناني">قسم اللبناني</button>
+          <button type="button" class="section-card" data-section="قسم الملبن">قسم الملبن</button>
+          <button type="button" class="section-card" data-section="قسم البسيمة">قسم البسيمة</button>
+          <button type="button" class="section-card" data-section="قسم الارش">قسم الارش</button>
+          <button type="button" class="section-card" data-section="قسم العلف">قسم العلف</button>
+        </div>
+        <div id="sectionItemsPanel" class="section-items-panel" aria-live="polite">
+          <h2 id="sectionItemsTitle">اختر قسمًا لعرض الأصناف</h2>
+          <div id="sectionTableContainer" class="section-empty">سيتم عرض الأصناف المختارة هنا.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="itemFormPanel" class="panel" aria-hidden="true">
+      <div class="form-tabs">
+        <button type="button" id="manualTabBtn" class="form-tab active">إدخال يدوي</button>
+        <button type="button" id="excelTabBtn" class="form-tab">استيراد من Excel</button>
+      </div>
+
+      <div id="manualEntryPanel" class="tab-panel active">
+        <form id="itemForm" autocomplete="off">
+          <div class="form-grid">
+            <div>
+              <label for="itemSection">القسم</label>
+              <select id="itemSection" name="itemSection" required>
+                <option value="">اختر القسم</option>
+                <option value="قسم اللبناني">قسم اللبناني</option>
+                <option value="قسم الملبن">قسم الملبن</option>
+                <option value="قسم البسيمة">قسم البسيمة</option>
+                <option value="قسم الارش">قسم الارش</option>
+                <option value="قسم العلف">قسم العلف</option>
+              </select>
+            </div>
+            <div>
+              <label for="itemCode">كود الصنف</label>
+              <input id="itemCode" name="itemCode" type="text" placeholder="مثال: 12345" required />
+              <p id="codeHint" class="note">اختر القسم أولاً لاقتراح الكود التالي تلقائياً.</p>
+            </div>
+            <div>
+              <label for="itemName">اسم الصنف</label>
+              <input id="itemName" name="itemName" type="text" placeholder="مثال: جبنة قريش" required />
+            </div>
+            <div>
+              <label for="itemWeight">وزن المنتج أثناء التعبئة</label>
+              <input id="itemWeight" name="itemWeight" type="text" placeholder="مثال: 1 كجم" required />
+            </div>
+            <div>
+              <label for="productYield">كمية العائد من التصنيع</label>
+              <input id="productYield" name="productYield" type="text" placeholder="مثال: 1000 غرام" required />
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <label>خامات ومكونات التصنيع</label>
+              <div class="materials-table-wrapper">
+                <table class="materials-table">
+                  <thead>
+                    <tr>
+                      <th>كود الخامة</th>
+                      <th>اسم الخامة</th>
+                      <th>الكمية</th>
+                      <th>الإجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody id="materialsTableBody">
+                  </tbody>
+                </table>
+                <button type="button" class="button-small" id="addMaterialBtn">+ إضافة خامة</button>
+              </div>
+            </div>
+            <div>
+              <label for="itemNotes">ملاحظات</label>
+              <textarea id="itemNotes" name="itemNotes" placeholder="إضافة ملاحظات إضافية هنا..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="button" type="button" id="queryBtn">استعلام</button>
+            <button class="button save-btn" type="submit">حفظ الصنف</button>
+          </div>
+          <div id="formStatus" class="status"></div>
+          <div class="note">سيتم حفظ البيانات في مجموعة Firestore باسم <strong>moled-items</strong>.</div>
+        </form>
+      </div>
+
+      <div id="excelEntryPanel" class="tab-panel">
+        <div class="excel-upload-box">
+          <p class="excel-note">يمكنك تحميل نموذج Excel جاهز ثم تعبئة الصفوف بالمعلومات الأساسية فقط: القسم، الصنف، كود الصنف، الوزن. إذا كان الملف يحتوي فقط على هذه الأعمدة الأربع، فسيتم قبوله وتسجيل البيانات، ويمكن إضافة باقي التفاصيل يدويًا لاحقًا.</p>
+          <div class="file-input-wrapper">
+            <button type="button" class="button" id="downloadExcelTemplateBtn">تحميل نموذج Excel</button>
+            <label for="excelFileInput" class="button">اختر ملف Excel</label>
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls" />
+          </div>
+          <div id="selectedFileName" class="excel-file-name">لم يتم اختيار ملف بعد.</div>
+          <div class="form-actions" style="justify-content: flex-start;">
+            <button type="button" id="importExcelBtn" class="button primary">استيراد من Excel</button>
+          </div>
+          <div id="excelUploadStatus" class="excel-status">يمكنك اختيار ملف Excel ثم الضغط على زر الاستيراد.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="materialsPanel" class="panel" aria-hidden="true" style="display: none;">
+      <div class="materials-panel-body">
+        <h2 style="margin: 0 0 16px; color: var(--accent); font-size: 1.25rem; font-weight: 700;">الخامات والمكونات</h2>
+        <div class="form-tabs materials-panel-tabs" style="margin-bottom: 24px;">
+          <button type="button" id="materialsViewTabBtn" class="form-tab active">عرض الخامات</button>
+          <button type="button" id="materialsExcelTabBtn" class="form-tab">استيراد من Excel</button>
+        </div>
+
+        <div id="materialsDisplayTab" class="materials-tab-panel active">
+          <div id="materialsTableContainer" class="materials-display-wrapper">
+            <table class="materials-display-table">
+              <thead>
+                <tr>
+                  <th>كود الخامة</th>
+                  <th>اسم الخامة</th>
+                  <th>عدد الأصناف</th>
+                  <th>الإجراء</th>
+                </tr>
+              </thead>
+              <tbody id="materialsDisplayBody">
+                <tr><td colspan="4" style="text-align: center; padding: 20px;">جاري تحميل البيانات...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="materialsExcelTab" class="materials-tab-panel">
+          <div class="excel-upload-box">
+            <p class="excel-note">يمكنك استيراد خامات جديدة من ملف Excel يحتوي على عمودين فقط: <strong>كود الخامة</strong> و <strong>الخامة</strong>. يُستخدم عدد الأصناف لاحقًا عند إضافة الخامة في تكوين صنف من تاب "إضافة صنف".</p>
+            <div class="file-input-wrapper">
+              <button type="button" class="button" id="downloadMaterialsExcelTemplateBtn">تحميل نموذج خامات</button>
+              <label for="materialsExcelFileInput" class="button">اختر ملف Excel</label>
+              <input type="file" id="materialsExcelFileInput" accept=".xlsx,.xls" />
+            </div>
+            <div id="materialsSelectedFileName" class="excel-file-name">لم يتم اختيار ملف بعد.</div>
+            <div class="form-actions" style="justify-content: flex-start;">
+              <button type="button" id="importMaterialsExcelBtn" class="button primary">استيراد الخامات من Excel</button>
+            </div>
+            <div id="materialsExcelUploadStatus" class="excel-status">اختر ملف Excel ثم اضغط استيراد.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal لاختيار الخامات -->
+    <div id="materialsPickerModal" class="modal" style="display: none;">
+      <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+          <h2 id="pickerModalTitle">اختر خامة</h2>
+          <button type="button" class="modal-close" id="closePickerModalBtn">✕</button>
+        </div>
+        <div id="pickerModalBody" class="modal-body">
+          <div id="materialsPickerList" class="materials-picker-list"></div>
+          <button type="button" class="button-small" id="createNewMaterialBtn" style="margin-top: 16px;">+ إنشاء خامة جديدة</button>
+          
+          <div id="newMaterialForm" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label style="display: block; margin-bottom: 6px; color: #ffd4a6; font-weight: 700; font-size: 0.85rem;">كود الخامة</label>
+                <input id="newMaterialCode" type="text" placeholder="مثال: M001" style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: var(--text); padding: 10px 12px; font-size: 0.9rem; font-family: 'Almarai', 'Cairo', Arial, sans-serif; outline: none; min-height: 40px;" />
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 6px; color: #ffd4a6; font-weight: 700; font-size: 0.85rem;">اسم الخامة</label>
+                <input id="newMaterialName" type="text" placeholder="مثال: سكر أبيض" style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: var(--text); padding: 10px 12px; font-size: 0.9rem; font-family: 'Almarai', 'Cairo', Arial, sans-serif; outline: none; min-height: 40px;" />
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button type="button" class="button" id="saveMaterialBtn" style="flex: 1;">حفظ الخامة</button>
+              <button type="button" class="button" id="cancelMaterialBtn" style="flex: 1; background: rgba(255,100,100,0.1); color: #ff6464; border-color: rgba(255,100,100,0.3);">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal لعرض الأصناف -->
+    <div id="itemsModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">الأصناف</h2>
+          <button type="button" class="modal-close" id="closeModalBtn">✕</button>
+        </div>
+        <div id="modalBody" class="modal-body">
+          <p style="text-align: center; color: var(--muted);">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const ITEM_COLLECTION = 'moled-items';
+
+    const openFormBtn = document.getElementById('openFormBtn');
+    const openSectionsBtn = document.getElementById('openSectionsBtn');
+    const openMaterialsBtn = document.getElementById('openMaterialsBtn');
+    const sectionsPanel = document.getElementById('sectionsPanel');
+    const materialsPanel = document.getElementById('materialsPanel');
+    const itemsModal = document.getElementById('itemsModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const materialsDisplayBody = document.getElementById('materialsDisplayBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    // متغيرات لـ Materials Picker
+    const materialsPickerModal = document.getElementById('materialsPickerModal');
+    const closePickerModalBtn = document.getElementById('closePickerModalBtn');
+    const materialsPickerList = document.getElementById('materialsPickerList');
+    const createNewMaterialBtn = document.getElementById('createNewMaterialBtn');
+    const newMaterialForm = document.getElementById('newMaterialForm');
+    const newMaterialCode = document.getElementById('newMaterialCode');
+    const newMaterialName = document.getElementById('newMaterialName');
+    const saveMaterialBtn = document.getElementById('saveMaterialBtn');
+    const cancelMaterialBtn = document.getElementById('cancelMaterialBtn');
+
+    let currentMaterialInputRow = null;
+    const sectionItemsPanel = document.getElementById('sectionItemsPanel');
+    const sectionItemsTitle = document.getElementById('sectionItemsTitle');
+    const sectionTableContainer = document.getElementById('sectionTableContainer');
+    const itemFormPanel = document.getElementById('itemFormPanel');
+    const itemForm = document.getElementById('itemForm');
+    const formStatus = document.getElementById('formStatus');
+    const sectionSelect = document.getElementById('itemSection');
+    const itemCodeInput = document.getElementById('itemCode');
+    const codeHint = document.getElementById('codeHint');
+    const queryBtn = document.getElementById('queryBtn');
+    const addMaterialBtn = document.getElementById('addMaterialBtn');
+    const materialsTableBody = document.getElementById('materialsTableBody');
+    const manualTabBtn = document.getElementById('manualTabBtn');
+    const excelTabBtn = document.getElementById('excelTabBtn');
+    const manualEntryPanel = document.getElementById('manualEntryPanel');
+    const excelEntryPanel = document.getElementById('excelEntryPanel');
+    const downloadExcelTemplateBtn = document.getElementById('downloadExcelTemplateBtn');
+    const excelFileInput = document.getElementById('excelFileInput');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const importExcelBtn = document.getElementById('importExcelBtn');
+    const excelUploadStatus = document.getElementById('excelUploadStatus');
+    const downloadMaterialsExcelTemplateBtn = document.getElementById('downloadMaterialsExcelTemplateBtn');
+    const materialsExcelFileInput = document.getElementById('materialsExcelFileInput');
+    const materialsSelectedFileName = document.getElementById('materialsSelectedFileName');
+    const importMaterialsExcelBtn = document.getElementById('importMaterialsExcelBtn');
+    const materialsExcelUploadStatus = document.getElementById('materialsExcelUploadStatus');
+    const materialsViewTabBtn = document.getElementById('materialsViewTabBtn');
+    const materialsExcelTabBtn = document.getElementById('materialsExcelTabBtn');
+    const materialsDisplayTab = document.getElementById('materialsDisplayTab');
+    const materialsExcelTab = document.getElementById('materialsExcelTab');
+
+    function selectFormTab(tab) {
+      const isManual = tab === 'manual';
+      manualTabBtn.classList.toggle('active', isManual);
+      excelTabBtn.classList.toggle('active', !isManual);
+      manualEntryPanel.classList.toggle('active', isManual);
+      excelEntryPanel.classList.toggle('active', !isManual);
+    }
+
+    function setExcelStatus(message, level = 'info') {
+      excelUploadStatus.textContent = message;
+      excelUploadStatus.style.color = level === 'error' ? '#ff8c8c' : '#cfe3ff';
+      excelUploadStatus.style.background = level === 'error' ? 'rgba(255,72,72,0.08)' : 'rgba(72,142,255,0.08)';
+      excelUploadStatus.style.borderColor = level === 'error' ? 'rgba(255,72,72,0.14)' : 'rgba(72,142,255,0.14)';
+    }
+
+    function normalizeHeader(header) {
+      return String(header || '').trim().replace(/[_\s]+/g, '').toLowerCase();
+    }
+
+    function getExcelValue(row, keys) {
+      for (const key of keys) {
+        const normalizedKey = normalizeHeader(key);
+        for (const actualKey of Object.keys(row)) {
+          if (normalizeHeader(actualKey) === normalizedKey) {
+            const value = row[actualKey];
+            if (value !== undefined && value !== null && String(value).trim() !== '') {
+              return String(value).trim();
+            }
+          }
+        }
+      }
+      return '';
+    }
+
+    function buildItemFromRow(row, rowIndex) {
+      const itemSection = getExcelValue(row, ['القسم', 'section']);
+      const itemCode = getExcelValue(row, ['كود الصنف', 'كودالصنف', 'code', 'الكود']);
+      const itemName = getExcelValue(row, ['الصنف', 'name']);
+      const itemWeight = getExcelValue(row, ['الوزن', 'weight']);
+      const productYield = getExcelValue(row, ['العائد', 'yield', 'quantity']);
+      const itemNotes = getExcelValue(row, ['ملاحظات', 'notes']);
+      if (!itemSection || !itemCode || !itemName || !itemWeight) {
+        return { error: `السطر ${rowIndex + 2}: البيانات الأساسية مفقودة (القسم، كود الصنف، الصنف أو الوزن).` };
+      }
+
+      const materials = [];
+      for (let index = 1; index <= 5; index++) {
+        const materialCode = getExcelValue(row, [`كود الخامة ${index}`, `كود_الخامة_${index}`, `material${index}_code`]);
+        const materialName = getExcelValue(row, [`اسم الخامة ${index}`, `اسم_الخامة_${index}`, `material${index}_name`]);
+        const materialQuantity = getExcelValue(row, [`كمية الخامة ${index}`, `كمية_الخامة_${index}`, `material${index}_quantity`]);
+        if (materialCode || materialName || materialQuantity) {
+          materials.push({ code: materialCode, name: materialName, quantity: materialQuantity });
+        }
+      }
+
+      return {
+        section: itemSection,
+        code: itemCode,
+        name: itemName,
+        weight: itemWeight,
+        yield: productYield,
+        notes: itemNotes,
+        materials,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        source: 'moled'
+      };
+    }
+
+    function readExcelFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            resolve(workbook);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function downloadExcelTemplate() {
+      const template = [
+        ['القسم', 'الصنف', 'كود الصنف', 'الوزن'],
+        ['قسم اللبناني', 'جبنة قريش', '12345', '1 كجم']
+      ];
+      const worksheet = XLSX.utils.aoa_to_sheet(template);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'نموذج الإدخال');
+      XLSX.writeFile(workbook, 'moled-items-template.xlsx');
+    }
+
+    async function itemExists(section, code) {
+      const query = await db.collection(ITEM_COLLECTION)
+        .where('section', '==', section)
+        .where('code', '==', code)
+        .limit(1)
+        .get();
+      return !query.empty;
+    }
+
+    async function importExcelFile() {
+      const file = excelFileInput.files[0];
+      if (!file) {
+        setExcelStatus('يرجى اختيار ملف Excel أولاً.', 'error');
+        return;
+      }
+
+      setExcelStatus('جاري قراءة الملف... انتظر قليلاً.');
+      try {
+        const workbook = await readExcelFile(file);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+        if (!rows.length) {
+          setExcelStatus('الملف لا يحتوي على أي صفوف بيانات.', 'error');
+          return;
+        }
+
+        const results = [];
+        for (let i = 0; i < rows.length; i++) {
+          const item = buildItemFromRow(rows[i], i);
+          if (item.error) {
+            results.push({ status: 'skip', message: item.error });
+          } else {
+            results.push({ status: 'ok', item });
+          }
+        }
+
+        const validItems = results.filter(r => r.status === 'ok').map(r => r.item);
+        const skipped = results.filter(r => r.status === 'skip');
+
+        if (!validItems.length) {
+          setExcelStatus(`لم يتم العثور على بيانات صالحة للاستيراد. ${skipped.length} صفوف تم تجاهلها.`,'error');
+          return;
+        }
+
+        const savedItems = [];
+        const warnings = [];
+
+        for (let index = 0; index < validItems.length; index++) {
+          const current = validItems[index];
+          if (await itemExists(current.section, current.code)) {
+            warnings.push(`السطر ${index + 2}: الكود ${current.code} موجود بالفعل في القسم ${current.section}.`);
+            continue;
+          }
+          await db.collection(ITEM_COLLECTION).add(current);
+          savedItems.push(current);
+        }
+
+        let message = `تم استيراد ${savedItems.length} عنصر${savedItems.length === 1 ? '' : 'اً'} بنجاح.`;
+        if (skipped.length) {
+          message += ` تم تجاهل ${skipped.length} صف${skipped.length === 1 ? '' : 'وف'} بسبب بيانات ناقصة.`;
+        }
+        if (warnings.length) {
+          message += ` ${warnings.length} صف${warnings.length === 1 ? '' : 'وف'} تم تخطيها لأنها موجودة بالفعل.`;
+        }
+
+        setExcelStatus(message, savedItems.length ? 'success' : 'error');
+      } catch (error) {
+        console.error('Excel import failed:', error);
+        setExcelStatus('فشل قراءة ملف Excel أو معالجة البيانات. تأكد من أن الملف مطابق للنموذج.', 'error');
+      }
+    }
+
+    excelFileInput.addEventListener('change', () => {
+      const file = excelFileInput.files[0];
+      selectedFileName.textContent = file ? `تم اختيار الملف: ${file.name}` : 'لم يتم اختيار ملف بعد.';
+      setExcelStatus('');
+    });
+
+    manualTabBtn.addEventListener('click', () => selectFormTab('manual'));
+    excelTabBtn.addEventListener('click', () => selectFormTab('excel'));
+    downloadExcelTemplateBtn.addEventListener('click', downloadExcelTemplate);
+    importExcelBtn.addEventListener('click', importExcelFile);
+    downloadMaterialsExcelTemplateBtn.addEventListener('click', downloadMaterialsExcelTemplate);
+    importMaterialsExcelBtn.addEventListener('click', importMaterialsExcelFile);
+    materialsViewTabBtn.addEventListener('click', () => selectMaterialsTab('view'));
+    materialsExcelTabBtn.addEventListener('click', () => selectMaterialsTab('excel'));
+
+    materialsExcelFileInput.addEventListener('change', () => {
+      const file = materialsExcelFileInput.files[0];
+      materialsSelectedFileName.textContent = file ? `تم اختيار الملف: ${file.name}` : 'لم يتم اختيار ملف بعد.';
+      setMaterialsExcelStatus('');
+    });
+
+    function setMaterialsExcelStatus(message, level = 'info') {
+      materialsExcelUploadStatus.textContent = message;
+      materialsExcelUploadStatus.style.color = level === 'error' ? '#ff8c8c' : '#cfe3ff';
+      materialsExcelUploadStatus.style.background = level === 'error' ? 'rgba(255,72,72,0.08)' : 'rgba(72,142,255,0.08)';
+      materialsExcelUploadStatus.style.borderColor = level === 'error' ? 'rgba(255,72,72,0.14)' : 'rgba(72,142,255,0.14)';
+    }
+
+    function selectMaterialsTab(tab) {
+      const isView = tab === 'view';
+      materialsViewTabBtn.classList.toggle('active', isView);
+      materialsExcelTabBtn.classList.toggle('active', !isView);
+      materialsDisplayTab.classList.toggle('active', isView);
+      materialsExcelTab.classList.toggle('active', !isView);
+      if (isView) {
+        loadMaterials();
+      }
+    }
+
+    async function materialExists(code) {
+      if (!code) return false;
+      const query = await db.collection('materials')
+        .where('code', '==', code)
+        .limit(1)
+        .get();
+      return !query.empty;
+    }
+
+    function buildMaterialFromRow(row, rowIndex) {
+      const materialCode = getExcelValue(row, ['كود الخامة', 'كود_الخامة', 'material_code', 'code']);
+      const materialName = getExcelValue(row, ['الخامة', 'اسم الخامة', 'material_name', 'name']);
+      if (!materialCode || !materialName) {
+        return { error: `السطر ${rowIndex + 2}: يجب أن يحتوي على كود الخامة واسم الخامة.` };
+      }
+      return {
+        code: materialCode,
+        name: materialName,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        source: 'moled-materials'
+      };
+    }
+
+    async function downloadMaterialsExcelTemplate() {
+      const template = [
+        ['كود الخامة', 'الخامة'],
+        ['M001', 'سكر أبيض']
+      ];
+      const worksheet = XLSX.utils.aoa_to_sheet(template);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'نموذج الخامات');
+      XLSX.writeFile(workbook, 'moled-materials-template.xlsx');
+    }
+
+    async function importMaterialsExcelFile() {
+      const file = materialsExcelFileInput.files[0];
+      if (!file) {
+        setMaterialsExcelStatus('يرجى اختيار ملف Excel أولاً.', 'error');
+        return;
+      }
+
+      setMaterialsExcelStatus('جاري قراءة ملف الخامات... انتظر قليلاً.');
+      try {
+        const workbook = await readExcelFile(file);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+        if (!rows.length) {
+          setMaterialsExcelStatus('الملف لا يحتوي على أي صفوف بيانات.', 'error');
+          return;
+        }
+
+        const results = [];
+        for (let i = 0; i < rows.length; i++) {
+          const material = buildMaterialFromRow(rows[i], i);
+          if (material.error) {
+            results.push({ status: 'skip', message: material.error });
+          } else {
+            results.push({ status: 'ok', material });
+          }
+        }
+
+        const validMaterials = results.filter(r => r.status === 'ok').map(r => r.material);
+        const skipped = results.filter(r => r.status === 'skip');
+
+        if (!validMaterials.length) {
+          setMaterialsExcelStatus(`لم يتم العثور على خامات صالحة للاستيراد. ${skipped.length} صفوف تم تجاهلها.`,'error');
+          return;
+        }
+
+        const savedMaterials = [];
+        const warnings = [];
+
+        for (let index = 0; index < validMaterials.length; index++) {
+          const current = validMaterials[index];
+          if (await materialExists(current.code)) {
+            warnings.push(`السطر ${index + 2}: كود الخامة ${current.code} موجود بالفعل.`);
+            continue;
+          }
+          await db.collection('materials').add(current);
+          savedMaterials.push(current);
+        }
+
+        let message = `تم استيراد ${savedMaterials.length} خامة${savedMaterials.length === 1 ? '' : 'ات'} بنجاح.`;
+        if (skipped.length) {
+          message += ` تم تجاهل ${skipped.length} صف${skipped.length === 1 ? '' : 'وف'} بسبب بيانات ناقصة.`;
+        }
+        if (warnings.length) {
+          message += ` ${warnings.length} صف${warnings.length === 1 ? '' : 'وف'} تم تخطيها لأنها موجودة بالفعل.`;
+        }
+
+        setMaterialsExcelStatus(message, savedMaterials.length ? 'success' : 'error');
+        if (savedMaterials.length) {
+          loadAvailableMaterials();
+          loadMaterials();
+        }
+      } catch (error) {
+        console.error('Material Excel import failed:', error);
+        setMaterialsExcelStatus('فشل قراءة ملف Excel أو معالجة بيانات الخامات. تأكد من تطابق الأعمدة مع النموذج.', 'error');
+      }
+    }
+
+    // إدارة جدول الخامات
+    function addMaterialRow() {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="text" class="material-code" placeholder="مثال: M001" data-shortcut="F1" /></td>
+        <td><input type="text" class="material-name" placeholder="مثال: سكر" data-shortcut="F1" /></td>
+        <td><input type="text" class="material-quantity" placeholder="مثال: 500 غرام" /></td>
+        <td><button type="button" class="delete-material-btn">حذف</button></td>
+      `;
+      
+      const deleteBtn = row.querySelector('.delete-material-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        row.remove();
+      });
+
+      // إضافة F1 shortcut للمدخلات
+      const codeInput = row.querySelector('.material-code');
+      const nameInput = row.querySelector('.material-name');
+
+      codeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'F1') {
+          e.preventDefault();
+          currentMaterialInputRow = row;
+          openMaterialsPicker();
+        }
+      });
+
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'F1') {
+          e.preventDefault();
+          currentMaterialInputRow = row;
+          openMaterialsPicker();
+        }
+      });
+      
+      materialsTableBody.appendChild(row);
+    }
+
+    addMaterialBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      addMaterialRow();
+    });
+
+    function openMaterialsPicker() {
+      materialsPickerList.innerHTML = '<p style="color: var(--muted); text-align: center; width: 100%;">جاري تحميل الخامات...</p>';
+      materialsPickerModal.style.display = 'flex';
+      newMaterialForm.style.display = 'none';
+      newMaterialCode.value = '';
+      newMaterialName.value = '';
+
+      loadAvailableMaterials();
+    }
+
+    function closeMaterialsPicker() {
+      materialsPickerModal.style.display = 'none';
+      currentMaterialInputRow = null;
+    }
+
+    async function loadAvailableMaterials() {
+      try {
+        const snapshot = await db.collection('materials').get();
+        if (snapshot.empty) {
+          materialsPickerList.innerHTML = '<p style="color: var(--muted); text-align: center; width: 100%;">لا توجد خامات مسجلة بعد.</p>';
+          return;
+        }
+
+        materialsPickerList.innerHTML = '';
+        snapshot.docs.forEach(doc => {
+          const material = doc.data();
+          const item = document.createElement('div');
+          item.className = 'material-picker-item';
+          item.innerHTML = `
+            <span class="code">${material.code || ''}</span>
+            <span class="name">${material.name || ''}</span>
+          `;
+
+          item.addEventListener('click', () => {
+            if (currentMaterialInputRow) {
+              currentMaterialInputRow.querySelector('.material-code').value = material.code || '';
+              currentMaterialInputRow.querySelector('.material-name').value = material.name || '';
+            }
+            closeMaterialsPicker();
+          });
+
+          materialsPickerList.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Failed to load available materials:', error);
+        materialsPickerList.innerHTML = '<p style="color: #ff8c8c; text-align: center; width: 100%;">فشل في تحميل الخامات.</p>';
+      }
+    }
+
+    createNewMaterialBtn.addEventListener('click', () => {
+      newMaterialForm.style.display = 'block';
+      newMaterialCode.focus();
+    });
+
+    cancelMaterialBtn.addEventListener('click', () => {
+      newMaterialForm.style.display = 'none';
+      newMaterialCode.value = '';
+      newMaterialName.value = '';
+    });
+
+    saveMaterialBtn.addEventListener('click', async () => {
+      const code = newMaterialCode.value.trim();
+      const name = newMaterialName.value.trim();
+      if (!code || !name) {
+        alert('يرجى إدخال كود واسم الخامة الجديدين.');
+        return;
+      }
+
+      try {
+        await db.collection('materials').add({ code, name });
+        alert('تم إنشاء الخامة بنجاح.');
+        newMaterialForm.style.display = 'none';
+        newMaterialCode.value = '';
+        newMaterialName.value = '';
+        loadAvailableMaterials();
+      } catch (error) {
+        console.error('Failed to save new material:', error);
+        alert('حدث خطأ أثناء حفظ الخامة.');
+      }
+    });
+
+    closePickerModalBtn.addEventListener('click', closeMaterialsPicker);
+    materialsPickerModal.addEventListener('click', (e) => {
+      if (e.target === materialsPickerModal) {
+        closeMaterialsPicker();
+      }
+    });
+
+    function getMaterialsData() {
+      const rows = materialsTableBody.querySelectorAll('tr');
+      return Array.from(rows).map(row => ({
+        code: row.querySelector('.material-code').value,
+        name: row.querySelector('.material-name').value,
+        quantity: row.querySelector('.material-quantity').value
+      }));
+    }
+
+    function setMaterialsData(materials) {
+      materialsTableBody.innerHTML = '';
+      materials.forEach(material => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><input type="text" class="material-code" value="${material.code}" placeholder="مثال: M001" /></td>
+          <td><input type="text" class="material-name" value="${material.name}" placeholder="مثال: سكر" /></td>
+          <td><input type="text" class="material-quantity" value="${material.quantity}" placeholder="مثال: 500 غرام" /></td>
+          <td><button type="button" class="delete-material-btn">حذف</button></td>
+        `;
+        
+        const deleteBtn = row.querySelector('.delete-material-btn');
+        deleteBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          row.remove();
+        });
+
+        // إضافة F1 shortcut للمدخلات
+        const codeInput = row.querySelector('.material-code');
+        const nameInput = row.querySelector('.material-name');
+
+        codeInput.addEventListener('keydown', (e) => {
+          if (e.key === 'F1') {
+            e.preventDefault();
+            currentMaterialInputRow = row;
+            openMaterialsPicker();
+          }
+        });
+
+        nameInput.addEventListener('keydown', (e) => {
+          if (e.key === 'F1') {
+            e.preventDefault();
+            currentMaterialInputRow = row;
+            openMaterialsPicker();
+          }
+        });
+        
+        materialsTableBody.appendChild(row);
+      });
+    }
+
+    function stripItemCodePrefix(value) {
+      let cleaned = String(value || '').trim();
+      if (!cleaned) return '';
+      if (cleaned.toLowerCase().startsWith('moled-')) {
+        cleaned = cleaned.slice(6);
+      }
+      return cleaned;
+    }
+
+    function getNextCodeFromExisting(code) {
+      code = stripItemCodePrefix(code);
+      if (!code) return '';
+      const match = code.match(/(\d+)(?!.*\d)/);
+      if (!match) return '';
+      const currentNumber = match[1];
+      const nextNumber = String(Number(currentNumber) + 1).padStart(currentNumber.length, '0');
+      return code.slice(0, match.index) + nextNumber;
+    }
+
+    async function suggestNextCodeForSection() {
+      const section = String(sectionSelect.value || '').trim();
+      if (!section) {
+        codeHint.textContent = 'اختر القسم أولاً لاقتراح الكود التالي تلقائياً.';
+        return;
+      }
+      if (itemCodeInput.value.trim()) {
+        codeHint.textContent = 'الكود تم إدخاله يدوياً وسيُستخدم كما هو.';
+        return;
+      }
+
+      codeHint.textContent = 'جاري جلب آخر كود مستخدم لهذا القسم...';
+      try {
+        const snapshot = await db.collection(ITEM_COLLECTION)
+          .where('section', '==', section)
+          .get();
+
+        if (!snapshot.empty) {
+          let lastCode = '';
+          let lastCreatedAt = null;
+
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const code = String(data.code || '').trim();
+            const createdAt = data.createdAt ? data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt) : null;
+
+            if (code && createdAt) {
+              if (!lastCreatedAt || createdAt > lastCreatedAt) {
+                lastCreatedAt = createdAt;
+                lastCode = code;
+              }
+            }
+          });
+
+          if (lastCode) {
+            const nextCode = getNextCodeFromExisting(lastCode);
+            const displayLastCode = stripItemCodePrefix(lastCode);
+            if (nextCode) {
+              itemCodeInput.value = nextCode;
+              codeHint.textContent = `الكود التالي المقترح: ${nextCode}`;
+            } else {
+              codeHint.textContent = `آخر كود موجود لهذا القسم هو ${displayLastCode}، الرجاء إدخال الكود يدوياً.`;
+            }
+          } else {
+            codeHint.textContent = 'لا يوجد كود سابق صالح لهذا القسم، الرجاء إدخال الكود يدوياً.';
+          }
+        } else {
+          codeHint.textContent = 'لا يوجد كود سابق لهذا القسم، الرجاء إدخال الكود يدوياً.';
+        }
+      } catch (error) {
+        console.error('Failed to fetch last code:', error);
+        codeHint.textContent = 'حدث خطأ أثناء جلب الكود السابق، حاول مرة أخرى.';
+      }
+    }
+
+    sectionSelect.addEventListener('change', suggestNextCodeForSection);
+
+    openFormBtn.addEventListener('click', () => {
+      const isOpen = itemFormPanel.classList.toggle('open');
+      itemFormPanel.setAttribute('aria-hidden', !isOpen);
+      if (isOpen) {
+        openFormBtn.textContent = 'إغلاق نموذج الإضافة';
+        document.getElementById('itemCode').focus();
+      } else {
+        openFormBtn.textContent = 'إضافة صنف';
+      }
+    });
+
+    openSectionsBtn.addEventListener('click', () => {
+      const isOpen = sectionsPanel.classList.toggle('open');
+      sectionsPanel.setAttribute('aria-hidden', !isOpen);
+      if (isOpen) {
+        openSectionsBtn.textContent = 'إغلاق الأقسام';
+      } else {
+        openSectionsBtn.textContent = 'عرض الأقسام';
+      }
+    });
+
+    // إدارة panel الخامات والـ Modal
+    async function loadMaterials() {
+      materialsDisplayBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">جاري تحميل البيانات...</td></tr>';
+      
+      try {
+        const snapshot = await db.collection(ITEM_COLLECTION).get();
+        
+        // جمع جميع الخامات وحساب عدد الأصناف
+        const materialsMap = new Map();
+        
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.materials && Array.isArray(data.materials)) {
+            data.materials.forEach(material => {
+              const key = material.code + '|' + material.name;
+              if (!materialsMap.has(key)) {
+                materialsMap.set(key, {
+                  code: material.code,
+                  name: material.name,
+                  items: new Set()
+                });
+              }
+              materialsMap.get(key).items.add(data.name);
+            });
+          }
+        });
+        
+        // عرض الخامات في الجدول
+        if (materialsMap.size === 0) {
+          materialsDisplayBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--muted);">لا توجد خامات مسجلة بعد</td></tr>';
+          return;
+        }
+        
+        materialsDisplayBody.innerHTML = '';
+        
+        materialsMap.forEach(material => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${material.code}</td>
+            <td>${material.name}</td>
+            <td style="text-align: center;">${material.items.size}</td>
+            <td>
+              <button type="button" class="show-items-btn" data-material-code="${material.code}" data-material-name="${material.name}">عرض الأصناف</button>
+            </td>
+          `;
+          
+          const showItemsBtn = row.querySelector('.show-items-btn');
+          showItemsBtn.addEventListener('click', () => {
+            showItemsForMaterial(material.code, material.name, Array.from(material.items));
+          });
+          
+          materialsDisplayBody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Failed to load materials:', error);
+        materialsDisplayBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #ff8c8c;">خطأ في تحميل البيانات</td></tr>';
+      }
+    }
+
+    function showItemsForMaterial(materialCode, materialName, items) {
+      modalTitle.textContent = `الأصناف التي تحتوي على: ${materialName} (${materialCode})`;
+      
+      if (items.length === 0) {
+        modalBody.innerHTML = '<p style="text-align: center; color: var(--muted);">لا توجد أصناف تستخدم هذه الخامة</p>';
+      } else {
+        const itemsList = items.map(item => `<div class="item-tag">${item}</div>`).join('');
+        modalBody.innerHTML = `<div class="items-list">${itemsList}</div>`;
+      }
+      
+      itemsModal.style.display = 'flex';
+    }
+
+    openMaterialsBtn.addEventListener('click', () => {
+      const isOpen = materialsPanel.classList.toggle('open');
+      materialsPanel.setAttribute('aria-hidden', !isOpen);
+      materialsPanel.style.display = isOpen ? 'block' : 'none';
+      if (isOpen) {
+        openMaterialsBtn.textContent = 'إغلاق الخامات';
+        selectMaterialsTab('view');
+      } else {
+        openMaterialsBtn.textContent = 'الخامات';
+      }
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      itemsModal.style.display = 'none';
+    });
+
+    itemsModal.addEventListener('click', (e) => {
+      if (e.target === itemsModal) {
+        itemsModal.style.display = 'none';
+      }
+    });
+
+    function renderSectionItems(section, items) {
+      sectionItemsTitle.textContent = `أصناف ${section}`;
+      if (!items.length) {
+        sectionTableContainer.innerHTML = '<div class="section-empty">لا توجد أصناف لهذا القسم بعد.</div>';
+        return;
+      }
+
+      const rows = items.map(item => `
+        <tr>
+          <td>${item.code}</td>
+          <td>${item.name}</td>
+          <td>${item.weight}</td>
+          <td>${item.notes || ''}</td>
+          <td>
+            <div class="action-buttons">
+              <button type="button" class="action-btn edit-item-btn" data-item-name="${item.name}">تعديل</button>
+              <button type="button" class="action-btn delete-item-btn" data-item-name="${item.name}">حذف</button>
+            </div>
+          </td>
+        </tr>`).join('');
+
+      sectionTableContainer.innerHTML = `
+        <table class="section-table">
+          <thead>
+            <tr>
+              <th>الكود</th>
+              <th>الصنف</th>
+              <th>الوزن</th>
+              <th>الملاحظات</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      // إضافة event listeners للأزرار
+      document.querySelectorAll('.delete-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const itemName = btn.dataset.itemName;
+          if (confirm(`هل تريد حذف الصنف "${itemName}"؟`)) {
+            deleteItem(itemName, section);
+          }
+        });
+      });
+
+      document.querySelectorAll('.edit-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const itemName = btn.dataset.itemName;
+          editItem(itemName, section);
+        });
+      });
+    }
+
+    async function deleteItem(itemName, section) {
+      try {
+        const snapshot = await db.collection(ITEM_COLLECTION)
+          .where('name', '==', itemName)
+          .where('section', '==', section)
+          .get();
+
+        if (!snapshot.empty) {
+          const docId = snapshot.docs[0].id;
+          await db.collection(ITEM_COLLECTION).doc(docId).delete();
+          
+          // إعادة تحميل الأصناف
+          const currentSection = document.querySelector('.section-card.active');
+          if (currentSection) {
+            loadSectionItems(currentSection.dataset.section);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to delete item:', error);
+        alert('حدث خطأ أثناء حذف الصنف');
+      }
+    }
+
+    async function editItem(itemName, section) {
+      try {
+        const snapshot = await db.collection(ITEM_COLLECTION)
+          .where('name', '==', itemName)
+          .where('section', '==', section)
+          .get();
+
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          
+          // تعبئة النموذج ببيانات الصنف
+          document.getElementById('itemSection').value = data.section || '';
+          document.getElementById('itemCode').value = data.code || '';
+          document.getElementById('itemName').value = data.name || '';
+          document.getElementById('itemWeight').value = data.weight || '';
+          document.getElementById('productYield').value = data.yield || '';
+          document.getElementById('itemNotes').value = data.notes || '';
+          
+          // تحميل الخامات
+          if (data.materials && Array.isArray(data.materials)) {
+            setMaterialsData(data.materials);
+          } else {
+            materialsTableBody.innerHTML = '';
+          }
+          
+          // فتح نموذج التعديل
+          const isOpen = itemFormPanel.classList.add('open');
+          itemFormPanel.setAttribute('aria-hidden', 'false');
+          openFormBtn.textContent = 'إغلاق نموذج الإضافة';
+          
+          // التمرير إلى النموذج
+          itemCodeInput.focus();
+          itemCodeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (error) {
+        console.error('Failed to load item for editing:', error);
+        alert('حدث خطأ أثناء تحميل بيانات الصنف للتعديل');
+      }
+    }
+
+    async function loadSectionItems(section) {
+      sectionItemsTitle.textContent = `جاري تحميل أصناف ${section}...`;
+      sectionTableContainer.innerHTML = '<div class="section-empty">جاري تحميل البيانات، انتظر قليلاً...</div>';
+
+      try {
+        const snapshot = await db.collection(ITEM_COLLECTION)
+          .where('section', '==', section)
+          .get();
+
+        const items = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            code: stripItemCodePrefix(String(data.code || '').trim()),
+            name: data.name || '',
+            weight: data.weight || '',
+            notes: data.notes || ''
+          };
+        });
+
+        renderSectionItems(section, items);
+      } catch (error) {
+        console.error('Failed to load section items:', error);
+        sectionTableContainer.innerHTML = '<div class="section-empty">حدث خطأ أثناء تحميل الأصناف.</div>';
+      }
+    }
+
+    document.querySelectorAll('.section-card').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.section-card').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        loadSectionItems(button.dataset.section);
+      });
+    });
+
+    function normalizeItemCode(value) {
+      let cleaned = String(value || '').trim();
+      if (!cleaned) return '';
+      cleaned = cleaned.replace(/\s+/g, '-');
+      if (cleaned.toLowerCase().startsWith('moled-')) {
+        cleaned = cleaned.slice(6);
+      }
+      return cleaned;
+    }
+
+    async function fetchItemByCode() {
+      const rawCode = itemCodeInput.value;
+      const itemCode = normalizeItemCode(rawCode);
+      const section = String(sectionSelect.value || '').trim();
+      formStatus.textContent = '';
+      formStatus.className = 'status';
+
+      if (!section) {
+        formStatus.textContent = 'يرجى اختيار القسم أولاً قبل الاستعلام.';
+        formStatus.classList.add('error');
+        return;
+      }
+
+      if (!itemCode) {
+        formStatus.textContent = 'يرجى إدخال كود صالح قبل الاستعلام.';
+        formStatus.classList.add('error');
+        return;
+      }
+
+      formStatus.textContent = 'جاري استعلام الصنف...';
+      try {
+        const snapshot = await db.collection(ITEM_COLLECTION)
+          .where('section', '==', section)
+          .get();
+
+        const normalizedCode = stripItemCodePrefix(itemCode);
+        let foundDoc = null;
+
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const storedCode = stripItemCodePrefix(String(data.code || '').trim());
+          if (storedCode === normalizedCode) {
+            foundDoc = data;
+          }
+        });
+
+        if (foundDoc) {
+          document.getElementById('itemSection').value = foundDoc.section || '';
+          document.getElementById('itemName').value = foundDoc.name || '';
+          document.getElementById('itemWeight').value = foundDoc.weight || '';
+          document.getElementById('productYield').value = foundDoc.yield || '';
+          document.getElementById('itemNotes').value = foundDoc.notes || '';
+          
+          // تحميل الخامات
+          if (foundDoc.materials && Array.isArray(foundDoc.materials)) {
+            setMaterialsData(foundDoc.materials);
+          } else {
+            materialsTableBody.innerHTML = '';
+          }
+          
+          formStatus.textContent = 'تم استرجاع بيانات الصنف بنجاح.';
+          formStatus.classList.add('success');
+          codeHint.textContent = 'الكود مرتبط بهذا القسم فقط ويمكن تعديله أو حفظه.';
+        } else {
+          formStatus.textContent = 'لم يتم العثور على صنف بهذا الكود في هذا القسم.';
+          formStatus.classList.add('error');
+        }
+      } catch (error) {
+        console.error('Firestore query failed', error);
+        formStatus.textContent = 'حدث خطأ أثناء الاستعلام، حاول مرة أخرى.';
+        formStatus.classList.add('error');
+      }
+    }
+
+    queryBtn.addEventListener('click', fetchItemByCode);
+
+    itemForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      formStatus.textContent = '';
+      formStatus.className = 'status';
+
+      const rawCode = document.getElementById('itemCode').value;
+      const itemCode = normalizeItemCode(rawCode);
+      const itemName = String(document.getElementById('itemName').value || '').trim();
+      const itemSection = String(document.getElementById('itemSection').value || '').trim();
+      const itemWeight = String(document.getElementById('itemWeight').value || '').trim();
+      const productYield = String(document.getElementById('productYield').value || '').trim();
+      const itemNotes = String(document.getElementById('itemNotes').value || '').trim();
+      const materials = getMaterialsData();
+
+      if (!itemCode || !itemName || !itemSection || !itemWeight) {
+        formStatus.textContent = 'يرجى ملء كود الصنف واسم الصنف والقسم ووزن المنتج.';
+        formStatus.classList.add('error');
+        return;
+      }
+
+      const payload = {
+        code: itemCode,
+        name: itemName,
+        section: itemSection,
+        weight: itemWeight,
+        yield: productYield,
+        materials: materials,
+        notes: itemNotes,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        source: 'moled'
+      };
+
+      try {
+        const existingSnapshot = await db.collection(ITEM_COLLECTION)
+          .where('section', '==', itemSection)
+          .get();
+
+        const normalizedCode = stripItemCodePrefix(itemCode);
+        const duplicate = existingSnapshot.docs.some(doc => {
+          const code = stripItemCodePrefix(String(doc.data().code || '').trim());
+          return code === normalizedCode;
+        });
+
+        if (duplicate) {
+          formStatus.textContent = 'يوجد بالفعل صنف بنفس الكود في هذا القسم.';
+          formStatus.classList.add('error');
+          return;
+        }
+
+        await db.collection(ITEM_COLLECTION).add(payload);
+        formStatus.textContent = '✅ تم حفظ الصنف بنجاح.';
+        formStatus.classList.add('success');
+        itemForm.reset();
+        materialsTableBody.innerHTML = '';
+        document.getElementById('itemCode').focus();
+      } catch (error) {
+        console.error('Firestore save failed', error);
+        formStatus.textContent = '❌ حدث خطأ أثناء الحفظ، حاول مرة أخرى.';
+        formStatus.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>بيست سويت - الفروع</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ===== خلفية احترافية ===== */
+    body {
+      background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1a1a2e 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      color: #e0e0e0;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* خلفية متحركة ناعمة */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(255, 209, 102, 0.03) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(232, 83, 83, 0.02) 0%, transparent 50%);
+      pointer-events: none;
+      animation: bgFloat 15s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    @keyframes bgFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(20px); }
+    }
+
+    /* ===== العنوان الرئيسي ===== */
+    h2 {
+      text-align: center;
+      margin-top: 40px;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #ffd166 0%, #ffa85c 50%, #ff6b6b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 800;
+      text-shadow: none;
+      position: relative;
+      z-index: 2;
+      animation: titleGlow 2s ease-in-out infinite;
+      font-weight: 700;
+      text-shadow: 0 0 20px rgba(255, 209, 102, 0.1);
+    }
+
+    @keyframes titleGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 209, 102, 0.3)); }
+      50% { filter: drop-shadow(0 0 16px rgba(255, 209, 102, 0.5)); }
+    }
+
+    /* ===== مجموعة الأزرار ===== */
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px 12px;
+      justify-content: center;
+      margin: 30px auto;
+      max-width: 900px;
+      padding: 0 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .button-group button {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.08) 0%, rgba(232, 83, 83, 0.05) 100%);
+      border: 2px solid rgba(255, 209, 102, 0.3);
+      border-radius: 16px;
+      padding: 14px 22px;
+      font-size: 14px;
+      color: #ffd166;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 24px rgba(255, 209, 102, 0.08),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .button-group button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #ffd166 0%, #ffa85c 100%);
+      border-radius: 16px;
+      transition: left 0.3s ease;
+      z-index: -1;
+    }
+
+    .button-group button:hover {
+      border-color: #ffd166;
+      color: #1a1a2e;
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.3) 0%, rgba(255, 209, 102, 0.1) 100%);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(255, 209, 102, 0.25),
+                  0 0 30px rgba(255, 209, 102, 0.2),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .button-group button:active {
+      transform: translateY(-2px);
+    }
+
+    .button-group button#hideNewsButton {
+      background: linear-gradient(135deg, rgba(255, 109, 109, 0.18) 0%, rgba(255, 209, 102, 0.12) 100%);
+      color: #fff;
+      border-color: rgba(255, 109, 109, 0.35);
+    }
+
+    .button-group button#hideNewsButton:hover {
+      background: linear-gradient(135deg, rgba(255, 109, 109, 0.3) 0%, rgba(255, 209, 102, 0.2) 100%);
+    }
+
+    .hide-news-btn {
+      margin: 0 0 14px;
+      padding: 8px;
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #ff6262 0%, #ffd166 100%);
+      color: #111;
+      border: 2px solid rgba(255, 109, 109, 0.45);
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .hide-news-btn:hover {
+      background: linear-gradient(135deg, #ff8b8b 0%, #ffe066 100%);
+      color: #111;
+    }
+
+    .perm-locked {
+      opacity: 0.48;
+      position: relative;
+      filter: grayscale(0.25);
+      cursor: not-allowed;
+    }
+    .perm-locked:hover {
+      transform: none;
+    }
+    .lock-badge {
+      display: inline-flex;
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #ffd166;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+    .perm-toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(15, 15, 30, 0.95);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      z-index: 2200;
+      opacity: 0;
+      transition: transform .24s ease, opacity .24s ease;
+      pointer-events: none;
+    }
+    .perm-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .perm-toast .label {
+      font-weight: 700;
+    }
+
+    /* ===== حاوية الأخبار والسلايد ===== */
+    #newsContainer {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 380px;
+      overflow-y: auto;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(15, 15, 30, 0.95) 0%, rgba(26, 26, 46, 0.95) 100%);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(255, 209, 102, 0.15);
+      z-index: 100;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 209, 102, 0.3) transparent;
+      animation: slideInLeft 0.5s ease-out;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #newsContainer::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #newsContainer::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #newsContainer::-webkit-scrollbar-thumb {
+      background: rgba(255, 209, 102, 0.3);
+      border-radius: 10px;
+      transition: background 0.3s;
+    }
+
+    #newsContainer::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 209, 102, 0.5);
+    }
+
+    @keyframes slideInLeft {
+      from {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* ===== كارت السلايد داخل newsContainer ===== */
+    .slider-container {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.1) 0%, rgba(232, 83, 83, 0.05) 100%);
+      border: 1px solid rgba(255, 209, 102, 0.2);
+      border-radius: 20px;
+      padding: 16px;
+      margin-top: 24px;
+      margin-bottom: 0;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: slideUp 0.6s ease-out;
+      order: 1;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .slider {
+      position: relative;
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .slide {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transform: scale(1.1);
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+      display: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: scale(1);
+      z-index: 10;
+      animation: zoomIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      display: block;
+      position: relative;
+    }
+
+    .slide img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 16px;
+      filter: brightness(0.95) contrast(1.05);
+      transition: filter 0.3s ease;
+    }
+
+    .slide:hover img {
+      filter: brightness(1) contrast(1.1);
+    }
+
+    @keyframes zoomIn {
+      from {
+        transform: scale(0.95);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ===== نقاط التحويل ===== */
+    .slider-dots {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 0 10px;
+    }
+
+    .slider-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 209, 102, 0.2);
+      border: 2px solid rgba(255, 209, 102, 0.3);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slider-dot::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #ffd166 0%, #ff6b6b 100%);
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .slider-dot:hover {
+      transform: scale(1.3);
+      border-color: rgba(255, 209, 102, 0.6);
+      box-shadow: 0 0 12px rgba(255, 209, 102, 0.3);
+    }
+
+    .slider-dot.active {
+      background: linear-gradient(135deg, #ffd166 0%, #ff6b6b 100%);
+      border-color: rgba(255, 209, 102, 0.8);
+      box-shadow: 0 0 20px rgba(255, 209, 102, 0.5),
+                  0 0 40px rgba(255, 209, 102, 0.2);
+      transform: scale(1.4);
+    }
+
+    /* ===== بطاقات الأخبار ===== */
+    .news-item {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.08) 0%, rgba(232, 83, 83, 0.05) 100%);
+      border: 1px solid rgba(255, 209, 102, 0.2);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      position: relative;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      animation: slideIn 0.4s ease-out;
+      order: 0;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .news-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 209, 102, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .news-item:hover {
+      transform: translateY(-4px) translateX(4px);
+      border-color: rgba(255, 209, 102, 0.4);
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.12) 0%, rgba(232, 83, 83, 0.08) 100%);
+      box-shadow: 0 8px 32px rgba(255, 209, 102, 0.15),
+                  0 0 20px rgba(255, 209, 102, 0.1),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .news-item:hover::before {
+      left: 100%;
+    }
+
+    .news-item h4 {
+      margin: 0 0 10px 0;
+      font-size: 1rem;
+      color: #ffd166;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: color 0.3s ease;
+    }
+
+    .news-item:hover h4 {
+      color: #ffe066;
+      text-shadow: 0 0 8px rgba(255, 209, 102, 0.3);
+    }
+
+    .news-item p {
+      margin: 0 0 10px 0;
+      font-size: 0.9rem;
+      color: #e0e0e0;
+      line-height: 1.5;
+      transition: color 0.3s ease;
+    }
+
+    .news-item small {
+      font-size: 0.8rem;
+      color: #b0b0b0;
+      display: block;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    /* ===== زر الإغلاق ===== */
+    .news-item .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 209, 102, 0.15);
+      border: 1px solid rgba(255, 209, 102, 0.3);
+      color: #ffd166;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-weight: bold;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 8px rgba(255, 209, 102, 0.1);
+    }
+
+    .news-item .close-btn:hover {
+      background: rgba(255, 209, 102, 0.3);
+      border-color: #ffd166;
+      transform: rotate(90deg) scale(1.15);
+      box-shadow: 0 4px 16px rgba(255, 209, 102, 0.2),
+                  0 0 12px rgba(255, 209, 102, 0.15);
+    }
+
+    .news-item .close-btn:active {
+      transform: rotate(90deg) scale(1.05);
+    }
+
+    /* ===== Responsive Design ===== */
+    @media (max-width: 1024px) {
+      #newsContainer {
+        width: 340px;
+      }
+
+      h2 {
+        font-size: 2rem;
+      }
+
+      .button-group {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        max-width: 800px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        background-attachment: scroll;
+      }
+
+      h2 {
+        margin-top: 30px;
+        margin-bottom: 20px;
+        font-size: 1.7rem;
+        letter-spacing: 1px;
+      }
+
+      .button-group {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        max-width: 90vw;
+        margin: 20px auto;
+        padding: 0 10px;
+      }
+
+      .button-group button {
+        padding: 12px 16px;
+        font-size: 13px;
+        border-radius: 14px;
+      }
+
+      #newsContainer {
+        position: static;
+        width: 100%;
+        max-height: none;
+        border-right: none;
+        border-top: 1px solid rgba(255, 209, 102, 0.15);
+        border-radius: 20px 20px 0 0;
+        margin-top: 20px;
+        animation: slideUp 0.5s ease-out;
+        flex-direction: column;
+      }
+
+      .slider-container {
+        margin-bottom: 20px;
+        border-radius: 16px;
+      }
+
+      .slider {
+        height: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      h2 {
+        font-size: 1.4rem;
+        margin-top: 20px;
+        margin-bottom: 15px;
+      }
+
+      .button-group {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .button-group button {
+        padding: 12px 14px;
+        font-size: 12px;
+        border-radius: 12px;
+        min-width: unset;
+      }
+
+      #newsContainer {
+        padding: 16px;
+        margin-top: 15px;
+        border-radius: 16px 16px 0 0;
+      }
+
+      .slider-container {
+        padding: 12px;
+        margin-bottom: 16px;
+      }
+
+      .slider {
+        min-height: 200px;
+      }
+
+      .slide img {
+        max-height: 200px;
+      }
+
+      .news-item {
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 12px;
+      }
+
+      .news-item h4 {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+      }
+
+      .news-item p {
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+      }
+
+      .slider-dots {
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .slider-dot {
+        width: 8px;
+        height: 8px;
+      }
+    }
+
+    /* ===== كارت الترحيب العائم والودجت ===== */
+    #welcomeGroup {
+      position: fixed;
+      bottom: 24px;
+      right: 18px;
+      z-index: 2200;
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      flex-wrap: wrap;
+      max-width: calc(100vw - 36px);
+    }
+
+    #welcomeCard {
+      position: static;
+      bottom: auto;
+      right: auto;
+      left: auto;
+      transform: none;
+      z-index: 1;
+      animation: floatUp 0.8s ease-out;
+      display: block;
+      opacity: 1;
+    }
+
+    @keyframes floatUp {
+      from {
+        opacity: 0;
+        transform: translateY(50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .upload-notifications-widget {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 15, 30, 0.95);
+      border: 1px solid rgba(255, 209, 102, 0.18);
+      border-radius: 999px;
+      padding: 12px 16px;
+      color: #ffd166;
+      cursor: pointer;
+      font-size: 0.94rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      max-width: min(410px, 100%);
+      width: min(410px, 100%);
+      min-width: 0;
+      word-break: break-word;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      justify-content: space-between;
+    }
+    .upload-notifications-widget:hover {
+      transform: translateY(-2px);
+    }
+    .upload-notifications-widget #uploadWidgetLabel {
+      display: block;
+      flex: 1 1 0;
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.25;
+      word-break: break-word;
+      line-break: anywhere;
+    }
+    .upload-notifications-widget .upload-badge {
+      min-width: 24px;
+      height: 24px;
+      padding: 0 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #ff6b6b;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+
+    .upload-news-bar {
+      position: static;
+      left: 50%;
+      bottom: 100px;
+      transform: translateX(-50%) translateY(6px);
+      min-width: 280px;
+      max-width: 92vw;
+      background: rgba(15, 15, 30, 0.96);
+      border: 1px solid rgba(255, 209, 102, 0.16);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #fff;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.24s ease, transform 0.24s ease, visibility 0.24s ease;
+      z-index: 2200;
+      pointer-events: none;
+      text-align: center;
+      font-size: 0.92rem;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .upload-news-bar.upload-news {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    .upload-news-bar .ticker-item {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .upload-news-bar .ticker-item.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .welcome-content {
+      background: linear-gradient(135deg, rgba(15, 15, 30, 0.95) 0%, rgba(26, 26, 46, 0.95) 100%);
+      backdrop-filter: blur(18px);
+      border-radius: 18px;
+      padding: 16px 18px;
+      text-align: right;
+      position: relative;
+      overflow: hidden;
+      min-width: 280px;
+      max-width: 420px;
+      width: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.32);
+    }
+
+    /* إطار نيون متحرك */
+    .welcome-content::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      padding: 2px;
+      background: linear-gradient(45deg, #ffd166, #ff6b6b, #ffa85c, #ffd166);
+      background-size: 300% 300%;
+      border-radius: 20px;
+      animation: neonGlow 4s ease infinite;
+      z-index: -1;
+    }
+
+    .welcome-content::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: linear-gradient(135deg, rgba(15, 15, 30, 0.95) 0%, rgba(26, 26, 46, 0.95) 100%);
+      border-radius: 18px;
+      z-index: -1;
+    }
+
+    @keyframes neonGlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* الإضاءة الداخلية */
+    .welcome-content::before {
+      box-shadow: 0 0 20px rgba(255, 209, 102, 0.4),
+                  0 0 40px rgba(255, 209, 102, 0.2),
+                  inset 0 0 20px rgba(255, 209, 102, 0.1);
+    }
+
+    .welcome-text {
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-text p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #e0e0e0;
+      line-height: 1.4;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @keyframes titlePulse {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 209, 102, 0.3)); }
+      50% { filter: drop-shadow(0 0 16px rgba(255, 209, 102, 0.5)); }
+    }
+
+    .username-highlight {
+      color: #ffd166;
+      font-weight: 800;
+      font-size: 1.05rem;
+      text-shadow: 0 0 8px rgba(255, 209, 102, 0.35);
+    }
+
+    /* تأثيرات إضافية */
+    #welcomeCard:hover .welcome-content {
+      box-shadow: 0 25px 70px rgba(255, 209, 102, 0.2),
+                  0 0 30px rgba(255, 209, 102, 0.15);
+    }
+
+    @media (max-width: 768px) {
+      #welcomeGroup {
+        right: 18px;
+        bottom: 16px;
+      }
+
+      .welcome-content {
+        min-width: 220px;
+        max-width: 90vw;
+        padding: 14px 16px;
+      }
+
+      .welcome-text p {
+        font-size: 0.9rem;
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #welcomeGroup {
+        right: 12px;
+        bottom: 12px;
+      }
+
+      .welcome-content {
+        min-width: 80vw;
+        max-width: calc(100vw - 24px);
+        padding: 14px 16px;
+      }
+
+      .welcome-text p {
+        font-size: 0.85rem;
+        white-space: normal;
+      }
+
+      .username-highlight {
+        font-size: 1rem;
+      }
+    }
+
+    /* ===== تأثيرات إضافية احترافية ===== */
+    ::selection {
+      background: rgba(255, 209, 102, 0.3);
+      color: #ffd166;
+    }
+
+    ::-webkit-selection {
+      background: rgba(255, 209, 102, 0.3);
+      color: #ffd166;
+    }
+
+    .upload-news-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 100px;
+      transform: translateX(-50%) translateY(6px);
+      min-width: 280px;
+      max-width: 92vw;
+      background: rgba(15, 15, 30, 0.96);
+      border: 1px solid rgba(255, 209, 102, 0.16);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #fff;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.24s ease, transform 0.24s ease, visibility 0.24s ease;
+      z-index: 2200;
+      pointer-events: none;
+      text-align: center;
+      font-size: 0.92rem;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .upload-news-bar.upload-news {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    .upload-news-bar .ticker-item {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .upload-news-bar .ticker-item.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .upload-news-bar .ticker-item.up {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+
+    #uploadModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 2300;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+    #uploadModal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    #uploadModal .modal-panel {
+      width: min(540px, 100%);
+      max-height: min(84vh, 760px);
+      overflow: auto;
+      background: rgba(10, 10, 20, 0.98);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 209, 102, 0.16);
+      padding: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      color: #eee;
+    }
+    #uploadModal h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #ffd166;
+      font-size: 1.15rem;
+    }
+    #uploadModal .upload-list .news-item {
+      margin-bottom: 12px;
+    }
+    #uploadModal .actions {
+      margin-top: 18px;
+      text-align: right;
+    }
+    #uploadModal .actions button {
+      min-width: 110px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🍰 بيست سويت - اختر الفرع</h2>
+  <div class="button-group">
+    <button id="bestSweetBranch1" onclick="location.href='best-sweet-branch1.html'">فرع اول اجمال</button>
+    <button id="bestSweetAbbassia" onclick="location.href='best-sweet-abbassia.html'">فرع العباسيه</button>
+    <button id="bestSweetHelwZaytoun" onclick="location.href='best-sweet-helw-zaytoun.html'">فرع حلو منه فيه الزيتون</button>
+    <button id="bestSweetMarketZaytoun" onclick="location.href='best-sweet-market-zaytoun.html'">فرع فيصل</button>
+    <button id="bestSweetHelwan" onclick="location.href='best-sweet-helwan.html'">فرع حلوان</button>
+    <button id="bestSweetObourMarket" onclick="location.href='best-sweet-obour-market.html'">فرع العبور ماركت</button>
+    <button onclick="location.href='best-sweet-all-orders.html'">📊 تجميع طلبيات بيست سويت</button>
+    <button onclick="location.href='send-to-best-sweet.html'">📨 إرسال إلى بيست سويت</button>
+  </div>
+  <div id="newsContainer">
+    <button id="hideNewsButton" class="hide-news-btn" aria-label="إخفاء الأخبار">✕</button>
+    <div class="slider-container">
+      <div class="slider">
+        <div class="slide active"><img src="images/logo1.jpg" alt="شعار 1" /></div>
+        <div class="slide"><img src="images/logo2.jpg" alt="شعار 2" /></div>
+        <div class="slide"><img src="images/logo3.jpg" alt="شعار 3" /></div>
+      </div>
+      <div class="slider-dots" id="sliderDots"></div>
+    </div>
+  </div>
+  
+  <!-- كارت الترحيب العائم -->
+  <div id="welcomeGroup" class="welcome-group">
+    <div id="welcomeCard" aria-label="كارت ترحيب المستخدم">
+      <div class="welcome-content">
+        <div class="welcome-text">
+          <p>أهلاً بك يا <span class="username-highlight" id="username">المستخدم</span> في صفحة فروع <strong>بيست سويت</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="uploadNewsWidget" class="upload-notifications-widget" role="button" aria-label="إشعارات رفع الطلبات" title="عرض إشعارات رفع الطلبات">
+      <span id="uploadWidgetLabel">🔔 جارٍ تحميل الإشعارات...</span>
+      <span id="uploadWidgetBadge" class="upload-badge" style="display:none;">0</span>
+    </div>
+  </div>
+  <div id="uploadNewsBar" class="upload-news-bar" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Local helper to escape text safely for insertion
+    function escapeForHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // ===== إدارة كارت الترحيب =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const usernameElement = document.getElementById('username');
+      const welcomeCard = document.getElementById('welcomeCard');
+      
+      if (!usernameElement || !welcomeCard) return;
+
+      // محاولة الحصول على اسم المستخدم من localStorage أو sessionStorage
+      // صفحة main تحفظ اسم المستخدم في localStorage باسم username بعد تسجيل الدخول.
+      let username = localStorage.getItem('username') ||
+                     localStorage.getItem('userCode') ||
+                     localStorage.getItem('userUid') ||
+                     sessionStorage.getItem('username') ||
+                     sessionStorage.getItem('userCode') ||
+                     sessionStorage.getItem('userUid') ||
+                     sessionStorage.getItem('userName') ||
+                     localStorage.getItem('userName') ||
+                     'الزائر';
+
+      const firstName = username.toString().split(' ')[0].trim() || 'الزائر';
+      usernameElement.textContent = firstName;
+      
+      // إظهار الكارت دائماً
+      welcomeCard.style.display = 'block';
+      welcomeCard.style.opacity = '1';
+    });
+
+    // ===== إدارة السلايد =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const slides = document.querySelectorAll('.slide');
+      const dotsContainer = document.getElementById('sliderDots');
+      if (!slides || slides.length === 0) return;
+      
+      let currentSlide = 0;
+      
+      function showSlide(idx) {
+        slides.forEach((slide, i) => slide.classList.toggle('active', i === idx));
+        if (dotsContainer) Array.from(dotsContainer.children).forEach((dot, i) => dot.classList.toggle('active', i === idx));
+        currentSlide = idx;
+      }
+      
+      if (dotsContainer && dotsContainer.children.length === 3) {
+        // النقاط موجودة بالفعل من الـ HTML
+        slides.forEach((_, i) => {
+          dotsContainer.children[i].onclick = () => showSlide(i);
+        });
+      }
+      
+      showSlide(0);
+      setInterval(() => showSlide((currentSlide + 1) % slides.length), 5000);
+    });
+
+    // ===== تحميل الأخبار من Firebase =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const newsContainer = document.getElementById('newsContainer');
+      if(!newsContainer) return;
+
+      db.collection('urgentNews').where('visibility', '==', 'visible').get()
+        .then(snapshot => {
+          if (!snapshot || snapshot.empty) {
+            const empty = document.createElement('div');
+            empty.className = 'news-item';
+            empty.innerHTML = `<p style="color:#cfcfcf;">لا توجد أخبار حالياً</p>`;
+            newsContainer.appendChild(empty);
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const news = doc.data() || {};
+            const newsItem = document.createElement('div');
+            newsItem.className = 'news-item';
+            newsItem.innerHTML = `
+              <h4>${escapeForHtml(news.title)}</h4>
+              <p>${escapeForHtml(news.content)}</p>
+              <small>${escapeForHtml(news.date)}</small>
+            `;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.setAttribute('aria-label', 'إخفاء هذا الخبر');
+            closeBtn.innerText = '✕';
+            closeBtn.onclick = (e) => { e.stopPropagation(); newsItem.style.display = 'none'; };
+
+            newsItem.appendChild(closeBtn);
+            newsContainer.appendChild(newsItem);
+          });
+        })
+        .catch(err => {
+          console.error('Failed to load news', err);
+          const empty = document.createElement('div');
+          empty.className = 'news-item';
+          empty.innerHTML = `<p style="color:#cfcfcf;">فشل جلب الأخبار</p>`;
+          newsContainer.appendChild(empty);
+        });
+    });
+
+    // ===== صلاحيات أزرار فروع بيست سويت =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const rolesParam = new URLSearchParams(window.location.search).get('roles');
+      let roles = [];
+      if (rolesParam) {
+        roles = rolesParam.split(',').map(r => r.trim()).filter(Boolean);
+        localStorage.setItem('roles', roles.join(','));
+      } else {
+        const stored = localStorage.getItem('roles') || localStorage.getItem('userRoles');
+        roles = stored ? stored.split(',').map(r => r.trim()).filter(Boolean) : [];
+      }
+
+      function hasRoleFor(role) {
+        if (!roles || roles.length === 0) return false;
+        return roles.includes('all') || roles.includes(role);
+      }
+
+      const buttonRoleMap = {
+        bestSweetBranch1: 'best_sweet_branch1_page',
+        bestSweetAbbassia: 'best_sweet_abbassia_page',
+        bestSweetHelwZaytoun: 'best_sweet_helw_zaytoun_page',
+        bestSweetMarketZaytoun: 'best_sweet_market_zaytoun_page',
+        bestSweetHelwan: 'best_sweet_helwan_page',
+        bestSweetObourMarket: 'best_sweet_obour_market_page'
+      };
+
+      function showNoPermissionToast(message) {
+        let toast = document.getElementById('permToast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'permToast';
+          toast.className = 'perm-toast';
+          toast.innerHTML = `<span class="label"></span>`;
+          document.body.appendChild(toast);
+        }
+        toast.querySelector('.label').textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toast._hideTimeout);
+        toast._hideTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
+      }
+
+      Object.entries(buttonRoleMap).forEach(([id, role]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        if (!hasRoleFor(role)) {
+          btn.classList.add('perm-locked');
+          btn.setAttribute('aria-disabled', 'true');
+          btn.setAttribute('tabindex', '0');
+          btn.onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            showNoPermissionToast('لا تملك صلاحية الوصول إلى هذا الفرع');
+          };
+          if (!btn.querySelector('.lock-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'lock-badge';
+            badge.textContent = '🔒';
+            btn.appendChild(badge);
+          }
+        }
+      });
+    });
+
+    // ===== إشعارات رفع بيانات فروع بيست سويت =====
+    (function() {
+      const UPLOAD_NOTIF_KEY = 'best_sweet_upload_notifications_v1';
+      const UPLOAD_TTL_MS = 24 * 60 * 60 * 1000;
+      const BRANCH_LABELS = {
+        best_sweet_1: 'أول إجمال',
+        best_sweet_abbassia: 'العباسية',
+        best_sweet_helw_zaytoun: 'حلو زيتون',
+        best_sweet_market_zaytoun: 'زيتون ماركت',
+        best_sweet_helwan: 'حلوان',
+        best_sweet_obour_market: 'العبور ماركت'
+      };
+      let _cycleTimer = null;
+      let _cycleIndex = 0;
+      let _newsBarTimer = null;
+      let _barIndex = 0;
+
+      function loadStoredNotifs() {
+        try {
+          const raw = localStorage.getItem(UPLOAD_NOTIF_KEY) || '[]';
+          const now = Date.now();
+          const arr = (JSON.parse(raw) || []).filter(item => item && item.ts && (now - item.ts) < UPLOAD_TTL_MS);
+          arr.sort((a, b) => b.ts - a.ts);
+          saveNotifs(arr);
+          return arr;
+        } catch (e) {
+          console.warn('loadStoredNotifs failed', e);
+          return [];
+        }
+      }
+
+      function saveNotifs(arr) {
+        try { localStorage.setItem(UPLOAD_NOTIF_KEY, JSON.stringify(arr || [])); } catch (e) { console.warn('saveNotifs failed', e); }
+      }
+
+      function getBranchLabel(code) {
+        return BRANCH_LABELS[code] ? `فرع ${BRANCH_LABELS[code]}` : `فرع ${code || 'غير معروف'}`;
+      }
+
+      function formatDate(ts) {
+        try { return new Date(ts).toLocaleString('ar-EG'); } catch (e) { return ''; }
+      }
+
+      function addUploadNotification(notification) {
+        try {
+          if (!notification || !notification.branch) return;
+          const n = Object.assign({ id: 'notif_' + Math.random().toString(36).slice(2, 8), ts: Date.now(), orderDate: '' }, notification);
+          n.ts = n.ts || Date.now();
+          let arr = loadStoredNotifs();
+          const exists = arr.findIndex(item => item.id === n.id || (item.branch === n.branch && item.orderDate === n.orderDate));
+          if (exists !== -1) arr.splice(exists, 1);
+          arr.unshift(n);
+          arr = arr.filter((item, index, self) => self.findIndex(x => x.id === item.id) === index).slice(0, 50);
+          saveNotifs(arr);
+          updateWidgetFromStorage();
+          showTransientUploadBar(`قام ${getBranchLabel(n.branch)} بتحميل طلبيته ليوم ${n.orderDate || formatDate(n.ts)}`);
+        } catch (e) {
+          console.warn('addUploadNotification failed', e);
+        }
+      }
+
+      function updateWidgetFromStorage() {
+        const arr = loadStoredNotifs();
+        const label = document.getElementById('uploadWidgetLabel');
+        const badge = document.getElementById('uploadWidgetBadge');
+        if (!label || !badge) return;
+        if (!arr || arr.length === 0) {
+          badge.style.display = 'none';
+          label.textContent = '🔔 لا توجد إشعارات حديثة';
+          stopCycling();
+          stopNewsBarCycle();
+          return;
+        }
+        badge.style.display = 'inline-flex';
+        badge.textContent = String(arr.length);
+        _cycleIndex = _cycleIndex % arr.length;
+        const current = arr[_cycleIndex] || arr[0];
+        label.textContent = `🔔 قام ${getBranchLabel(current.branch)} بتحميل طلبيته ليوم ${current.orderDate || formatDate(current.ts)}`;
+        if (arr.length > 1) startCycling(); else stopCycling();
+        startNewsBarCycle();
+      }
+
+      function startCycling() {
+        stopCycling();
+        _cycleTimer = setInterval(() => {
+          const arr = loadStoredNotifs();
+          if (!arr || arr.length <= 1) { stopCycling(); return; }
+          _cycleIndex = (_cycleIndex + 1) % arr.length;
+          updateWidgetFromStorage();
+        }, 3200);
+      }
+
+      function stopCycling() {
+        if (_cycleTimer) { clearInterval(_cycleTimer); _cycleTimer = null; }
+      }
+
+      function startNewsBarCycle() {
+        stopNewsBarCycle();
+        const arr = loadStoredNotifs();
+        if (!arr || arr.length === 0) return;
+        _barIndex = _barIndex % arr.length;
+        _newsBarTimer = setInterval(() => {
+          const arr2 = loadStoredNotifs();
+          if (!arr2 || arr2.length === 0) { stopNewsBarCycle(); return; }
+          _barIndex = (_barIndex + 1) % arr2.length;
+          const current = arr2[_barIndex];
+          showTransientUploadBar(`قام ${getBranchLabel(current.branch)} بتحميل طلبيته ليوم ${current.orderDate || formatDate(current.ts)}`);
+        }, 4200);
+      }
+
+      function stopNewsBarCycle() {
+        if (_newsBarTimer) { clearInterval(_newsBarTimer); _newsBarTimer = null; }
+      }
+
+      function showTransientUploadBar(text) {
+        const bar = document.getElementById('uploadNewsBar');
+        if (!bar) return;
+        bar.textContent = text;
+        bar.classList.add('upload-news');
+        clearTimeout(bar._hideTimer);
+        bar._hideTimer = setTimeout(() => {
+          bar.classList.remove('upload-news');
+        }, 3600);
+      }
+
+      function renderUploadModal() {
+        let modal = document.getElementById('uploadModal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'uploadModal';
+          modal.innerHTML = `
+            <div class="modal-panel" role="dialog" aria-modal="true">
+              <h3>إشعارات رفع الطلبات</h3>
+              <div id="uploadList" class="upload-list"></div>
+              <div class="actions"><button id="closeUploadModal" class="action-button secondary">إغلاق</button></div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+          modal.addEventListener('click', (event) => { if (event.target === modal) closeUploadModal(); });
+          modal.querySelector('#closeUploadModal').addEventListener('click', closeUploadModal);
+        }
+        renderUploadList();
+        modal.classList.add('open');
+      }
+
+      function renderUploadList() {
+        const listEl = document.getElementById('uploadList');
+        if (!listEl) return;
+        const arr = loadStoredNotifs();
+        if (!arr || arr.length === 0) {
+          listEl.innerHTML = '<p style="color:#cfcfcf; margin:0;">لا توجد إشعارات</p>';
+          return;
+        }
+        listEl.innerHTML = '';
+        arr.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'news-item';
+          card.innerHTML = `
+            <h4>قام ${escapeForHtml(getBranchLabel(item.branch))}</h4>
+            <p>تحميل الطلبية ليوم ${escapeForHtml(item.orderDate || formatDate(item.ts))}</p>
+            <small>${escapeForHtml(formatDate(item.ts))}</small>
+          `;
+          listEl.appendChild(card);
+        });
+      }
+
+      function openUploadModal() { renderUploadModal(); }
+      function closeUploadModal() { const modal = document.getElementById('uploadModal'); if (modal) modal.classList.remove('open'); }
+
+      function initUploadNotifications() {
+        updateWidgetFromStorage();
+        const widget = document.getElementById('uploadNewsWidget');
+        if (widget) widget.addEventListener('click', openUploadModal);
+        try {
+          if (typeof db !== 'undefined') {
+            db.collection('activity_logs').orderBy('timestamp','desc').limit(100).get().then(snapshot => {
+              snapshot.docs.forEach(doc => {
+                const data = doc.data() || {};
+                if (data.action !== 'upload_all') return;
+                const details = data.details || {};
+                const branch = details.branch || '';
+                if (!Object.keys(BRANCH_LABELS).includes(branch)) return;
+                const ts = data.timestamp && data.timestamp.toMillis ? data.timestamp.toMillis() : (data.timestamp && data.timestamp.toDate ? data.timestamp.toDate().getTime() : Date.now());
+                addUploadNotification({ id: doc.id, branch, orderDate: details.orderDate || '', rows: details.rows || 0, ts });
+              });
+            }).catch(() => {});
+          }
+        } catch (e) {
+          console.warn('initUploadNotifications failed', e);
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', initUploadNotifications);
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const hideNewsBtn = document.getElementById('hideNewsButton');
+        const newsContainer = document.getElementById('newsContainer');
+        if (!hideNewsBtn || !newsContainer) return;
+        hideNewsBtn.addEventListener('click', (event) => {
+          event.preventDefault();
+          newsContainer.style.display = 'none';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

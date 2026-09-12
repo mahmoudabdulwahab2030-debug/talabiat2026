@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>استعلامات مولد - المولد النبوي</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="moled.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Cairo', Arial, sans-serif;
+      background: linear-gradient(135deg, #23232a 0%, #2c2c2c 100%);
+      color: #f7f7f7;
+      direction: rtl;
+    }
+
+    .page-card {
+      max-width: 1180px;
+      margin: 24px auto;
+      padding: 28px 26px;
+      border-radius: 20px;
+      background: rgba(14,16,20,0.96);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.25);
+    }
+
+    .page-header {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      color: #ff7a94;
+      font-size: clamp(2rem, 2.5vw, 3rem);
+    }
+
+    .page-header p {
+      margin: 0;
+      color: #d3d3d3;
+      line-height: 1.7;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .tab-button {
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      color: #f3f3f3;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .tab-button.active,
+    .tab-button:hover {
+      background: rgba(255,107,122,0.18);
+      transform: translateY(-1px);
+    }
+
+    .panel {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+
+    .panel-card h2 {
+      margin: 0 0 16px;
+      color: #ff94ae;
+      font-size: 1.2rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .controls label,
+    .controls span {
+      color: #d7d7d7;
+      min-width: 96px;
+      font-size: 0.95rem;
+    }
+
+    .controls select,
+    .controls input[type="date"],
+    .controls input[type="text"] {
+      min-width: 180px;
+      max-width: 260px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #f5f5f5;
+      padding: 10px 12px;
+    }
+
+    .controls .button {
+      min-height: 46px;
+    }
+
+    .controls input.search-field {
+      min-width: 260px;
+      width: 100%;
+      flex: 1 1 260px;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.82);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 18px;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(780px, 100%);
+      background: #11131a;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      padding: 22px;
+      color: #f2f2f2;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #ff9fb4;
+    }
+
+    .modal-body .controls {
+      margin-bottom: 18px;
+    }
+
+    .modal-item-list {
+      max-height: 340px;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .modal-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .modal-item-row:last-child {
+      border-bottom: none;
+    }
+
+    .modal-item-row:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .modal-item-row span {
+      color: #e5e5e5;
+    }
+
+    .modal-item-row small {
+      color: #a8a8a8;
+    }
+
+    .modal-empty {
+      padding: 18px;
+      color: #d8d8d8;
+      font-size: 0.98rem;
+    }
+
+    .modal-card .button {
+      min-height: 40px;
+    }
+
+    .report-result {
+      min-height: 140px;
+      color: #f5f5f5;
+    }
+
+    .report-result table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .report-result th,
+    .report-result td {
+      padding: 12px 11px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    .report-result th {
+      color: #ffc7d2;
+    }
+
+    .report-result tr:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .report-card {
+      margin-bottom: 22px;
+    }
+
+    .analytics-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .analytics-card {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #eef3ff;
+      font-size: 0.95rem;
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .analytics-card strong {
+      color: #fff;
+    }
+
+    .status-box {
+      margin-top: 8px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      color: #d7d7d7;
+      min-height: 46px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .print-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      color: #cfcfcf;
+    }
+
+    .print-meta span {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 860px) {
+      .tabs {
+        grid-template-columns: 1fr 1fr;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .controls select,
+      .controls input[type="date"],
+      .controls input[type="text"] {
+        width: 100%;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+      }
+      .page-card {
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+      }
+      .tabs,
+      .controls,
+      .tab-button,
+      .button,
+      .status-box {
+        display: none !important;
+      }
+      .panel-card {
+        border: none;
+        padding: 0;
+      }
+      .print-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .report-result table {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-card">
+    <div class="page-header">
+      <h1>استعلامات مولد</h1>
+      <p>لوحة تقارير مرسلات مولد، إجمالي الأصناف، استخدام الخامات، والتقارير الزمنية مع اختيار البراند والسنة والمقاييس التحليلية.</p>
+    </div>
+
+    <div class="controls">
+      <label for="brandFilter">اختر البراند</label>
+      <select id="brandFilter">
+        <option value="all">كل البراندات</option>
+        <option value="best-sweet">بيست سويت</option>
+        <option value="ledo">ليدو</option>
+      </select>
+      <button class="button secondary" id="openSearchModalBtn">بحث صنف (F1)</button>
+    </div>
+
+    <div class="analytics-summary" id="analyticsSummary">
+      <div class="analytics-card">عدد الفواتير: <strong id="analyticsInvoices">0</strong></div>
+      <div class="analytics-card">إجمالي الكميات: <strong id="analyticsQty">0</strong></div>
+      <div class="analytics-card">إجمالي الكجم: <strong id="analyticsKilos">0</strong></div>
+      <div class="analytics-card">إجمالي القيمة: <strong id="analyticsValue">0</strong></div>
+      <div class="analytics-card">إجمالي الأصناف: <strong id="analyticsItems">0</strong></div>
+      <div class="analytics-card">أكثر صنف مرسل: <strong id="analyticsTopItem">-</strong></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" data-tab="summaryTab">إجمالي صنف</button>
+      <button class="tab-button" data-tab="allTotalsTab">التقرير العام</button>
+      <button class="tab-button" data-tab="materialsTab">استخدام الخامات</button>
+      <button class="tab-button" data-tab="periodTab">تقرير الفترة</button>
+    </div>
+
+    <div class="panel panel-card active" id="summaryTab">
+      <h2>إجمالي مرسل لكل صنف</h2>
+      <div class="controls">
+        <label for="yearFilter">سنة التقرير</label>
+        <select id="yearFilter"><option value="all">جميع السنوات</option></select>
+        <label for="searchSummary">بحث صنف</label>
+        <input id="searchSummary" class="search-field" type="text" placeholder="بحث بالكود أو الاسم" />
+        <button class="button primary" id="runItemTotalsBtn">عرض التقرير</button>
+      </div>
+      <div class="print-meta" id="summaryMeta"></div>
+      <div id="reportOutput" class="report-result">اضغط زر "عرض التقرير" لبدء التحليل.</div>
+    </div>
+
+    <div class="panel panel-card" id="allTotalsTab">
+      <h2>التقرير العام لجميع الأصناف</h2>
+      <div class="controls">
+        <label for="yearFilterAll">سنة التقرير</label>
+        <select id="yearFilterAll"><option value="all">جميع السنوات</option></select>
+        <label for="searchAllTotals">بحث صنف</label>
+        <input id="searchAllTotals" class="search-field" type="text" placeholder="بحث بالكود أو الاسم" />
+        <button class="button primary" id="runAllTotalsBtn">عرض التقرير</button>
+      </div>
+      <div class="print-meta" id="allTotalsMeta"></div>
+      <div id="reportOutputAll" class="report-result">اضغط زر "عرض التقرير" لإظهار الملخص العام.</div>
+    </div>
+
+    <div class="panel panel-card" id="materialsTab">
+      <h2>تقرير استخدام الخامات</h2>
+      <div class="controls">
+        <label for="yearFilterMaterials">سنة التقرير</label>
+        <select id="yearFilterMaterials"><option value="all">جميع السنوات</option></select>
+        <label for="searchMaterials">بحث صنف</label>
+        <input id="searchMaterials" class="search-field" type="text" placeholder="بحث بالكود أو الاسم" />
+        <button class="button primary" id="runMaterialsUsageBtn">عرض التقرير</button>
+      </div>
+      <div class="print-meta" id="materialsMeta"></div>
+      <div id="reportOutputMaterials" class="report-result">اضغط زر "عرض التقرير" لحساب استخدام الخامات.</div>
+    </div>
+
+    <div class="panel panel-card" id="periodTab">
+      <h2>تقرير بالفترة الزمنية</h2>
+      <div class="controls">
+        <label for="yearFilterPeriod">سنة التقرير</label>
+        <select id="yearFilterPeriod"><option value="all">جميع السنوات</option></select>
+        <label for="fromDate">من تاريخ</label>
+        <input type="date" id="fromDate" />
+        <label for="toDate">إلى تاريخ</label>
+        <input type="date" id="toDate" />
+        <label for="searchPeriod">بحث صنف</label>
+        <input id="searchPeriod" class="search-field" type="text" placeholder="بحث بالكود أو الاسم" />
+        <button class="button primary" id="runPeriodQuery">عرض التقرير</button>
+      </div>
+      <div class="print-meta" id="periodMeta"></div>
+      <div id="periodReportResult" class="report-result">حدد الفترة الزمنية ثم اضغط زر عرض التقرير.</div>
+    </div>
+
+    <div class="report-card status-box" id="statusBox">جاهز.</div>
+  </div>
+
+  <div id="searchModal" class="overlay hidden" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>اختيار القسم والصنف</h2>
+        <button id="closeSearchModal" class="button">إغلاق</button>
+      </div>
+      <div class="modal-body">
+        <div class="controls">
+          <label for="modalSectionSelect">القسم</label>
+          <select id="modalSectionSelect"><option value="all">جميع الأقسام</option></select>
+          <label for="modalItemSearch">بحث صنف</label>
+          <input id="modalItemSearch" class="search-field" type="text" placeholder="ابحث باسم أو كود الصنف" />
+        </div>
+        <div id="modalItemList" class="modal-item-list">
+          <div class="modal-empty">اختر قسمًا أو اكتب اسم الصنف لبدء البحث.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="trackModal" class="overlay hidden" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="trackModalTitle">تتبع الصنف</h2>
+        <button id="closeTrackModal" class="button">إغلاق</button>
+      </div>
+      <div class="modal-body" id="trackModalBody">
+        <div class="modal-empty">اختر صنفًا للتتبع من أي جدول، وسيظهر سجل الحركات هنا.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const invoiceCollection = db.collection('moled-invoices');
+    const itemsCollection = db.collection('moled-items');
+
+    const tabs = document.querySelectorAll('.tab-button');
+    const panels = document.querySelectorAll('.panel');
+    const loadItemTotalsBtn = document.getElementById('runItemTotalsBtn');
+    const loadAllTotalsBtn = document.getElementById('runAllTotalsBtn');
+    const loadMaterialsUsageBtn = document.getElementById('runMaterialsUsageBtn');
+    const runPeriodQuery = document.getElementById('runPeriodQuery');
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+    const reportOutput = document.getElementById('reportOutput');
+    const reportOutputAll = document.getElementById('reportOutputAll');
+    const reportOutputMaterials = document.getElementById('reportOutputMaterials');
+    const periodReportResult = document.getElementById('periodReportResult');
+    const statusBox = document.getElementById('statusBox');
+    const brandFilter = document.getElementById('brandFilter');
+    const openSearchModalBtn = document.getElementById('openSearchModalBtn');
+    const analyticsInvoices = document.getElementById('analyticsInvoices');
+    const analyticsQty = document.getElementById('analyticsQty');
+    const analyticsKilos = document.getElementById('analyticsKilos');
+    const analyticsValue = document.getElementById('analyticsValue');
+    const analyticsItems = document.getElementById('analyticsItems');
+    const analyticsTopItem = document.getElementById('analyticsTopItem');
+    const analyticsYears = document.getElementById('analyticsYears');
+    const yearFilters = [
+      document.getElementById('yearFilter'),
+      document.getElementById('yearFilterAll'),
+      document.getElementById('yearFilterMaterials'),
+      document.getElementById('yearFilterPeriod')
+    ];
+    const searchSummaryInput = document.getElementById('searchSummary');
+    const searchAllTotalsInput = document.getElementById('searchAllTotals');
+    const searchMaterialsInput = document.getElementById('searchMaterials');
+    const searchPeriodInput = document.getElementById('searchPeriod');
+    const summaryMeta = document.getElementById('summaryMeta');
+    const allTotalsMeta = document.getElementById('allTotalsMeta');
+    const materialsMeta = document.getElementById('materialsMeta');
+    const periodMeta = document.getElementById('periodMeta');
+    const searchModal = document.getElementById('searchModal');
+    const closeSearchModalBtn = document.getElementById('closeSearchModal');
+    const modalSectionSelect = document.getElementById('modalSectionSelect');
+    const modalItemSearch = document.getElementById('modalItemSearch');
+    const modalItemList = document.getElementById('modalItemList');
+    const trackModal = document.getElementById('trackModal');
+    const trackModalTitle = document.getElementById('trackModalTitle');
+    const trackModalBody = document.getElementById('trackModalBody');
+    const closeTrackModalBtn = document.getElementById('closeTrackModal');
+
+    const BRAND_LABELS = {
+      'best-sweet': 'بيست سويت',
+      ledo: 'ليدو',
+      all: 'كل البراندات'
+    };
+
+    let itemDefinitionsCache = [];
+    let itemDefinitionIndex = {};
+    let sectionsByName = {};
+    let lastSummaryRows = [];
+    let lastAllTotalsRows = [];
+    let lastMaterialsRows = [];
+    let lastPeriodRows = [];
+    let lastAllTotalsTotals = null;
+    let allInvoicesCache = [];
+
+    function setStatus(message, success = true) {
+      statusBox.textContent = message;
+      statusBox.style.color = success ? '#cfe3ff' : '#ffb3c2';
+      statusBox.style.background = success ? 'rgba(72,142,255,0.08)' : 'rgba(255,72,72,0.08)';
+      statusBox.style.border = success ? '1px solid rgba(72,142,255,0.14)' : '1px solid rgba(255,72,72,0.2)';
+    }
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString('ar-EG') || '0';
+    }
+
+    function parseNumber(value) {
+      if (value === undefined || value === null) return 0;
+      const numeric = String(value).replace(/[^0-9.,-]/g, '').replace(',', '.');
+      return Number(numeric) || 0;
+    }
+
+    function renderTable(headers, rows) {
+      if (!rows || !rows.length) {
+        return '<div>لا توجد نتائج.</div>';
+      }
+      const headerHtml = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      const rowsHtml = rows.map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('');
+      return `<table>${headerHtml}${rowsHtml}</table>`;
+    }
+
+    async function loadInvoices(force = false) {
+      if (!force && allInvoicesCache.length) {
+        return allInvoicesCache;
+      }
+      setStatus('جاري تحميل الفواتير...', true);
+      const snapshot = await invoiceCollection.get();
+      if (snapshot.empty) {
+        allInvoicesCache = [];
+        setStatus('لا توجد فواتير مسجلة حتى الآن.', false);
+        return [];
+      }
+      allInvoicesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return allInvoicesCache;
+    }
+
+    async function loadItemDefinitions() {
+      const snapshot = await itemsCollection.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    function getInvoiceDate(invoice) {
+      if (!invoice || !invoice.date) return null;
+      const date = new Date(invoice.date);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function getInvoiceYear(invoice) {
+      const date = getInvoiceDate(invoice);
+      return date ? date.getFullYear() : null;
+    }
+
+    function buildYearOptions(invoices) {
+      const years = new Set();
+      invoices.forEach(inv => {
+        const year = getInvoiceYear(inv);
+        if (year) years.add(year);
+      });
+      return Array.from(years).sort((a, b) => b - a);
+    }
+
+    function setYearFilterOptions(years) {
+      yearFilters.forEach(select => {
+        select.innerHTML = '<option value="all">جميع السنوات</option>' + years.map(year => `<option value="${year}">${year}</option>`).join('');
+      });
+    }
+
+    function getSelectedBrand() {
+      return brandFilter ? brandFilter.value : 'all';
+    }
+
+    function getBrandLabel(brandKey) {
+      return BRAND_LABELS[brandKey] || brandKey || 'غير معروف';
+    }
+
+    function filterInvoicesByBrand(invoices, brand) {
+      if (!brand || brand === 'all') return invoices;
+      return invoices.filter(inv => String(inv.brand || '').trim() === brand);
+    }
+
+    function updateYearFilters() {
+      const brand = getSelectedBrand();
+      const invoices = filterInvoicesByBrand(allInvoicesCache, brand);
+      const years = buildYearOptions(invoices);
+      setYearFilterOptions(years);
+      const yearNode = analyticsYears || document.getElementById('analyticsYears');
+      const invoiceNode = analyticsInvoices || document.getElementById('analyticsInvoices');
+      const qtyNode = analyticsQty || document.getElementById('analyticsQty');
+      const kilosNode = analyticsKilos || document.getElementById('analyticsKilos');
+      const valueNode = analyticsValue || document.getElementById('analyticsValue');
+      const itemsNode = analyticsItems || document.getElementById('analyticsItems');
+      const topItemNode = analyticsTopItem || document.getElementById('analyticsTopItem');
+      const yearText = years.length ? years.join('، ') : 'لا يوجد بيانات';
+      if (yearNode) yearNode.textContent = yearText;
+      if (invoiceNode) invoiceNode.textContent = formatNumber(invoices.length);
+      const totalQty = invoices.reduce((sum, inv) => sum + (inv.items || []).reduce((sub, item) => sub + parseNumber(item.qty), 0), 0);
+      const totalValue = invoices.reduce((sum, inv) => sum + (inv.items || []).reduce((sub, item) => sub + parseNumber(item.total), 0), 0);
+      const uniqueItems = new Set();
+      invoices.forEach(inv => (inv.items || []).forEach(item => uniqueItems.add((item.code || item.name || '').trim())));
+      const topItem = groupByItem(invoices)[0];
+      if (qtyNode) qtyNode.textContent = formatNumber(totalQty);
+      if (kilosNode) kilosNode.textContent = formatNumber(invoices.reduce((sum, inv) => sum + (inv.items || []).reduce((sub, item) => sub + (parseNumber(item.unitWeight) * parseNumber(item.qty)), 0), 0));
+      if (valueNode) valueNode.textContent = formatNumber(totalValue);
+      if (itemsNode) itemsNode.textContent = formatNumber(uniqueItems.size);
+      if (topItemNode) topItemNode.textContent = topItem ? `${topItem.name} (${getBrandLabel(topItem.brand)})` : '-';
+    }
+
+    function buildSectionsMap(itemDefs) {
+      const map = {};
+      itemDefs.forEach(item => {
+        const section = String(item.section || item.category || item.sectionName || 'غير معروف').trim();
+        if (!map[section]) map[section] = [];
+        map[section].push(item);
+      });
+      return map;
+    }
+
+    function buildBrandOptions(invoices) {
+      const brands = new Set();
+      invoices.forEach(inv => {
+        const brand = String(inv.brand || '').trim();
+        if (brand) brands.add(brand);
+      });
+      return Array.from(brands).sort();
+    }
+
+    function setBrandFilterOptions(brands) {
+      const options = ['<option value="all">كل البراندات</option>'];
+      brands.forEach(brand => {
+        options.push(`<option value="${brand}">${getBrandLabel(brand)}</option>`);
+      });
+      if (brandFilter) brandFilter.innerHTML = options.join('');
+    }
+
+    function buildItemDefinitionIndex() {
+      itemDefinitionIndex = {};
+      itemDefinitionsCache.forEach(def => {
+        const code = String(def.code || '').trim();
+        const name = String(def.name || '').trim();
+        if (code) itemDefinitionIndex[code] = def;
+        if (name) itemDefinitionIndex[name] = def;
+      });
+    }
+
+    function getItemDefinition(item) {
+      const code = String(item.code || '').trim();
+      const name = String(item.name || '').trim();
+      return itemDefinitionIndex[code] || itemDefinitionIndex[name] || null;
+    }
+
+    function populateModalSections() {
+      modalSectionSelect.innerHTML = '<option value="all">جميع الأقسام</option>' + Object.keys(sectionsByName).map(section => `<option value="${section}">${section}</option>`).join('');
+    }
+
+    function renderModalItems() {
+      const section = modalSectionSelect.value;
+      const query = String(modalItemSearch.value || '').trim().toLowerCase();
+      const items = section === 'all' ? itemDefinitionsCache : (sectionsByName[section] || []);
+      const filtered = items.filter(item => {
+        const text = `${item.name || item.code || ''} ${item.code || ''}`.toLowerCase();
+        return !query || text.includes(query);
+      });
+
+      if (!filtered.length) {
+        modalItemList.innerHTML = '<div class="modal-empty">لا توجد أصناف تطابق البحث.</div>';
+        return;
+      }
+
+      modalItemList.innerHTML = filtered.map(item => `
+        <div class="modal-item-row" data-code="${item.code || ''}" data-name="${item.name || ''}">
+          <span>${item.name || '-'}</span>
+          <small>${item.code || '-'} · ${item.section || item.category || 'بدون قسم'}</small>
+        </div>
+      `).join('');
+
+      modalItemList.querySelectorAll('.modal-item-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const value = `${row.dataset.code || ''} ${row.dataset.name || ''}`.trim();
+          applyModalSelection(value);
+          closeSearchModal();
+        });
+      });
+    }
+
+    function getActiveTab() {
+      const activeButton = document.querySelector('.tab-button.active');
+      return activeButton ? activeButton.dataset.tab : 'summaryTab';
+    }
+
+    function getActiveSearchInput() {
+      const activeTab = getActiveTab();
+      switch (activeTab) {
+        case 'summaryTab': return searchSummaryInput;
+        case 'allTotalsTab': return searchAllTotalsInput;
+        case 'materialsTab': return searchMaterialsInput;
+        case 'periodTab': return searchPeriodInput;
+        default: return searchSummaryInput;
+      }
+    }
+
+    async function runActiveReport() {
+      const activeTab = getActiveTab();
+      switch (activeTab) {
+        case 'summaryTab': return await runItemTotals();
+        case 'allTotalsTab': return await runAllTotals();
+        case 'materialsTab': return await runMaterialsUsage();
+        case 'periodTab': return await runPeriodReport();
+        default: return;
+      }
+    }
+
+    function applyModalSelection(value) {
+      const cleaned = value.trim();
+      if (!cleaned) return;
+      const target = getActiveSearchInput();
+      if (target) {
+        target.value = cleaned;
+      }
+      setStatus('تم اختيار الصنف من النافذة، يمكنك الآن الضغط على زر العرض أو تحديث البحث.');
+      filterCurrentTabResults();
+    }
+
+    function openSearchModal() {
+      searchModal.classList.remove('hidden');
+      searchModal.setAttribute('aria-hidden', 'false');
+      modalItemSearch.value = '';
+      modalSectionSelect.value = 'all';
+      renderModalItems();
+    }
+
+    function closeSearchModal() {
+      searchModal.classList.add('hidden');
+      searchModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function closeTrackModal() {
+      trackModal.classList.add('hidden');
+      trackModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function filterRows(rows, query) {
+      if (!query) return rows;
+      const clean = String(query).trim().toLowerCase();
+      return rows.filter(row => {
+        const cells = Array.isArray(row) ? row : Object.values(row);
+        return cells.some(cell => String(cell).toLowerCase().includes(clean));
+      });
+    }
+
+    function createTrackButton(code, name) {
+      if (!code && !name) return '-';
+      return `<button class="button secondary track-item" data-code="${code || ''}" data-name="${name || ''}">تتبع</button>`;
+    }
+
+    function attachTrackButtons(container) {
+      if (!container) return;
+      container.querySelectorAll('.track-item').forEach(button => {
+        button.removeEventListener('click', handleTrackButtonClick);
+        button.addEventListener('click', handleTrackButtonClick);
+      });
+    }
+
+    function handleTrackButtonClick(event) {
+      const code = event.currentTarget.dataset.code;
+      const name = event.currentTarget.dataset.name;
+      showItemLifecycle(code, name);
+    }
+
+    function filterCurrentTabResults() {
+      const activeTab = getActiveTab();
+      switch (activeTab) {
+        case 'summaryTab':
+          reportOutput.innerHTML = renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الوحدة', 'الإجمالي المرسل', 'الكجم', 'القيمة الإجمالية', 'عدد الفواتير', 'تتبع'], filterRows(lastSummaryRows, searchSummaryInput.value));
+          attachTrackButtons(reportOutput);
+          break;
+        case 'allTotalsTab': {
+          const filteredTotals = filterRows(lastAllTotalsRows, searchAllTotalsInput.value);
+          const topHtml = filteredTotals.length ? renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الكمية', 'الكجم', 'تتبع'], filteredTotals.slice(0, 5)) : '<div>لا توجد أصناف تطابق البحث.</div>';
+          const allHtml = filteredTotals.length ? renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الكمية', 'الكجم', 'تتبع'], filteredTotals) : '<div>لا توجد أصناف تطابق البحث.</div>';
+          reportOutputAll.innerHTML = `<div class="report-result">
+            <p>عدد الفواتير: <strong>${formatNumber(lastAllTotalsTotals?.invoices || 0)}</strong></p>
+            <p>عدد الأصناف المرسلة: <strong>${formatNumber(lastAllTotalsTotals?.totalRecords || 0)}</strong></p>
+            <p>إجمالي الكمية المرسلة: <strong>${formatNumber(lastAllTotalsTotals?.totalQty || 0)}</strong></p>
+            <p>إجمالي الكجم: <strong>${formatNumber(lastAllTotalsTotals?.totalKg || 0)}</strong></p>
+            <h3>أعلى 5 أصناف حسب الكمية</h3>
+            ${topHtml}
+            <h3>كل الأصناف</h3>
+            ${allHtml}
+          </div>`;
+          attachTrackButtons(reportOutputAll);
+          break;
+        }
+        case 'materialsTab': {
+          const filteredMaterials = filterRows(lastMaterialsRows, searchMaterialsInput.value);
+          reportOutputMaterials.innerHTML = filteredMaterials.length ? renderMaterialUsage(filteredMaterials) : '<div>لا توجد أصناف تطابق البحث.</div>';
+          break;
+        }
+        case 'periodTab':
+          periodReportResult.innerHTML = renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الوحدة', 'الإجمالي المرسل', 'الكجم', 'القيمة الإجمالية', 'تتبع'], filterRows(lastPeriodRows, searchPeriodInput.value));
+          attachTrackButtons(periodReportResult);
+          break;
+      }
+    }
+
+    function updateSearchListeners() {
+      [searchSummaryInput, searchAllTotalsInput, searchMaterialsInput, searchPeriodInput].forEach(input => {
+        if (input) {
+          input.addEventListener('input', filterCurrentTabResults);
+        }
+      });
+      modalSectionSelect.addEventListener('change', renderModalItems);
+      modalItemSearch.addEventListener('input', renderModalItems);
+      closeSearchModalBtn.addEventListener('click', closeSearchModal);
+      closeTrackModalBtn.addEventListener('click', closeTrackModal);
+      openSearchModalBtn.addEventListener('click', openSearchModal);
+      brandFilter.addEventListener('change', async () => {
+        updateYearFilters();
+        setStatus(`تم تغيير البراند إلى ${getBrandLabel(getSelectedBrand())}. يتم تحديث التقرير الحالي...`);
+        await runActiveReport();
+      });
+      yearFilters.forEach(select => {
+        select.addEventListener('change', async () => {
+          setStatus('تم تغيير السنة. يتم تحديث التقرير الحالي...');
+          await runActiveReport();
+        });
+      });
+      searchModal.addEventListener('click', event => {
+        if (event.target === searchModal) closeSearchModal();
+      });
+      trackModal.addEventListener('click', event => {
+        if (event.target === trackModal) closeTrackModal();
+      });
+      window.addEventListener('keydown', event => {
+        if (event.key === 'F1') {
+          event.preventDefault();
+          openSearchModal();
+        }
+      });
+    }
+
+    function getSelectedYear(selectId) {
+      const select = document.getElementById(selectId);
+      return select ? select.value : 'all';
+    }
+
+    function filterInvoicesByYear(invoices, year) {
+      if (!year || year === 'all') return invoices;
+      return invoices.filter(inv => String(getInvoiceYear(inv)) === year);
+    }
+
+    function filterInvoicesByRange(invoices, from, to) {
+      const fromTime = from ? new Date(from).getTime() : null;
+      const toTime = to ? new Date(to).getTime() : null;
+      return invoices.filter(inv => {
+        const dateValue = getInvoiceDate(inv)?.getTime();
+        if (!dateValue) return false;
+        if (fromTime && dateValue < fromTime) return false;
+        if (toTime && dateValue > toTime) return false;
+        return true;
+      });
+    }
+
+    function groupByItem(invoices) {
+      const totals = {};
+      invoices.forEach(inv => {
+        (inv.items || []).forEach(item => {
+          const itemDef = getItemDefinition(item);
+          const brand = String(inv.brand || 'غير معروف').trim();
+          const code = String(item.code || item.name || 'غير معروف').trim();
+          const name = String(item.name || item.code || 'غير معروف').trim();
+          const section = String(itemDef?.section || itemDef?.category || item.section || 'غير معروف').trim();
+          const unit = String(item.unit || itemDef?.unit || itemDef?.unitType || '').trim();
+          const qty = parseNumber(item.qty);
+          const kilos = parseNumber(item.unitWeight) * qty;
+          const total = parseNumber(item.total);
+          const key = `${brand}||${code}`;
+          if (!totals[key]) {
+            totals[key] = { brand, code: code || '-', name, section, unit: unit || '-', quantity: 0, kilos: 0, value: 0, invoices: 0 };
+          }
+          totals[key].quantity += qty;
+          totals[key].kilos += kilos;
+          totals[key].value += total;
+          totals[key].invoices += 1;
+        });
+      });
+      return Object.values(totals).sort((a, b) => b.quantity - a.quantity);
+    }
+
+    function totalsForAllItems(invoices) {
+      let totalQty = 0;
+      let totalKg = 0;
+      let totalRecords = 0;
+      invoices.forEach(inv => {
+        (inv.items || []).forEach(item => {
+          const qty = parseNumber(item.qty);
+          totalQty += qty;
+          totalKg += parseNumber(item.unitWeight) * qty;
+          totalRecords += 1;
+        });
+      });
+      return { totalQty, totalKg, totalRecords, invoices: invoices.length };
+    }
+
+    function buildMaterialsUsage(invoices, itemDefs) {
+      const map = {};
+      const itemsByCode = {};
+      itemDefs.forEach(def => {
+        if (def.code) itemsByCode[def.code] = def;
+        if (def.name) itemsByCode[def.name] = def;
+      });
+
+      invoices.forEach(inv => {
+        (inv.items || []).forEach(item => {
+          const itemQty = parseNumber(item.qty);
+          const itemDef = itemsByCode[item.code] || itemsByCode[item.name];
+          if (!itemDef || !Array.isArray(itemDef.materials)) return;
+          itemDef.materials.forEach(mat => {
+            const code = mat.code || mat.name || 'غير معروف';
+            const name = mat.name || mat.code || 'غير معروف';
+            const qtyPerItem = parseNumber(mat.quantity);
+            if (!map[code]) {
+              map[code] = { code, name, totalUsage: 0, raw: [] };
+            }
+            if (qtyPerItem > 0 && itemQty > 0) {
+              map[code].totalUsage += qtyPerItem * itemQty;
+            } else {
+              map[code].raw.push(`${itemQty} × ${mat.quantity || '؟'}`);
+            }
+          });
+        });
+      });
+      return Object.values(map).sort((a, b) => b.totalUsage - a.totalUsage);
+    }
+
+    function renderMaterialUsage(rows) {
+      if (!rows.length) {
+        return '<div>لا توجد بيانات خامات للعرض.</div>';
+      }
+      return `<table>
+        <tr><th>كود الخامة</th><th>اسم الخامة</th><th>الكمية المستخدمة</th><th>ملاحظات</th></tr>
+        ${rows.map(row => `<tr>
+          <td>${row.code}</td>
+          <td>${row.name}</td>
+          <td>${row.totalUsage ? formatNumber(row.totalUsage) : '-'}</td>
+          <td>${row.raw.length ? row.raw.join('، ') : '-'}</td>
+        </tr>`).join('')}
+      </table>`;
+    }
+
+    function showItemLifecycle(code, name) {
+      const itemId = code || name || 'غير معروف';
+      trackModalTitle.textContent = `تتبع الصنف: ${itemId}`;
+      trackModalBody.innerHTML = '<div class="modal-empty">جاري البحث في سجل الحركات...</div>';
+      trackModal.classList.remove('hidden');
+      trackModal.setAttribute('aria-hidden', 'false');
+
+      const invoices = filterInvoicesByBrand(allInvoicesCache, getSelectedBrand()).filter(inv => {
+        return (inv.items || []).some(item => String(item.code || '').trim() === String(code || '').trim() || String(item.name || '').trim() === String(name || '').trim());
+      }).sort((a, b) => getInvoiceDate(b)?.getTime() - getInvoiceDate(a)?.getTime());
+
+      if (!invoices.length) {
+        trackModalBody.innerHTML = `<div class="modal-empty">لا توجد حركات لهذا الصنف في الفواتير الحالية.</div>`;
+        return;
+      }
+
+      const summary = invoices.reduce((acc, inv) => {
+        (inv.items || []).forEach(item => {
+          if (String(item.code || '').trim() === String(code || '').trim() || String(item.name || '').trim() === String(name || '').trim()) {
+            const qty = parseNumber(item.qty);
+            const kilos = parseNumber(item.unitWeight) * qty;
+            acc.qty += qty;
+            acc.kilos += kilos;
+            acc.total += parseNumber(item.total);
+          }
+        });
+        return acc;
+      }, { qty: 0, kilos: 0, total: 0 });
+
+      const rows = invoices.map(inv => {
+        const match = (inv.items || []).find(item => String(item.code || '').trim() === String(code || '').trim() || String(item.name || '').trim() === String(name || '').trim());
+        if (!match) return null;
+        const kilos = parseNumber(match.unitWeight) * parseNumber(match.qty);
+        return `<tr>
+          <td>${inv.brand || '-'}</td>
+          <td>${inv.invoiceNumber || '-'}</td>
+          <td>${inv.client || '-'}</td>
+          <td>${inv.date || '-'}</td>
+          <td>${match.code || '-'}</td>
+          <td>${match.name || '-'}</td>
+          <td>${formatNumber(match.qty)}</td>
+          <td>${formatNumber(kilos)}</td>
+          <td>${formatNumber(match.total)}</td>
+        </tr>`;
+      }).filter(Boolean).join('');
+
+      trackModalBody.innerHTML = `
+        <div class="modal-body">
+          <div class="modal-empty">عدد الحركات: ${invoices.length} · إجمالي الكمية: ${formatNumber(summary.qty)} · إجمالي الكجم: ${formatNumber(summary.kilos)} · إجمالي القيمة: ${formatNumber(summary.total)}</div>
+          <table>
+            <tr><th>البراند</th><th>رقم الفاتورة</th><th>العميل</th><th>التاريخ</th><th>كود</th><th>اسم</th><th>الكمية</th><th>الكجم</th><th>القيمة</th></tr>
+            ${rows}
+          </table>
+        </div>
+      `;
+    }
+
+    function createMetaCard(label, value) {
+      return `<span><strong>${label}:</strong> ${value}</span>`;
+    }
+
+    async function init() {
+      const allInvoices = await loadInvoices(true);
+      itemDefinitionsCache = await loadItemDefinitions();
+      buildItemDefinitionIndex();
+      sectionsByName = buildSectionsMap(itemDefinitionsCache);
+      populateModalSections();
+      updateSearchListeners();
+      setBrandFilterOptions(buildBrandOptions(allInvoices));
+      updateYearFilters();
+      if (!allInvoices.length) {
+        setStatus('لا توجد بيانات فواتير حتى الآن.', false);
+      } else {
+        setStatus('تم تحميل بيانات الفواتير ومعلومات الأقسام بنجاح. اضغط F1 لاختيار القسم والصنف.');
+      }
+    }
+
+    async function runItemTotals() {
+      reportOutput.innerHTML = 'جاري حساب إجمالي المرسل لكل صنف...';
+      const brand = getSelectedBrand();
+      const year = getSelectedYear('yearFilter');
+      const invoices = await loadInvoices();
+      let filtered = filterInvoicesByBrand(invoices, brand);
+      filtered = filterInvoicesByYear(filtered, year);
+      if (!filtered.length) {
+        reportOutput.innerHTML = '<div>لا توجد فواتير في البراند أو السنة المحددة.</div>';
+        setStatus('لا توجد بيانات للسنة أو البراند المحدد.', false);
+        summaryMeta.innerHTML = '';
+        return;
+      }
+      const rows = groupByItem(filtered).map(item => [
+        getBrandLabel(item.brand),
+        item.section,
+        item.code,
+        item.name,
+        item.unit,
+        formatNumber(item.quantity),
+        formatNumber(item.kilos),
+        formatNumber(item.value),
+        formatNumber(item.invoices),
+        createTrackButton(item.code, item.name)
+      ]);
+      lastSummaryRows = rows;
+      reportOutput.innerHTML = renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الوحدة', 'الإجمالي المرسل', 'الكجم', 'القيمة الإجمالية', 'عدد الفواتير', 'تتبع'], filterRows(rows, searchSummaryInput.value));
+      attachTrackButtons(reportOutput);
+      summaryMeta.innerHTML = createMetaCard('البراند', getBrandLabel(brand)) + createMetaCard('السنة', year === 'all' ? 'جميع السنوات' : year) + createMetaCard('عدد الفواتير', formatNumber(filtered.length));
+      setStatus(`تم حساب الإجمالي لكل صنف للبراند ${getBrandLabel(brand)}${year === 'all' ? '' : ' لعام ' + year}.`);
+    }
+
+    function groupBySection(invoices) {
+      const totals = {};
+      invoices.forEach(inv => {
+        (inv.items || []).forEach(item => {
+          const itemDef = getItemDefinition(item);
+          const section = String(itemDef?.section || itemDef?.category || item.section || 'غير معروف').trim();
+          const qty = parseNumber(item.qty);
+          const kilos = parseNumber(item.unitWeight) * qty;
+          const total = parseNumber(item.total);
+          if (!totals[section]) {
+            totals[section] = { section, qty: 0, kilos: 0, value: 0 };
+          }
+          totals[section].qty += qty;
+          totals[section].kilos += kilos;
+          totals[section].value += total;
+        });
+      });
+      return Object.values(totals).sort((a, b) => b.qty - a.qty);
+    }
+
+    async function runAllTotals() {
+      reportOutputAll.innerHTML = 'جاري حساب الإجمالي العام...';
+      const brand = getSelectedBrand();
+      const year = getSelectedYear('yearFilterAll');
+      const invoices = await loadInvoices();
+      let filtered = filterInvoicesByBrand(invoices, brand);
+      filtered = filterInvoicesByYear(filtered, year);
+      if (!filtered.length) {
+        reportOutputAll.innerHTML = '<div>لا توجد فواتير في البراند أو السنة المحددة.</div>';
+        setStatus('لا توجد بيانات للبراند أو السنة المحددة.', false);
+        allTotalsMeta.innerHTML = '';
+        return;
+      }
+      const totals = totalsForAllItems(filtered);
+      const sections = groupBySection(filtered).slice(0, 5);
+      const sectionHtml = sections.length ? renderTable(['القسم', 'الكمية', 'الكجم', 'القيمة'], sections.map(section => [section.section, formatNumber(section.qty), formatNumber(section.kilos), formatNumber(section.value)])) : '<div>لا توجد أقسام للعرض.</div>';
+      const allItems = groupByItem(filtered).map(item => [
+        getBrandLabel(item.brand),
+        item.section,
+        item.code,
+        item.name,
+        formatNumber(item.quantity),
+        formatNumber(item.kilos),
+        createTrackButton(item.code, item.name)
+      ]);
+      const topItems = allItems.slice(0, 5);
+      const topHtml = topItems.length ? renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الكمية', 'الكجم', 'تتبع'], topItems) : '<div>لا توجد أصناف للعرض.</div>';
+      lastAllTotalsRows = allItems;
+      lastAllTotalsTotals = totals;
+      reportOutputAll.innerHTML = `<div class="report-result">
+        <p>البراند: <strong>${getBrandLabel(brand)}</strong></p>
+        <p>عدد الفواتير: <strong>${formatNumber(totals.invoices)}</strong></p>
+        <p>عدد الأصناف المرسلة: <strong>${formatNumber(totals.totalRecords)}</strong></p>
+        <p>إجمالي الكمية المرسلة: <strong>${formatNumber(totals.totalQty)}</strong></p>
+        <p>إجمالي الكجم: <strong>${formatNumber(totals.totalKg)}</strong></p>
+        <h3>أهم الأقسام حسب الكمية</h3>
+        ${sectionHtml}
+        <h3>أعلى 5 أصناف حسب الكمية</h3>
+        ${topHtml}
+        <h3>كل الأصناف</h3>
+        ${renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الكمية', 'الكجم', 'تتبع'], allItems)}
+      </div>`;
+      attachTrackButtons(reportOutputAll);
+      allTotalsMeta.innerHTML = createMetaCard('البراند', getBrandLabel(brand)) + createMetaCard('السنة', year === 'all' ? 'جميع السنوات' : year) + createMetaCard('إجمالي الأصناف', formatNumber(totals.totalRecords));
+      setStatus(`تم إنشاء التقرير العام للبراند ${getBrandLabel(brand)}${year === 'all' ? '' : ' لعام ' + year}.`);
+    }
+
+    async function runMaterialsUsage() {
+      reportOutputMaterials.innerHTML = 'جاري حساب استخدام الخامات...';
+      const brand = getSelectedBrand();
+      const year = getSelectedYear('yearFilterMaterials');
+      const invoices = await loadInvoices();
+      let filtered = filterInvoicesByBrand(invoices, brand);
+      filtered = filterInvoicesByYear(filtered, year);
+      if (!filtered.length) {
+        reportOutputMaterials.innerHTML = '<div>لا توجد فواتير في البراند أو السنة المحددة.</div>';
+        setStatus('لا توجد بيانات للبراند أو السنة المحدد.', false);
+        materialsMeta.innerHTML = '';
+        return;
+      }
+      const rows = buildMaterialsUsage(filtered, itemDefinitionsCache);
+      lastMaterialsRows = rows;
+      reportOutputMaterials.innerHTML = renderMaterialUsage(filterRows(rows, searchMaterialsInput.value));
+      materialsMeta.innerHTML = createMetaCard('البراند', getBrandLabel(brand)) + createMetaCard('السنة', year === 'all' ? 'جميع السنوات' : year) + createMetaCard('عدد الفواتير', formatNumber(filtered.length));
+      setStatus(`تم إنشاء تقرير استخدام الخامات للبراند ${getBrandLabel(brand)}.`);
+    }
+
+    async function runPeriodReport() {
+      const brand = getSelectedBrand();
+      const year = getSelectedYear('yearFilterPeriod');
+      const from = fromDateInput.value;
+      const to = toDateInput.value;
+      if (!from || !to) {
+        periodReportResult.innerHTML = '<div>حدد تاريخ البداية وتاريخ النهاية أولاً.</div>';
+        setStatus('يرجى تحديد النطاق الزمني قبل عرض التقرير.', false);
+        periodMeta.innerHTML = '';
+        return;
+      }
+      periodReportResult.innerHTML = 'جاري تحميل التقرير للفترة...';
+      const invoices = await loadInvoices();
+      let filtered = filterInvoicesByBrand(invoices, brand);
+      filtered = filterInvoicesByYear(filtered, year);
+      filtered = filterInvoicesByRange(filtered, from, to);
+      if (!filtered.length) {
+        periodReportResult.innerHTML = '<div>لا توجد فواتير في النطاق الزمني المحدد.</div>';
+        setStatus('لا توجد بيانات في الفترة المحددة.', false);
+        periodMeta.innerHTML = '';
+        return;
+      }
+      const rows = groupByItem(filtered).map(item => [
+        getBrandLabel(item.brand),
+        item.section,
+        item.code,
+        item.name,
+        item.unit,
+        formatNumber(item.quantity),
+        formatNumber(item.kilos),
+        formatNumber(item.value),
+        createTrackButton(item.code, item.name)
+      ]);
+      lastPeriodRows = rows;
+      periodReportResult.innerHTML = renderTable(['البراند', 'القسم', 'كود الصنف', 'اسم الصنف', 'الوحدة', 'الإجمالي المرسل', 'الكجم', 'القيمة الإجمالية', 'تتبع'], filterRows(rows, searchPeriodInput.value));
+      attachTrackButtons(periodReportResult);
+      periodMeta.innerHTML = createMetaCard('البراند', getBrandLabel(brand)) + createMetaCard('السنة', year === 'all' ? 'جميع السنوات' : year) + createMetaCard('من', from) + createMetaCard('إلى', to);
+      setStatus(`تم إنشاء تقرير الفترة للبراند ${getBrandLabel(brand)} من ${from} إلى ${to}${year === 'all' ? '' : ' لعام ' + year}.`);
+    }
+
+    function switchTab(selectedTab) {
+      tabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === selectedTab);
+      });
+      panels.forEach(panel => {
+        panel.classList.toggle('active', panel.id === selectedTab);
+      });
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    loadItemTotalsBtn.addEventListener('click', runItemTotals);
+    loadAllTotalsBtn.addEventListener('click', runAllTotals);
+    loadMaterialsUsageBtn.addEventListener('click', runMaterialsUsage);
+    runPeriodQuery.addEventListener('click', runPeriodReport);
+
+    init();
+  </script>
+</body>
+</html>

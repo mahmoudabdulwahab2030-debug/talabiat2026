@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>الكنترول - لوحة إدارة المولد</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Cairo', Arial, sans-serif;
+      --bg: #0d111a;
+      --surface: rgba(255,255,255,0.06);
+      --surface-soft: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.12);
+      --text: #e9edf7;
+      --muted: #99a2b6;
+      --accent: #ff5b7f;
+      --accent-soft: rgba(255,91,127,0.18);
+      --success: #57d28b;
+      --danger: #ff5b7f;
+      --shadow: 0 30px 70px rgba(0,0,0,0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(255,91,127,0.14), transparent 22%), linear-gradient(180deg, #07090f 0%, #101521 100%);
+      color: var(--text);
+      direction: rtl;
+    }
+    body a { color: var(--accent); text-decoration: none; }
+    body a:hover { text-decoration: underline; }
+
+    .page-shell {
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-bar h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 2.2vw, 2.6rem);
+      color: #ff8fb1;
+    }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .header-actions button,
+    .header-actions .nav-link {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+      font-weight: 700;
+    }
+    .header-actions button:hover,
+    .header-actions .nav-link:hover {
+      transform: translateY(-1px);
+      background: rgba(255,91,127,0.14);
+      border-color: rgba(255,91,127,0.4);
+    }
+
+    .overview-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      min-height: 130px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .card strong {
+      font-size: clamp(1.5rem, 2vw, 2.4rem);
+      color: #fff;
+      display: block;
+    }
+    .card span {
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .tab-button {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+    .tab-button.active,
+    .tab-button:hover {
+      background: var(--accent-soft);
+      border-color: rgba(255,91,127,0.45);
+      transform: translateY(-1px);
+    }
+
+    .tab-panel {
+      display: none;
+      gap: 20px;
+    }
+    .tab-panel.active {
+      display: grid;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .panel-header h3 {
+      margin: 0;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+    .panel-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .panel-controls select,
+    .panel-controls input {
+      min-width: 180px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+    }
+    .panel-controls input::placeholder {
+      color: rgba(255,255,255,0.45);
+    }
+
+    .table-card {
+      overflow-x: auto;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+    th, td {
+      padding: 14px 12px;
+      text-align: right;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    th {
+      color: #ffd6e8;
+      font-weight: 700;
+      background: rgba(255,255,255,0.03);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:hover { background: rgba(255,255,255,0.04); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #fff;
+      background: rgba(255,91,127,0.16);
+    }
+    .badge.success { background: rgba(87,210,139,0.16); }
+    .badge.warning { background: rgba(255,188,75,0.16); }
+
+    .action-button {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 13px;
+      cursor: pointer;
+      transition: background 180ms ease, transform 180ms ease;
+    }
+    .action-button:hover { background: rgba(255,91,127,0.14); transform: translateY(-1px); }
+    .action-button.danger:hover { background: rgba(255,91,127,0.22); }
+    .action-button.danger { color: #ff9db5; border-color: rgba(255,91,127,0.4); }
+    .action-button.edit { color: #80d6ff; }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .metric-card {
+      padding: 22px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+      min-height: 180px;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(255,91,127,0.12), transparent 34%);
+      pointer-events: none;
+    }
+    .metric-card h4 {
+      margin: 0 0 14px;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+    .metric-card strong {
+      display: block;
+      font-size: 2rem;
+      color: #fff;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff5b7f, #ffc069);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-card-full {
+      width: min(1180px, 100%);
+      max-height: 90vh;
+      background: #0f1520;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .modal-header-full {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+    .modal-header-full h4 { margin: 0; }
+    .modal-body-full {
+      padding: 20px;
+      overflow: auto;
+    }
+    .modal-body-full label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+    .modal-body-full input,
+    .modal-body-full select,
+    .modal-body-full textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    .modal-footer-full {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 18px 24px;
+      background: rgba(255,255,255,0.02);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal-footer-full button {
+      min-width: 120px;
+    }
+
+    @media (max-width: 980px) {
+      .header-bar, .panel-header, .panel-controls { flex-direction: column; align-items: stretch; }
+      .tabs { grid-template-columns: 1fr; }
+      .table-card table { min-width: 760px; }
+    }
+
+    @media (max-width: 700px) {
+      .form-wrapper { max-width: 100%; }
+      .header-bar { gap: 12px; }
+      .panel-controls select, .panel-controls input { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="header-bar">
+      <div>
+        <h1>الكنترول - إدارة قاعدة بيانات مولد</h1>
+        <div style="color: var(--muted); font-size: 0.95rem; margin-top: 6px;">لوحة تحكم كاملة لملف MOLED مع جداول، تحليلات، وتحرير بيانات مباشر.</div>
+      </div>
+      <div class="header-actions">
+        <a class="nav-link" href="index.html">العودة للصفحة الرئيسية</a>
+        <button onclick="openModal('newItem')">إضافة صنف جديد</button>
+      </div>
+    </div>
+
+    <div class="overview-cards">
+      <div class="card"><h2>إجمالي الأصناف</h2><strong id="countItems">0</strong><span>عدد السجلات في moled-items</span></div>
+      <div class="card"><h2>إجمالي الفواتير</h2><strong id="countInvoices">0</strong><span>عدد السجلات في moled-invoices</span></div>
+      <div class="card"><h2>عدد الأقسام</h2><strong id="countSections">0</strong><span>أقسام مميزة في قاعدة البيانات</span></div>
+      <div class="card"><h2>أكثر براند</h2><strong id="topBrand">-</strong><span>البراند الأكثر تكرارًا</span></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" data-tab="itemsTab">الأصناف</button>
+      <button class="tab-button" data-tab="invoicesTab">الفواتير</button>
+      <button class="tab-button" data-tab="groupsTab">تحليل المجموعات</button>
+    </div>
+
+    <div class="main-grid">
+      <section class="tab-panel active" id="itemsTab">
+        <div class="panel-header">
+          <h3>إدارة الأصناف</h3>
+          <div class="panel-controls">
+            <input type="text" id="filterItemCode" placeholder="بحث بكود الصنف" />
+            <input type="text" id="filterItemName" placeholder="بحث باسم الصنف" />
+            <select id="filterItemBrand"><option value="all">الكل</option></select>
+            <button class="action-button" id="refreshItems">تحديث</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>كود</th>
+                <th>اسم</th>
+                <th>البراند</th>
+                <th>القسم</th>
+                <th>الوحدة</th>
+                <th>الخامات</th>
+                <th>تحكم</th>
+              </tr>
+            </thead>
+            <tbody id="itemsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="invoicesTab">
+        <div class="panel-header">
+          <h3>إدارة الفواتير</h3>
+          <div class="panel-controls">
+            <input type="text" id="filterInvoiceNumber" placeholder="بحث برقم الفاتورة" />
+            <input type="text" id="filterInvoiceClient" placeholder="بحث باسم العميل" />
+            <select id="filterInvoiceBrand"><option value="all">الكل</option></select>
+            <button class="action-button" id="refreshInvoices">تحديث</button>
+          </div>
+        </div>
+        <div class="metric-card" style="grid-column: 1 / -1; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 16px;">
+          <div>
+            <h4>آخر فاتورة مستوردة</h4>
+            <strong id="lastInvoice">-</strong>
+          </div>
+          <div style="min-width: 48%;">
+            <h4>إجمالي الكجم في الفواتير</h4>
+            <strong id="totalInvoiceKg">0</strong>
+          </div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>رقم الفاتورة</th>
+                <th>العميل</th>
+                <th>البراند</th>
+                <th>التاريخ</th>
+                <th>عدد الأصناف</th>
+                <th>الكجم</th>
+                <th>تحكم</th>
+              </tr>
+            </thead>
+            <tbody id="invoicesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="groupsTab">
+        <div class="panel-header">
+          <h3>تحليل الأقسام والبراندات</h3>
+          <div class="panel-controls">
+            <button class="action-button" id="refreshGroups">إعادة الحساب</button>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="metric-card">
+            <h4>أعلى 3 أقسام</h4>
+            <div id="topSections"></div>
+          </div>
+          <div class="metric-card">
+            <h4>أعلى 3 براندات</h4>
+            <div id="topBrands"></div>
+          </div>
+          <div class="metric-card">
+            <h4>حجم الفواتير حسب العام</h4>
+            <div id="yearSummary"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card-full">
+      <div class="modal-header-full">
+        <h4 id="modalTitle">إضافة صنف جديد</h4>
+        <button class="action-button" onclick="closeModal()">إغلاق</button>
+      </div>
+      <div class="modal-body-full">
+        <label for="itemCodeInput">كود الصنف</label>
+        <input id="itemCodeInput" type="text" placeholder="مثال: 1001" />
+        <label for="itemNameInput">اسم الصنف</label>
+        <input id="itemNameInput" type="text" placeholder="مثال: شوكولاتة" />
+        <label for="itemBrandInput">البراند</label>
+        <input id="itemBrandInput" type="text" placeholder="مثال: ليلي" />
+        <label for="itemSectionInput">القسم</label>
+        <input id="itemSectionInput" type="text" placeholder="مثال: حلويات" />
+        <label for="itemUnitInput">الوحدة</label>
+        <input id="itemUnitInput" type="text" placeholder="مثال: كجم" />
+        <label for="itemMaterialsInput">الخامات (JSON)</label>
+        <textarea id="itemMaterialsInput" rows="5" placeholder='مثال: [{"code":"M1","name":"سكر","quantity":2}]'></textarea>
+      </div>
+      <div class="modal-footer-full">
+        <button class="action-button danger" onclick="closeModal()">إلغاء</button>
+        <button class="action-button" id="saveItemButton">حفظ التغيير</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const itemsCollection = db.collection('moled-items');
+    const invoicesCollection = db.collection('moled-invoices');
+
+    const tabs = document.querySelectorAll('.tab-button');
+    const panels = document.querySelectorAll('.tab-panel');
+    const itemsTableBody = document.getElementById('itemsTableBody');
+    const invoicesTableBody = document.getElementById('invoicesTableBody');
+    const filterItemCode = document.getElementById('filterItemCode');
+    const filterItemName = document.getElementById('filterItemName');
+    const filterItemBrand = document.getElementById('filterItemBrand');
+    const filterInvoiceNumber = document.getElementById('filterInvoiceNumber');
+    const filterInvoiceClient = document.getElementById('filterInvoiceClient');
+    const filterInvoiceBrand = document.getElementById('filterInvoiceBrand');
+    const countItems = document.getElementById('countItems');
+    const countInvoices = document.getElementById('countInvoices');
+    const countSections = document.getElementById('countSections');
+    const topBrand = document.getElementById('topBrand');
+    const lastInvoice = document.getElementById('lastInvoice');
+    const totalInvoiceKg = document.getElementById('totalInvoiceKg');
+    const topSections = document.getElementById('topSections');
+    const topBrands = document.getElementById('topBrands');
+    const yearSummary = document.getElementById('yearSummary');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const itemCodeInput = document.getElementById('itemCodeInput');
+    const itemNameInput = document.getElementById('itemNameInput');
+    const itemBrandInput = document.getElementById('itemBrandInput');
+    const itemSectionInput = document.getElementById('itemSectionInput');
+    const itemUnitInput = document.getElementById('itemUnitInput');
+    const itemMaterialsInput = document.getElementById('itemMaterialsInput');
+    const saveItemButton = document.getElementById('saveItemButton');
+
+    let items = [];
+    let invoices = [];
+    let currentEditId = null;
+
+    function switchTab(target) {
+      tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === target));
+      panels.forEach(panel => panel.classList.toggle('active', panel.id === target));
+    }
+    tabs.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString('ar-EG');
+    }
+
+    function safeJsonParse(value) {
+      try { return JSON.parse(value); } catch { return []; }
+    }
+
+    function renderItemRow(item) {
+      const materials = Array.isArray(item.materials) ? item.materials.map(mat => `${mat.name || mat.code || ''}:${mat.quantity||0}`).join(', ') : '-';
+      return `
+        <tr>
+          <td>${item.code || '-'}</td>
+          <td>${item.name || '-'}</td>
+          <td>${item.brand || '-'}</td>
+          <td>${item.section || '-'}</td>
+          <td>${item.unit || '-'}</td>
+          <td>${materials}</td>
+          <td>
+            <button class="action-button edit" onclick="openEditItem('${item.id}')">تعديل</button>
+            <button class="action-button danger" onclick="deleteItem('${item.id}')">حذف</button>
+          </td>
+        </tr>`;
+    }
+
+    function renderInvoiceRow(inv) {
+      const totalQty = Array.isArray(inv.items) ? inv.items.reduce((sum, item) => sum + (Number(item.qty)||0), 0) : 0;
+      const totalKg = Array.isArray(inv.items) ? inv.items.reduce((sum, item) => sum + ((Number(item.unitWeight)||0) * (Number(item.qty)||0)), 0) : 0;
+      return `
+        <tr>
+          <td>${inv.invoiceNumber || '-'}</td>
+          <td>${inv.client || '-'}</td>
+          <td>${inv.brand || '-'}</td>
+          <td>${inv.date || '-'}</td>
+          <td>${formatNumber(totalQty)}</td>
+          <td>${formatNumber(totalKg)}</td>
+          <td>
+            <button class="action-button edit" onclick="showInvoiceDetails('${inv.id}')">عرض</button>
+            <button class="action-button danger" onclick="deleteInvoice('${inv.id}')">حذف</button>
+          </td>
+        </tr>`;
+    }
+
+    async function loadItems() {
+      const snapshot = await itemsCollection.get();
+      items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const brands = Array.from(new Set(items.map(item => item.brand).filter(Boolean))).sort();
+      filterItemBrand.innerHTML = '<option value="all">الكل</option>' + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+      countItems.textContent = formatNumber(items.length);
+      updateItemsTable();
+      updateGroups();
+    }
+
+    async function loadInvoices() {
+      const snapshot = await invoicesCollection.get();
+      invoices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const brands = Array.from(new Set(invoices.map(inv => inv.brand).filter(Boolean))).sort();
+      filterInvoiceBrand.innerHTML = '<option value="all">الكل</option>' + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+      countInvoices.textContent = formatNumber(invoices.length);
+      renderInvoiceSummary();
+      updateInvoicesTable();
+      updateGroups();
+    }
+
+    function filterItems() {
+      const code = filterItemCode.value.trim().toLowerCase();
+      const name = filterItemName.value.trim().toLowerCase();
+      const brand = filterItemBrand.value;
+      return items.filter(item => {
+        const matchCode = !code || (item.code||'').toLowerCase().includes(code);
+        const matchName = !name || (item.name||'').toLowerCase().includes(name);
+        const matchBrand = brand === 'all' || (item.brand||'') === brand;
+        return matchCode && matchName && matchBrand;
+      });
+    }
+
+    function updateItemsTable() {
+      const rows = filterItems().map(renderItemRow).join('') || '<tr><td colspan="7">لا توجد أصناف.</td></tr>';
+      itemsTableBody.innerHTML = rows;
+    }
+
+    function updateInvoicesTable() {
+      const number = filterInvoiceNumber.value.trim().toLowerCase();
+      const client = filterInvoiceClient.value.trim().toLowerCase();
+      const brand = filterInvoiceBrand.value;
+      const filtered = invoices.filter(inv => {
+        const matchNumber = !number || (inv.invoiceNumber||'').toLowerCase().includes(number);
+        const matchClient = !client || (inv.client||'').toLowerCase().includes(client);
+        const matchBrand = brand === 'all' || (inv.brand||'') === brand;
+        return matchNumber && matchClient && matchBrand;
+      });
+      invoicesTableBody.innerHTML = filtered.map(renderInvoiceRow).join('') || '<tr><td colspan="7">لا توجد فواتير.</td></tr>';
+    }
+
+    function renderInvoiceSummary() {
+      const latest = invoices.slice().sort((a,b)=> new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      lastInvoice.textContent = latest ? `${latest.invoiceNumber || '-'} (${latest.date || '-'})` : '-';
+      const totalKg = invoices.reduce((sum, inv) => sum + ((inv.items||[]).reduce((s,item)=> s + ((Number(item.unitWeight)||0)*(Number(item.qty)||0)),0)), 0);
+      totalInvoiceKg.textContent = formatNumber(totalKg);
+    }
+
+    function updateGroups() {
+      const sectionCounts = {};
+      const brandCounts = {};
+      const yearCounts = {};
+
+      items.forEach(item => {
+        const section = item.section || 'غير محدد';
+        sectionCounts[section] = (sectionCounts[section] || 0) + 1;
+        const brand = item.brand || 'غير محدد';
+        brandCounts[brand] = (brandCounts[brand] || 0) + 1;
+      });
+      invoices.forEach(inv => {
+        const year = new Date(inv.date).getFullYear() || 'غير محدد';
+        yearCounts[year] = (yearCounts[year] || 0) + 1;
+      });
+
+      const sortedSections = Object.entries(sectionCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      const sortedBrands = Object.entries(brandCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      topSections.innerHTML = sortedSections.map(([section,count]) => `<div class="badge">${section}: ${count}</div>`).join('') || '<div>لا توجد بيانات</div>';
+      topBrands.innerHTML = sortedBrands.map(([brand,count]) => `<div class="badge">${brand}: ${count}</div>`).join('') || '<div>لا توجد بيانات</div>';
+      yearSummary.innerHTML = Object.entries(yearCounts).sort((a,b)=>b[0]-a[0]).map(([year,count]) => `<div class="badge">${year}: ${count}</div>`).join('') || '<div>لا توجد بيانات</div>';
+
+      const brandCountsSorted = Object.entries(brandCounts).sort((a,b)=>b[1]-a[1]);
+      topBrand.textContent = brandCountsSorted[0] ? `${brandCountsSorted[0][0]} (${brandCountsSorted[0][1]})` : '-';
+      countSections.textContent = formatNumber(Object.keys(sectionCounts).length);
+    }
+
+    function openModal(type) {
+      currentEditId = null;
+      if (type === 'newItem') {
+        modalTitle.textContent = 'إضافة صنف جديد';
+        itemCodeInput.value = '';
+        itemNameInput.value = '';
+        itemBrandInput.value = '';
+        itemSectionInput.value = '';
+        itemUnitInput.value = '';
+        itemMaterialsInput.value = '';
+      }
+      modalOverlay.classList.add('active');
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+    }
+
+    async function saveItem() {
+      const payload = {
+        code: itemCodeInput.value.trim(),
+        name: itemNameInput.value.trim(),
+        brand: itemBrandInput.value.trim(),
+        section: itemSectionInput.value.trim(),
+        unit: itemUnitInput.value.trim(),
+        materials: safeJsonParse(itemMaterialsInput.value.trim())
+      };
+      if (!payload.code || !payload.name) {
+        alert('الكود والاسم مطلوبان.');
+        return;
+      }
+      if (currentEditId) {
+        await itemsCollection.doc(currentEditId).update(payload);
+      } else {
+        await itemsCollection.add(payload);
+      }
+      closeModal();
+      await loadItems();
+      alert('تم الحفظ بنجاح');
+    }
+
+    async function openEditItem(id) {
+      currentEditId = id;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      modalTitle.textContent = 'تعديل الصنف';
+      itemCodeInput.value = item.code || '';
+      itemNameInput.value = item.name || '';
+      itemBrandInput.value = item.brand || '';
+      itemSectionInput.value = item.section || '';
+      itemUnitInput.value = item.unit || '';
+      itemMaterialsInput.value = JSON.stringify(item.materials || [], null, 2);
+      modalOverlay.classList.add('active');
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
+      await itemsCollection.doc(id).delete();
+      await loadItems();
+    }
+
+    async function deleteInvoice(id) {
+      if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return;
+      await invoicesCollection.doc(id).delete();
+      await loadInvoices();
+    }
+
+    function showInvoiceDetails(id) {
+      const invoice = invoices.find(inv => inv.id === id);
+      if (!invoice) return;
+      alert(`رقم الفاتورة: ${invoice.invoiceNumber || '-'}\nالعميل: ${invoice.client || '-'}\nالبراند: ${invoice.brand || '-'}\nالتاريخ: ${invoice.date || '-'}\nعدد الأصناف: ${invoice.items ? invoice.items.length : 0}`);
+    }
+
+    document.getElementById('refreshItems').addEventListener('click', loadItems);
+    document.getElementById('refreshInvoices').addEventListener('click', loadInvoices);
+    document.getElementById('refreshGroups').addEventListener('click', updateGroups);
+    filterItemCode.addEventListener('input', updateItemsTable);
+    filterItemName.addEventListener('input', updateItemsTable);
+    filterItemBrand.addEventListener('change', updateItemsTable);
+    filterInvoiceNumber.addEventListener('input', updateInvoicesTable);
+    filterInvoiceClient.addEventListener('input', updateInvoicesTable);
+    filterInvoiceBrand.addEventListener('change', updateInvoicesTable);
+    saveItemButton.addEventListener('click', saveItem);
+
+    window.addEventListener('click', event => {
+      if (event.target === modalOverlay) closeModal();
+    });
+
+    (async function init() {
+      await loadItems();
+      await loadInvoices();
+    })();
+  </script>
+</body>
+</html>

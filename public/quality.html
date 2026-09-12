@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>التقارير اليومية</title>
+    <link href="style.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Cairo:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+    body {
+        background: #18191a;
+        color: #f1f1f1;
+        font-family: 'Cairo', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        transition: background 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    .container {
+        background: #242526;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 18px;
+        max-width: 900px;
+        box-shadow: 0 2px 24px #000a;
+        animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(40px);}
+        to { opacity: 1; transform: translateY(0);}
+    }
+    .main-menu {
+        text-align: center;
+        margin-top: 120px;
+    }
+    button {
+        background: linear-gradient(90deg, #3a3b3c 60%, #23232a 100%);
+        color: #fff;
+        border: none;
+        padding: 12px 32px;
+        margin: 10px;
+        border-radius: 10px;
+        font-size: 1.2em;
+        cursor: pointer;
+        box-shadow: 0 2px 12px #0004;
+        transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(.4,0,.2,1);
+        will-change: background, color, box-shadow, transform;
+        outline: none;
+    }
+    button:hover, button:focus {
+        background: linear-gradient(90deg, #ffb300 60%, #ff1744 100%);
+        color: #18191a;
+        box-shadow: 0 8px 32px #ffb30044, 0 2px 12px #0004;
+        transform: translateY(-2px) scale(1.04) rotate(-1deg);
+    }
+    @media (max-width: 700px) {
+        .container {
+            padding: 8px;
+            margin: 10px auto;
+            max-width: 99vw;
+        }
+        button {
+            width: 100%;
+            font-size: 1em;
+        }
+        .main-menu {
+            margin-top: 30px;
+        }
+    }
+    @media print {
+        body, .container {
+            background: #fff !important;
+            color: #000 !important;
+        }
+        .container {
+            box-shadow: none !important;
+        }
+        button, .main-menu {
+            display: none !important;
+        }
+        h1 {
+            color: #000 !important;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div class="container main-menu">
+        <h1>نظام التقارير اليومية</h1>
+        <button onclick="location.href='report.html'">التقرير اليومي</button>
+        <button onclick="location.href='query.html'">استعلام عن التقارير</button>
+        <button id="btnViewQualityReports" style="display:none" onclick="location.href='qualitydata.html'">عرض التقارير المخزنة</button>
+    </div>
+    <script>
+    // مثال: الصلاحيات تحفظ في localStorage.userRoles كـ JSON array
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const roles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+            if (roles.includes('view_quality_reports') || roles.includes('all')) {
+                document.getElementById('btnViewQualityReports').style.display = '';
+            }
+        } catch(e) {
+            // تجاهل الخطأ
+        }
+    });
+
+    // مثال: استخدم SweetAlert2 لأي تنبيه أو تأكيد مستقبلي
+    // Swal.fire('عنوان', 'نص الرسالة', 'success');
+    </script>
+</body>
+</html>

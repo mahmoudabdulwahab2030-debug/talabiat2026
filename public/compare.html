@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>مقارنة يومين - LE DOUX</title>
+  <style>
+    /* Professional compare page overrides (works with style.css) */
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+    :root{ --cmp-bg: #0b0b0b; --cmp-panel:#0f1112; --cmp-text:#e9eef2; --cmp-muted:#9aa6af; --cmp-accent:#ffd166; --cmp-accent-2:#f0ad4e }
+    html,body{height:100%}
+    body{ background: linear-gradient(180deg,var(--cmp-bg), #0f1213); color:var(--cmp-text); font-family: Cairo, sans-serif; margin:18px; direction:rtl }
+    .card{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06)); padding:18px; border-radius:14px; border:1px solid rgba(255,255,255,0.04); max-width:1180px; margin:0 auto; box-shadow: 0 18px 46px rgba(0,0,0,0.6) }
+    h2{ color:var(--cmp-accent); text-align:center; margin-bottom:14px }
+    .controls{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-bottom:14px; flex-wrap:wrap }
+    input[type=date], select{ background:var(--cmp-panel); color:#ffffff; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:10px }
+    /* ensure option text is readable on most browsers */
+    select, select option{ color:#ffffff; background:var(--cmp-panel) }
+    .btn{ padding:8px 12px; border-radius:10px; background:linear-gradient(180deg,var(--cmp-accent),var(--cmp-accent-2)); color:#000; border:none; cursor:pointer; font-weight:800 }
+    .controls .meta-controls{ display:flex; gap:8px; align-items:center }
+    .infographic{ display:flex; gap:18px; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap }
+    .kpis{ display:flex; gap:12px; flex:0 0 360px; align-items:stretch }
+    .kpi{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06)); padding:14px 16px; border-radius:12px; flex:1; text-align:center; border:1px solid rgba(255,255,255,0.03); min-width:110px }
+    .kpi-value{ font-size:22px; font-weight:900; color:var(--cmp-accent); }
+    .kpi-label{ font-size:13px; color:var(--cmp-muted); margin-top:8px }
+    .charts{ display:flex; gap:14px; align-items:stretch; flex:1; min-width:480px }
+    .chart-wrap{ background:transparent; padding:8px; border-radius:10px; width:100%; min-height:260px; height:260px; display:flex; align-items:center }
+    table{ width:100%; border-collapse:collapse; margin-top:12px; background:transparent }
+    th,td{ padding:12px; border-bottom:1px solid rgba(255,255,255,0.04); text-align:center; color:var(--cmp-text) }
+    thead th{ background:linear-gradient(180deg,#0f0f10,#0b0b0b); color:var(--cmp-accent); font-weight:800 }
+    .percent-bar{ width:180px; height:12px; background:rgba(255,255,255,0.04); border-radius:8px; overflow:hidden; box-shadow: inset 0 -2px 6px rgba(0,0,0,0.5); }
+    .percent-bar .filled{ height:100%; border-radius:8px; transition: width .6s; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+    .percent-label{ font-size:13px; color:var(--cmp-muted); min-width:54px }
+    .rank-badge{ background:linear-gradient(180deg,var(--cmp-accent),var(--cmp-accent-2)); color:#000; padding:8px 10px; border-radius:10px; font-weight:900 }
+    .up{ color:#6fe08f } .down{ color:#ff7b7b }
+    /* small helpers */
+    .control-small{ padding:6px 8px; border-radius:8px; background:var(--cmp-panel); border:1px solid rgba(255,255,255,0.06); color:#ffffff }
+    .inline-toggle{ display:inline-flex; gap:8px; align-items:center }
+    @media (max-width:900px){ .infographic{ flex-direction:column } .charts{ min-width:320px } .kpis{ flex:1 1 100% } .controls{ justify-content:center } }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h2>⚖️ مقارنة بين يومين - تجميع الفروع</h2>
+    <div class="controls">
+      <div class="meta-controls">
+        <label style="margin-left:6px">القسم:</label>
+        <select id="sheetSel"></select>
+        <label style="margin-left:6px">اليوم الأساسي:</label>
+        <input type="date" id="dateA" />
+        <label style="margin-left:6px">اليوم للمقارنة:</label>
+        <input type="date" id="dateB" />
+        <button class="btn" id="compareNow">قارن الآن</button>
+      </div>
+      <div class="meta-controls">
+        <select id="topN" class="control-small" title="أعلى N فرع"><option value="ALL">كل الفروع</option><option value="3">أعلى 3</option><option value="4">أعلى 4</option><option value="5">أعلى 5</option></select>
+        <div class="inline-toggle"><input type="checkbox" id="stackToggle" /><label for="stackToggle" style="margin:0 6px;color:var(--cmp-muted)">عرض مكدس</label></div>
+        <button id="exportBtn" class="btn" title="تصدير الإنفوجرافيك">📤 تصدير</button>
+        <button id="downloadBtn" class="btn" title="تحميل CSV">⬇️ CSV</button>
+      </div>
+    </div>
+    <div id="status" style="text-align:center;color:var(--muted)"></div>
+    <div id="result"></div>
+  </div>
+
+  <script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const params = new URLSearchParams(location.search);
+  const presetSheet = params.get('sheet');
+  const presetDate = params.get('date');
+
+  async function loadSheets(){
+    const snap = await db.collection('orders').get();
+    const arr = [];
+    snap.forEach(d=>{ const v=d.data(); if (v && v.sheet && v.sheet!=='main') arr.push(v.sheet); });
+    const uniq = [...new Set(arr)].sort();
+    const sel = document.getElementById('sheetSel');
+    sel.innerHTML = '';
+    // add "All sheets" option
+    const allOpt = document.createElement('option'); allOpt.value = 'ALL'; allOpt.textContent = '— كل الأقسام —'; sel.appendChild(allOpt);
+    uniq.forEach(s=>{ const opt = document.createElement('option'); opt.value=s; opt.textContent=s; sel.appendChild(opt); });
+    if (presetSheet) sel.value = presetSheet;
+    if (presetDate) document.getElementById('dateA').value = presetDate;
+  }
+
+  function computeStatsForDate(sheet, dateStr){
+    // fetch all then filter (supports 'ALL') - simpler and robust for small dataset
+    return db.collection('orders').get().then(snap=>{
+      const map = {};
+      snap.forEach(doc=>{
+        const d = doc.data();
+        if (!d) return;
+        if (!(d.orderDate===dateStr || d.deliveryDate===dateStr)) return;
+        if (sheet !== 'ALL' && d.sheet !== sheet) return;
+        const branchRaw = (d.branch||'').toString().trim();
+        const mapNames = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' };
+        const branch = mapNames[branchRaw] || branchRaw.toLowerCase() || 'unknown';
+        if (!map[branch]) map[branch] = { total:0, items:new Set() };
+        map[branch].total += Number(d.qty)||0;
+        map[branch].items.add(String(d.code||d.name||'').trim());
+      });
+      return Object.keys(map).map(k=>({ branch:k, total: map[k].total, distinct: map[k].items.size }));
+    });
+  }
+
+  function renderComparison(aStats, bStats, dateA, dateB){
+    const map = {};
+    aStats.forEach(r=> map[r.branch] = { aTotal:r.total, aDistinct:r.distinct, bTotal:0, bDistinct:0 });
+    bStats.forEach(r=>{ if (!map[r.branch]) map[r.branch] = { aTotal:0, aDistinct:0, bTotal:0, bDistinct:0 }; map[r.branch].bTotal = r.total; map[r.branch].bDistinct = r.distinct; });
+    const rows = Object.keys(map).map(k=>({ branch:k, ...map[k] }));
+    // build KPI + infographic container
+    const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+    const totalBQty = rows.reduce((s,r)=> s + (r.bTotal||0), 0);
+    const totalBDistinct = rows.reduce((s,r)=> s + (r.bDistinct||0), 0);
+    const bestB = rows.length ? (displayNames[rows[0].branch] || rows[0].branch) : '-';
+    let html = `<div id="compareInfographic" style="margin-bottom:12px">
+      <div class="infographic">
+        <div class="kpis">
+          <div class="kpi"><div class="kpi-value">${formatNumber(totalBQty)}</div><div class="kpi-label">إجمالي الكميات (${dateB})</div></div>
+          <div class="kpi"><div class="kpi-value">${formatNumber(totalBDistinct)}</div><div class="kpi-label">عدد الأصناف (${dateB})</div></div>
+          <div class="kpi"><div class="kpi-value">${escapeHtml(bestB)}</div><div class="kpi-label">أقوى فرع</div></div>
+        </div>
+        <div class="charts" style="flex:1;min-width:320px">
+          <div class="chart-wrap"><canvas id="compareBar"></canvas></div>
+          <div class="chart-wrap"><canvas id="compareDonut"></canvas></div>
+        </div>
+      </div>
+    </div>`;
+    html += `<table><thead><tr><th>الفرع</th><th>عدد الأصناف</th><th>نسبة الكميات (${dateB})</th><th>فرق</th><th>ترتيب</th></tr></thead><tbody>`;
+    function formatNumber(num){ num = Number(num || 0); return Number.isInteger(num) ? num.toString() : num.toFixed(2); }
+    // prepare rows sorted by bTotal (strongest -> weakest)
+    rows.sort((a,b)=> b.bTotal - a.bTotal);
+    // apply topN filter for display
+    const topNVal = document.getElementById('topN') ? document.getElementById('topN').value : 'ALL';
+    const displayRows = (topNVal && topNVal !== 'ALL') ? rows.slice(0, Number(topNVal)) : rows;
+    const totalB = displayRows.reduce((s,r)=> s + (r.bTotal||0), 0) || 1;
+    displayRows.forEach((r, idx)=>{
+      const diff = (r.bTotal||0) - (r.aTotal||0);
+      const pct = ((r.bTotal||0) / totalB) * 100;
+      const pctText = Number.isFinite(pct) ? pct.toFixed(2) + '%' : '0%';
+      const cls = diff>0? 'up': (diff<0? 'down':'');
+      const branchName = displayNames[r.branch] || r.branch;
+      html += `<tr>
+        <td style="text-align:right">${escapeHtml(branchName)}</td>
+        <td>${formatNumber(r.distinct||0)}</td>
+        <td style="display:flex;align-items:center;gap:8px;justify-content:center">
+          <div class="percent-bar"><div class="filled" style="width:${pct}%;background:linear-gradient(90deg,#ffd166,#ff6b6b)"></div></div>
+          <div class="percent-label">${pctText}</div>
+        </td>
+        <td class="${cls}">${formatNumber(diff)}</td>
+        <td><span class="rank-badge">${idx+1}</span></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('result').innerHTML = html;
+    // build infographic: use bStats for ranking & totals, and grouped bar chart comparing A vs B
+    (function buildInfographic(){
+      const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+      const map = {};
+      bStats.forEach(r=> map[r.branch] = { bTotal: r.total, bDistinct: r.distinct });
+      aStats.forEach(r=> { if (!map[r.branch]) map[r.branch] = { bTotal:0, bDistinct:0 }; map[r.branch].aTotal = r.total; map[r.branch].aDistinct = r.distinct; });
+      const rows = Object.keys(map).map(k=>({ branch:k, aTotal: map[k].aTotal||0, bTotal: map[k].bTotal||0, distinct: map[k].bDistinct||0 }));
+      rows.sort((x,y)=> y.bTotal - x.bTotal);
+      // apply topN on chart rows as well
+      const topNVal = document.getElementById('topN') ? document.getElementById('topN').value : 'ALL';
+      const chartRows = (topNVal && topNVal !== 'ALL') ? rows.slice(0, Number(topNVal)) : rows;
+      const labels = chartRows.map(r=> displayNames[r.branch] || r.branch);
+      const dataA = chartRows.map(r=> r.aTotal || 0);
+      const dataB = chartRows.map(r=> r.bTotal || 0);
+      const totalB = dataB.reduce((s,v)=>s+v,0) || 1;
+      // create container
+      const ci = document.getElementById('compareInfographic');
+      ci.innerHTML = `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:260px"><canvas id="compareBar" style="height:220px"></canvas></div>
+        <div style="width:320px"><canvas id="compareDonut" style="height:220px"></canvas></div>
+      </div>`;
+      // charts
+      const palette = ['#ffd166','#ff6b6b','#f72585','#7c4dff','#3a86ff','#06d6a0'];
+      try{ if (window.compareBar) window.compareBar.destroy(); }catch(e){}
+      try{ if (window.compareDonut) window.compareDonut.destroy(); }catch(e){}
+      const ctxBar = document.getElementById('compareBar').getContext('2d');
+      const stacked = document.getElementById('stackToggle') ? document.getElementById('stackToggle').checked : false;
+      window.compareBar = new Chart(ctxBar, { type:'bar', data:{ labels: labels, datasets:[{ label: dateA, data: dataA, backgroundColor: 'rgba(100,120,255,0.7)' }, { label: dateB, data: dataB, backgroundColor: 'rgba(255,160,60,0.9)' }] }, options:{ responsive:true, maintainAspectRatio:false, scales:{ x:{ stacked: stacked }, y:{ stacked: stacked } } } });
+      const ctxDonut = document.getElementById('compareDonut').getContext('2d');
+      window.compareDonut = new Chart(ctxDonut, { type:'doughnut', data:{ labels: labels, datasets:[{ data: dataB, backgroundColor: labels.map((_,i)=>palette[i%palette.length]) }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } } } });
+    })();
+  }
+
+  function escapeHtml(s){ if (!s) return ''; return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  document.getElementById('compareNow').addEventListener('click', async ()=>{
+    const sheet = document.getElementById('sheetSel').value;
+    const dateA = document.getElementById('dateA').value;
+    const dateB = document.getElementById('dateB').value;
+    if (!sheet || !dateA || !dateB){ document.getElementById('status').textContent = '⚠️ يرجى اختيار القسم والتاريخين قبل المقارنة.'; return; }
+    document.getElementById('status').textContent = '⏳ جارٍ التحميل والمقارنة...';
+    const [aStats, bStats] = await Promise.all([computeStatsForDate(sheet,dateA), computeStatsForDate(sheet,dateB)]);
+    document.getElementById('status').textContent = '';
+    // store for re-renders (topN / stack toggle)
+    window._lastCompare = { aStats, bStats, dateA, dateB, sheet };
+    renderComparison(aStats, bStats, dateA, dateB);
+  });
+
+  // init
+  loadSheets();
+
+  // wire topN and stack toggle to re-render using cached data
+  document.getElementById('topN').addEventListener('change', ()=>{
+    if (window._lastCompare) renderComparison(window._lastCompare.aStats, window._lastCompare.bStats, window._lastCompare.dateA, window._lastCompare.dateB);
+  });
+  document.getElementById('stackToggle').addEventListener('change', ()=>{
+    if (window._lastCompare) renderComparison(window._lastCompare.aStats, window._lastCompare.bStats, window._lastCompare.dateA, window._lastCompare.dateB);
+  });
+
+  // export infographic (PNG) and download CSV handlers
+  async function exportInfographic(){
+    const el = document.getElementById('result');
+    if (!el) return alert('لا يوجد إنفوجرافيك للتصدير');
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: null });
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a'); a.href = url; a.download = `comparison-${Date.now()}.png`; document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function downloadCSV(){
+    if (!window._lastCompare) return alert('نفّذ مقارنة أولاً');
+    const { aStats, bStats } = window._lastCompare;
+    const map = {};
+    aStats.forEach(r=> map[r.branch] = { aTotal:r.total, aDistinct:r.distinct, bTotal:0, bDistinct:0 });
+    bStats.forEach(r=>{ if (!map[r.branch]) map[r.branch] = { aTotal:0, aDistinct:0, bTotal:0, bDistinct:0 }; map[r.branch].bTotal = r.total; map[r.branch].bDistinct = r.distinct; });
+    const rows = Object.keys(map).map(k=>({ branch:k, ...map[k] }));
+    rows.sort((a,b)=> b.bTotal - a.bTotal);
+    const topN = document.getElementById('topN').value;
+    const sliced = (topN && topN !== 'ALL') ? rows.slice(0, Number(topN)) : rows;
+    const csvRows = [];
+    csvRows.push(['branch','aTotal','bTotal','aDistinct','bDistinct','diff','pctB']);
+    const totalB = sliced.reduce((s,r)=> s + (r.bTotal||0), 0) || 1;
+    sliced.forEach(r=>{
+      const diff = (r.bTotal||0) - (r.aTotal||0);
+      const pct = ((r.bTotal||0) / totalB) * 100;
+      csvRows.push([r.branch, (r.aTotal||0).toFixed(2), (r.bTotal||0).toFixed(2), (r.aDistinct||0), (r.bDistinct||0), diff.toFixed(2), pct.toFixed(2)+'%']);
+    });
+    const csvText = csvRows.map(r=> r.map(v=> '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `comparison-${Date.now()}.csv`; document.body.appendChild(link); link.click(); link.remove();
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', exportInfographic);
+  document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+  </script>
+</body>
+</html>

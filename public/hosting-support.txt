@@ -1,0 +1,28 @@
+Hello Support,
+
+I'm getting a 403 Forbidden when requesting https://ledoux.kesug.com/chat.html but other HTML files such as /test.html and /index.html are accessible.
+Please help with the following checks and actions:
+
+1) Confirm the file exists and is readable:
+   - ls -l /path/to/public_html/chat.html
+   - stat /path/to/public_html/chat.html
+
+2) Ensure permissions/ownership are correct (example):
+   - chown <user>:<group> /path/to/public_html/chat.html
+   - chmod 644 /path/to/public_html/chat.html
+   - chmod 755 /path/to/public_html
+
+3) Check Apache / Nginx error logs for requests to chat.html and mod_security blocks:
+   - tail -n 200 /var/log/apache2/error.log | grep -i chat.html
+   - tail -n 200 /var/log/apache2/error.log | grep -i mod_security
+   - Or equivalent nginx logs: /var/log/nginx/error.log
+
+4) If mod_security or a WAF is blocking the request, please whitelist the request or provide the blocking rule ID.
+
+5) If your server uses Nginx, confirm there are no deny rules for that path and that .htaccess is not required (Nginx ignores .htaccess).
+
+6) For temporary debugging, please test whether a PHP file is served (we added /chat-test.php and /chat.php which echoes chat.html content if present).
+
+If you need me to change anything in the files for debugging, tell me what you'd like.
+
+Thanks.

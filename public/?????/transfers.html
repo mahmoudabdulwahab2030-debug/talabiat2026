@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحويل بين الأقسام - مخازن</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-5">
+    <h3>تحويل رصيد بين الأقسام</h3>
+    <div class="card mt-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label>الصنف</label>
+            <input id="transferProduct" class="form-control" placeholder="اسم الصنف أو باركود">
+            <div class="form-text">اضغط F1 لفتح منتقي الأصناف</div>
+          </div>
+          <div class="col-md-3">
+            <label>من قسم</label>
+            <select id="transferFrom" class="form-select section-select"><option value="">جارٍ التحميل...</option></select>
+          </div>
+          <div class="col-md-3">
+            <label>إلى قسم</label>
+            <select id="transferTo" class="form-select section-select"><option value="">جارٍ التحميل...</option></select>
+          </div>
+          <div class="col-md-2">
+            <label>الكمية</label>
+            <input id="transferQty" type="number" class="form-control" value="1" min="1">
+          </div>
+        </div>
+        <div class="mt-3 text-end">
+          <button id="doTransfer" class="btn btn-primary">تنفيذ التحويل</button>
+        </div>
+      </div>
+    </div>
+    <div id="transferResult" class="mt-3"></div>
+    <!-- Selected product summary -->
+    <div id="transferSummary" class="mt-3" style="display:none">
+      <h5>معلومات التحويل</h5>
+      <table class="table table-sm">
+        <thead><tr><th>اسم الصنف</th><th>كود الصنف</th><th>من قسم</th><th>رصيد في القسم</th><th>إلى قسم</th><th>الكمية</th></tr></thead>
+        <tbody id="transferSummaryBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Product picker handled by central component (productPicker) -->
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="sections.js"></script>
+  <script src="transfers.js"></script>
+</body>
+</html>

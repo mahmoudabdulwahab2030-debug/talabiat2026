@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>📦 رفع ملف الأصناف</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Include Fonts and SweetAlert2 Library -->
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      --bg: #111421;
+      --panel: rgba(20, 26, 46, 0.92);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f3f4f8;
+      --muted: #9aa3bf;
+      --accent: #ffd166;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      --radius: 24px;
+      --transition: 260ms ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top left, rgba(255, 209, 102, 0.08), transparent 18%),
+                  radial-gradient(circle at bottom right, rgba(102, 187, 255, 0.06), transparent 20%),
+                  linear-gradient(180deg, #0d1020 0%, #13182e 55%, #0b0f1f 100%);
+      color: var(--text);
+      direction: rtl;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 28px 16px 40px;
+      background-color: var(--bg);
+    }
+
+    .page-shell {
+      width: min(980px, 100%);
+      padding: 0 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+      overflow: hidden;
+      padding: 28px;
+    }
+
+    h2 {
+      font-size: clamp(1.8rem, 2.5vw, 2.6rem);
+      margin: 0 0 20px;
+      text-align: center;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(255, 209, 102, 0.22);
+    }
+
+    .card-board {
+      position: relative;
+      display: grid;
+      place-items: center;
+      gap: 24px;
+      min-height: 280px;
+      padding: 28px;
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .card-board::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(255, 209, 102, 0.1), transparent 24%),
+                  radial-gradient(circle at bottom right, rgba(255, 113, 90, 0.08), transparent 22%);
+      pointer-events: none;
+    }
+
+    .folder {
+      position: relative;
+      width: 140px;
+      height: 88px;
+      transform-style: preserve-3d;
+      animation: float 3.4s ease-in-out infinite;
+    }
+
+    .folder .back-side,
+    .folder .front-side {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .folder .back-side {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(255, 152, 51, 0.1));
+      transform: translateZ(-12px) rotateX(12deg);
+    }
+
+    .folder .front-side {
+      background: linear-gradient(135deg, #ffd766, #ffb75c);
+      transform-origin: bottom center;
+      transform: translateZ(6px) rotateX(13deg);
+    }
+
+    .folder .tip {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 22px;
+      border-radius: 12px 12px 0 0;
+      background: linear-gradient(135deg, #ffdd90, #ffb55f);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .upload-label {
+      width: min(420px, 100%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), border-color var(--transition);
+      text-align: center;
+    }
+
+    .upload-label:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 209, 102, 0.22);
+    }
+
+    .upload-label input {
+      display: none;
+    }
+
+    .button-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 22px;
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.24), rgba(255, 255, 255, 0.06));
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.98rem;
+      font-weight: 700;
+      transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+      width: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.35), rgba(255, 255, 255, 0.12));
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    #catalogList {
+      margin-top: 20px;
+      color: var(--text);
+    }
+
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .catalog-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      min-height: 130px;
+    }
+
+    .catalog-card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .catalog-card-header strong {
+      color: var(--accent);
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .catalog-meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      min-height: 42px;
+    }
+
+    .catalog-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .catalog-action-btn {
+      flex: 1;
+      min-width: 110px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    .catalog-action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .catalog-action-btn.view-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.14);
+    }
+
+    .catalog-action-btn.delete-btn {
+      background: rgba(255, 92, 92, 0.18);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(255, 92, 92, 0.14);
+    }
+
+    #log {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(6, 11, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      color: #d7d7e0;
+      font-size: 0.98rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      min-height: 110px;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-16px); }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 20px 12px 30px;
+      }
+
+      .page-shell {
+        padding: 0;
+      }
+
+      .panel {
+        padding: 20px;
+      }
+
+      .card-board {
+        min-height: 220px;
+        padding: 22px;
+      }
+
+      .button-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .upload-label {
+        padding: 14px 16px;
+      }
+
+      button,
+      .catalog-action-btn {
+        padding: 12px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-shell">
+    <div class="panel">
+      <h2>📥 رفع ملف Excel - الأصناف</h2>
+
+      <div class="card-board">
+        <div class="folder">
+          <div class="front-side">
+            <div class="tip"></div>
+            <div class="cover"></div>
+          </div>
+          <div class="back-side cover"></div>
+        </div>
+
+        <label class="upload-label">
+          <input class="title" type="file" id="excelFile" accept=".xlsx" />
+          رفع ملف Excel
+        </label>
+      </div>
+
+      <div class="button-actions">
+        <button onclick="uploadCatalog()">📤 رفع إلى Firebase</button>
+        <button onclick="showCatalogList()">📂 عرض الأقسام الحالية</button>
+      </div>
+
+      <div id="catalogList"></div>
+      <div id="log">💡 لم يتم رفع ملف بعد.</div>
+    </div>
+  </div>
+
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function uploadCatalog() {
+      const fileInput = document.getElementById("excelFile");
+      const log = document.getElementById("log");
+      log.textContent = "⏳ جاري قراءة الملف...";
+      if (!fileInput.files.length) {
+        log.textContent = "⚠️ يرجى اختيار ملف Excel أولًا.";
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        let count = 0;
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          const [headers, ...dataRows] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+          const codeIndex = headers.findIndex(h => ["code", "كود", "رمز"].includes((h || "").trim().toLowerCase()));
+          const nameIndex = headers.findIndex(h => ["name", "اسم", "اسم الصنف"].includes((h || "").trim().toLowerCase()));
+          const priceIndex = headers.findIndex(h => ["price", "سعر", "السعر"].includes((h || "").trim().toLowerCase()));
+
+          if (nameIndex === -1 || priceIndex === -1) {
+            log.textContent += `\n⚠️ تم تجاهل ورقة "${sheetName}" (لم يتم العثور على أعمدة الاسم والسعر).`;
+            continue;
+          }
+
+          const items = dataRows.map(row => {
+            const code = row[codeIndex] || "";
+            const name = row[nameIndex];
+            const price = parseFloat(row[priceIndex]);
+            return {
+              code: String(code || "").trim().toLowerCase(),
+              name: String(name || "").trim(),
+              price
+            };
+          }).filter(i => i.code && i.name && !isNaN(i.price));
+
+          if (items.length > 0) {
+            await db.collection("catalog").doc(sheetName).set({ items });
+            log.textContent += `\n✅ تم رفع قسم "${sheetName}" وفيه ${items.length} صنف.`;
+            count++;
+          } else {
+            log.textContent += `\n⚠️ تم تجاهل ورقة "${sheetName}" (لا تحتوي أصناف صالحة).`;
+          }
+        }
+
+        log.textContent = `🎉 تم رفع ${count} قسم بنجاح:\n` + log.textContent;
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function showCatalogList() {
+      const container = document.getElementById("catalogList");
+      container.innerHTML = `<div class="status-message">⏳ جاري تحميل الأقسام...</div>`;
+
+      try {
+        const snap = await db.collection("catalog").get();
+        if (snap.empty) {
+          container.innerHTML = `<div class="status-message">📭 لا توجد أقسام محفوظة حاليًا.</div>`;
+          return;
+        }
+
+        const grid = document.createElement("div");
+        grid.className = "catalog-grid";
+
+        snap.forEach(doc => {
+          const data = doc.data() || {};
+          const items = Array.isArray(data.items) ? data.items : [];
+
+          const card = document.createElement("div");
+          card.className = "catalog-card";
+
+          const header = document.createElement("div");
+          header.className = "catalog-card-header";
+
+          const title = document.createElement("strong");
+          title.textContent = `📂 ${doc.id}`;
+
+          const countLabel = document.createElement("span");
+          countLabel.textContent = `${items.length} صنف`;
+          countLabel.style.color = "var(--muted)";
+          countLabel.style.fontSize = "0.95rem";
+
+          header.appendChild(title);
+          header.appendChild(countLabel);
+
+          const meta = document.createElement("p");
+          meta.className = "catalog-meta";
+          meta.textContent = items.length
+            ? items.slice(0, 3).map(item => item.name || item.code || "-" ).join("، ")
+            : "لا توجد تفاصيل متاحة لهذا القسم.";
+
+          const actions = document.createElement("div");
+          actions.className = "catalog-actions";
+
+          const viewBtn = document.createElement("button");
+          viewBtn.className = "catalog-action-btn view-btn";
+          viewBtn.textContent = "عرض";
+          viewBtn.onclick = () => {
+            const url = `view-file.html?fileId=${encodeURIComponent(doc.id)}`;
+            window.open(url, "_blank");
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "catalog-action-btn delete-btn";
+          deleteBtn.textContent = "🗑️ حذف";
+          deleteBtn.onclick = async () => {
+            const result = await Swal.fire({
+              title: `هل أنت متأكد من حذف القسم "${doc.id}"؟`,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'نعم، احذف',
+              cancelButtonText: 'إلغاء'
+            });
+
+            if (result.isConfirmed) {
+              await db.collection("catalog").doc(doc.id).delete();
+              Swal.fire('تم الحذف!', 'تم حذف القسم بنجاح.', 'success');
+              showCatalogList();
+            }
+          };
+
+          actions.appendChild(viewBtn);
+          actions.appendChild(deleteBtn);
+
+          card.appendChild(header);
+          card.appendChild(meta);
+          card.appendChild(actions);
+          grid.appendChild(card);
+        });
+
+        container.innerHTML = "";
+        const heading = document.createElement("h4");
+        heading.textContent = "📋 الأقسام المرفوعة:";
+        container.appendChild(heading);
+        container.appendChild(grid);
+      } catch (error) {
+        console.error(error);
+        container.innerHTML = `<div class="status-message">❌ حدث خطأ أثناء تحميل القائمة.</div>`;
+      }
+    }
+  </script>
+
+</body>
+</html>

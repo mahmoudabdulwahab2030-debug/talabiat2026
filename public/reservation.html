@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>🧾 حجز أوردر</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <script src="notifications.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- ADD: Cairo font (used in page and in print window) -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;800&display=swap" rel="stylesheet">
+
+  <style>
+  :root{
+    --bg: #0b0f12;
+    --card: #0f1416;
+    --muted: #9aa4a8;
+    --text: #e6eef0;
+    --accent: #ffd166;
+    --accent-2: #f2b26b;
+    --primary: #ffd166;
+    --danger: #ef476f;
+    --glass: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.06);
+    --radius: 10px;
+  }
+
+  /* Base */
+  html,body { height:100%; }
+  body {
+    background: linear-gradient(180deg,var(--bg) 0%, #0e1214 60%);
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    margin: 0;
+    padding: 24px;
+    direction: rtl;
+    -webkit-font-smoothing:antialiased;
+    box-sizing: border-box;
+  }
+  h2,h3 { color: var(--accent); margin: 8px 0; text-align:center; }
+  label { font-weight:700; color:var(--accent); display:block; margin-bottom:6px; }
+
+  .container { max-width:1100px; margin:0 auto; }
+
+  /* Form grid */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom:18px; }
+
+  /* Inputs / selects / textarea */
+  input[type="date"], input[type="time"], input[type="text"], input[type="tel"], input[type="number"], select, textarea {
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+    border: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    transition: box-shadow .12s, transform .06s;
+  }
+  input:focus, select:focus, textarea:focus {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 4px rgba(255,209,102,0.06);
+    transform: translateY(-1px);
+  }
+  textarea { min-height:64px; resize:vertical; }
+
+  /* Buttons - improved for dark theme */
+  .btn {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+    border-radius:10px;
+    border: 1px solid rgba(0,0,0,0.15);
+    cursor:pointer;
+    font-weight:800;
+    background: linear-gradient(180deg,var(--accent), var(--accent-2));
+    color:#0b0b0b;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: transform .08s ease, box-shadow .12s ease, filter .12s ease;
+  }
+  .btn:hover { transform: translateY(-2px); filter:brightness(1.02); }
+  .btn:active { transform: translateY(0); box-shadow:none; }
+  .btn:focus { outline: 2px solid rgba(255,209,102,0.12); outline-offset: 2px; }
+
+  /* small variant for inline catalog buttons */
+  .btn.small {
+    padding:6px 10px;
+    font-size:13px;
+    border-radius:8px;
+  }
+  /* ghost variant */
+  .btn.ghost {
+    background: transparent;
+    border:1px solid var(--border);
+    color:var(--text);
+    font-weight:700;
+    box-shadow:none;
+  }
+  .btn.ghost:hover { background: rgba(255,255,255,0.015); }
+
+  /* danger */
+  .btn.danger {
+    background: linear-gradient(180deg,var(--danger), #d6456e);
+    color:#fff;
+    border:1px solid rgba(0,0,0,0.15);
+  }
+
+  /* specific style for catalog action button (aligned right inside item) */
+  .btn.catalog {
+    margin-left:12px;
+  }
+
+  /* Table */
+  .table-wrap { margin-top:12px; border-radius:10px; overflow:auto; border:1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06)); }
+  table { width:100%; border-collapse:collapse; min-width:700px; }
+  thead th {
+    position: sticky; top:0;
+    background: linear-gradient(180deg,#121617,#0f1416);
+    color: var(--accent);
+    padding:12px; text-align:center; font-weight:800; border:1px solid rgba(255,255,255,0.03);
+  }
+  tbody td {
+    padding:12px; text-align:center; border:1px solid rgba(255,255,255,0.02); color:var(--text);
+    vertical-align: middle; word-break:break-word;
+  }
+  tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  tbody tr:hover td { background: rgba(255,209,102,0.03); }
+
+  /* Row remove */
+  .row-remove { color:var(--danger); font-weight:900; cursor:pointer; }
+
+  /* Totals / status */
+  #totalInvoice { font-size:18px; color:var(--accent); text-align:center; margin-top:12px; font-weight:800; }
+  #statusLabel { text-align:center; margin-top:8px; font-weight:800; color:#8bc34a; }
+
+  /* Dialog / catalog */
+  dialog { background: linear-gradient(180deg,#0f1416,#0b0f12); color:var(--text); border-radius:12px; padding:14px; border:1px solid var(--border); width:100%; max-width:680px; }
+  #catalogItems { max-height:320px; overflow:auto; margin-top:10px; }
+  #catalogItems div { padding:10px; border-radius:8px; margin-bottom:8px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  #catalogItems strong { color:var(--text); }
+  #catalogItems small { color:var(--muted); }
+
+  /* Print: ensure readable white output and force black text inside printable section */
+  @media print {
+    /* Force printing of colors where supported */
+    body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
+    /* hide UI controls */
+    .controls, .btn-row, .btn, button, select, input, textarea, dialog { display: none !important; }
+    /* show only printable section */
+    body * { visibility: hidden; }
+    #printSection, #printSection * { visibility: visible; }
+    #printSection {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      padding: 12mm;
+      box-sizing: border-box;
+      background: white !important;
+      color: black !important;
+    }
+    /* table styling for print - force white background and black text */
+    #printSection table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white !important;
+      color: black !important;
+    }
+    #printSection table th, #printSection table td {
+      border: 1px solid #000;
+      background: white !important;
+      color: black !important;
+      padding: 6px;
+    }
+    /* ensure any inline inputs inside printSection render their values in black */
+    #printSection input, #printSection textarea, #printSection select {
+      color: black !important;
+      background: transparent !important;
+      -webkit-text-fill-color: black !important;
+    }
+    /* specific classes that show totals */
+    #printSection .row-total, #printSection #totalInvoice, #printSection #statusLabel {
+      color: black !important;
+    }
+    @page { margin: 12mm; }
+  }
+
+  /* Responsive */
+  @media (max-width:900px){
+    .container{ padding:14px; }
+    table { min-width:600px; }
+  }
+  @media (max-width:620px){
+    .form-grid { grid-template-columns: 1fr; }
+    table { font-size:13px; min-width:400px; }
+  }
+
+  /* Utilities */
+  .muted { color:var(--muted); font-size:13px; }
+  .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:var(--glass); color:var(--muted); font-weight:700; }
+
+</style>
+</head>
+<body>
+<!-- after the page title, show invoice number at top -->
+<h2>🧾 تسجيل أوردر جديد</h2>
+<div id="topInvoice" style="text-align:center; margin-bottom:12px;">
+  <label style="font-weight:800; color:var(--accent); margin-right:8px;">رقم الفاتورة:</label>
+  <input id="invoiceNumber" readonly style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text); font-weight:800; min-width:200px; text-align:center;" />
+</div>
+
+<form id="orderForm">
+  <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 15px; margin-bottom: 25px;">
+    <div>
+      <label>اسم الفرع:</label>
+      <select id="branch">
+        <option value="korba">كوربة</option>
+        <option value="dokki">دقي</option>
+        <option value="tagamo3">تجمع</option>
+        <option value="obour">عبور</option>
+      </select>
+    </div>
+    <div>
+      <label>📅 تاريخ الأوردر:</label>
+      <input type="date" id="orderDate" readonly />
+    </div>
+    <div>
+      <label>📦 تاريخ التسليم:</label>
+      <input type="date" id="deliveryDate" />
+    </div>
+    <div>
+      <label>اسم العميل:</label>
+      <input type="text" id="createdBy" />
+    </div>
+    <div>
+      <label>📱 موبايل العميل:</label>
+      <input type="tel" id="clientPhone" />
+    </div>
+    <div>
+      <label>مكان التسليم:</label>
+      <select id="deliveryType" onchange="handleDeliveryType()">
+        <option value="branch">فرع</option>
+        <option value="delivery">دليفري</option>
+      </select>
+    </div>
+    <div id="branchDeliveryBox">
+      <label>الفرع المُستلم:</label>
+      <select id="deliveryBranch">
+        <option value="korba">كوربة</option>
+        <option value="dokki">دقي</option>
+        <option value="tagamo3">تجمع</option>
+        <option value="obour">عبور</option>
+      </select>
+    </div>
+    <div id="deliveryTimeBox">
+      <label>⏰ ساعة الاستلام:</label>
+      <input type="time" id="deliveryTime" />
+    </div>
+    <div id="deliveryAddressBox" style="display: none;">
+      <label>📍 عنوان العميل:</label>
+      <input type="text" id="deliveryAddress" />
+    </div>
+    <div style="grid-column: 1 / -1;">
+      <label>📝 ملاحظات إضافية:</label>
+      <textarea id="notes" rows="2"></textarea>
+    </div>
+  </div>
+
+  <div id="printSection">
+    <h3>🧾 تفاصيل الأصناف</h3>
+    <table id="itemsTable">
+      <thead>
+        <tr>
+          <th>📦 اسم الصنف</th>
+          <th>🔢 الكود</th>
+          <th>📦 الكمية</th>
+          <th>💰 السعر</th>
+          <th>📈 الإجمالي</th>
+          <th>❌ حذف</th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+
+    <button type="button" class="btn" onclick="openCatalog()">📋 اختيار صنف من الكتالوج</button>
+    <button type="button" class="btn ghost" onclick="addRow()">➕ إضافة صنف يدوي</button>
+
+    <!-- NEW: totals block placed under the items table -->
+    <div id="totalsBlock" style="margin-top:14px; display:flex; gap:12px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-weight:800; color:var(--accent);">💰 إجمالي الفاتورة:</label>
+        <div id="totalInvoice" style="font-weight:800; color:var(--accent);">0.00</div>
+        <div style="color:var(--muted);">جنيه</div>
+      </div>
+
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-weight:800; color:var(--accent);">المدفوع:</label>
+        <input type="number" id="paidAmount" value="0" min="0" step="0.01" style="width:140px; padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);" />
+      </div>
+
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-weight:800; color:var(--accent);">المتبقي:</label>
+        <div id="remainingAmount" style="font-weight:800; color:#9ee67a;">0.00</div>
+        <div style="color:var(--muted);">جنيه</div>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="catalogModal">
+    <form method="dialog" onsubmit="event.preventDefault();">
+      <h3>📋 اختيار صنف من قسم</h3>
+      <label>🗂️ اختر القسم:</label>
+      <select id="sectionSelector" onchange="loadCatalogItems()"></select>
+      <div id="catalogItems">
+        <p style="color:#333;">⬅️ الرجاء اختيار قسم لعرض الأصناف</p>
+      </div>
+      <div style="text-align:center; margin-top:15px;">
+        <button type="button" class="btn ghost" onclick="document.getElementById('catalogModal').close()">❌ إغلاق</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="formFooter">
+    <button type="button" onclick="saveOrder()">💾 حفظ الطلبية</button>
+    <button type="button" onclick="printInvoice()">🖨️ طباعة الفاتورة</button>
+  </div>
+
+  <p id="statusLabel" style="text-align:center; color:lime; font-weight:bold;"></p>
+</form>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+  let selectedSection = "";
+  document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+
+  // توليد رقم فاتورة متسلسل عالمي باستخدام مستند عداد في Firestore
+  async function generateInvoiceNumber() {
+    const counterRef = db.collection('counters').doc('invoices');
+    try {
+      const next = await db.runTransaction(async t => {
+        const doc = await t.get(counterRef);
+        const last = (doc.exists && doc.data().last) ? doc.data().last : 0;
+        const nextVal = last + 1;
+        t.set(counterRef, { last: nextVal }, { merge: true });
+        return nextVal;
+      });
+      // شكل عرض: INV-000001
+      const formatted = `INV-${String(next).padStart(6,'0')}`;
+      const el = document.getElementById('invoiceNumber');
+      if (el) el.value = formatted;
+      return formatted;
+    } catch (err) {
+      console.error('Invoice counter error:', err);
+      // fallback to timestamp if transaction fails
+      const fallback = 'INV-' + Date.now();
+      const el = document.getElementById('invoiceNumber');
+      if (el) el.value = fallback;
+      return fallback;
+    }
+  }
+
+  // NEW: مزامنة عداد الفواتير مع أكبر رقم فاتورة موجود في مجموعة reservations
+  async function syncInvoiceCounterWithReservations() {
+    try {
+      const reservationsSnap = await db.collection('reservations').get();
+      let maxNum = 0;
+      reservationsSnap.forEach(doc => {
+        const inv = (doc.data().invoiceNumber || '').toString();
+        const m = inv.match(/(\d+)/);
+        if (m) {
+          const num = parseInt(m[1].replace(/^0+/, '') || '0', 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      });
+      // ضع العداد في قيمة maxNum (إذا لم توجد فواتير ستكون 0)
+      const counterRef = db.collection('counters').doc('invoices');
+      await counterRef.set({ last: maxNum }, { merge: true });
+      return maxNum;
+    } catch (err) {
+      console.error('syncInvoiceCounterWithReservations error:', err);
+      return null;
+    }
+  }
+
+  // قراءة معاينة رقم الفاتورة بدون تعديل العداد (للعرض فقط عند التحميل)
+  async function fetchInvoicePreview() {
+    try {
+      const counterRef = db.collection('counters').doc('invoices');
+      const doc = await counterRef.get();
+      const last = (doc.exists && doc.data().last) ? doc.data().last : 0;
+      const nextVal = last + 1;
+      const preview = `INV-${String(nextVal).padStart(6,'0')}`;
+      const el = document.getElementById('invoiceNumber');
+      if (el) el.value = preview;
+      return preview;
+    } catch (err) {
+      console.error('Invoice preview error:', err);
+      const el = document.getElementById('invoiceNumber');
+      if (el) el.value = 'INV-preview';
+      return 'INV-preview';
+    }
+  }
+
+  // عند تحميل الصفحة أولاً قم بمزامنة العداد مع الفواتير ثم اعرض رقم فاتورة معاينة وثبّت مستمع المدفوع
+  document.addEventListener('DOMContentLoaded', async () => {
+    // حاول مزامنة العداد مع الفواتير الموجودة (سيضع last=maxInvoiceNumber أو 0)
+    await syncInvoiceCounterWithReservations();
+    // ثم اعرض المعاينة بناءً على قيمة العداد المحدثة
+    await fetchInvoicePreview();
+    const paidEl = document.getElementById('paidAmount');
+    if (paidEl) paidEl.addEventListener('input', () => updateTotals());
+  });
+
+  function handleDeliveryType() {
+    const type = document.getElementById("deliveryType").value;
+    document.getElementById("branchDeliveryBox").style.display = type === "branch" ? "block" : "none";
+    document.getElementById("deliveryAddressBox").style.display = type === "delivery" ? "block" : "none";
+  }
+
+  function openCatalog() {
+    const select = document.getElementById("sectionSelector");
+    const modal = document.getElementById("catalogModal");
+    select.innerHTML = "<option disabled selected>⏳ جاري التحميل...</option>";
+
+    db.collection("catalog").get().then(snap => {
+      select.innerHTML = "";
+      snap.forEach(doc => {
+        const option = document.createElement("option");
+        option.value = doc.id;
+        option.textContent = doc.id;
+        select.appendChild(option);
+      });
+      document.getElementById("catalogItems").innerHTML = `<p style="color:#333;">⬅️ اختر قسم لعرض الأصناف</p>`;
+      modal.showModal();
+    });
+  }
+
+  function loadCatalogItems() {
+    selectedSection = document.getElementById("sectionSelector").value;
+    const container = document.getElementById("catalogItems");
+    container.innerHTML = "⏳ جاري تحميل الأصناف...";
+
+    db.collection("catalog").doc(selectedSection).get().then(doc => {
+      if (!doc.exists) return container.innerHTML = "❌ لا يوجد هذا القسم.";
+      const items = doc.data().items || [];
+      if (items.length === 0) return container.innerHTML = "⚠️ لا توجد أصناف.";
+
+      const html = items.map(i => {
+        const code = i.code || i.name.toLowerCase().replace(/\s+/g, "_");
+        return `
+          <div>
+            <div style="flex:1">
+              <strong>${i.name}</strong><br>
+              <small>الكود: ${code}</small> – <small>${i.price.toFixed(2)} جنيه</small>
+            </div>
+            <div style="flex:0">
+              <button type="button" class="btn small catalog" onclick='insertItem("${i.name}", ${i.price}, "${selectedSection}", "${code}")'>➕</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+      container.innerHTML = html;
+    });
+  }
+
+  function insertItem(name, price, section, code) {
+    const tbody = document.getElementById("itemsBody");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><input type="text" value="${name}" data-section="${section}" data-code="${code}" onchange="updateTotals()" /></td>
+      <td>${code}</td>
+      <td><input type="number" value="1" min="1" onchange="updateTotals()" /></td>
+      <td><input type="number" value="${price}" min="0" onchange="updateTotals()" /></td>
+      <td class="row-total">${price.toFixed(2)}</td>
+      <td><span class="row-remove" onclick="removeRow(this)">🗑️</span></td>
+    `;
+    tbody.appendChild(row);
+    updateTotals();
+    document.getElementById("catalogModal").close();
+  }
+
+  function addRow() {
+    const tbody = document.getElementById("itemsBody");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><input type="text" onchange="updateTotals()" /></td>
+      <td>—</td>
+      <td><input type="number" value="1" min="1" onchange="updateTotals()" /></td>
+      <td><input type="number" value="0" min="0" onchange="updateTotals()" /></td>
+      <td class="row-total">0.00</td>
+      <td><span class="row-remove" onclick="removeRow(this)">🗑️</span></td>
+    `;
+    tbody.appendChild(row);
+    updateTotals();
+  }
+
+  function updateTotals() {
+    let total = 0;
+    document.querySelectorAll("#itemsBody tr").forEach(row => {
+      const qty = parseFloat(row.cells[2].querySelector("input").value) || 0;
+      const price = parseFloat(row.cells[3].querySelector("input").value) || 0;
+      const subtotal = qty * price;
+      row.cells[4].textContent = subtotal.toFixed(2);
+      total += subtotal;
+    });
+    // عرض الإجمالي أسفل الجدول
+    document.getElementById("totalInvoice").textContent = total.toFixed(2);
+    // حساب المتبقي اعتماداً على المدفوع (المدخل تحت الجدول)
+    const paid = parseFloat(document.getElementById('paidAmount')?.value) || 0;
+    const remaining = (total - paid);
+    document.getElementById('remainingAmount').textContent = remaining.toFixed(2);
+  }
+
+  function removeRow(el) {
+    el.closest("tr").remove();
+    updateTotals();
+  }
+
+  // REPLACE: createPrintableHTML -> prettier, well-formatted Arabic invoice
+  function createPrintableHTML() {
+    // helpers to read form fields
+    function selText(id){
+      const el = document.getElementById(id);
+      return el && el.options ? (el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : '') : (el ? el.value : '');
+    }
+    const branch = selText('branch') || '';
+    const orderDate = document.getElementById('orderDate').value || '';
+    const deliveryDate = document.getElementById('deliveryDate').value || '';
+    const deliveryTime = document.getElementById('deliveryTime').value || '';
+    const createdBy = document.getElementById('createdBy').value || '';
+    const clientPhone = document.getElementById('clientPhone').value || '';
+    const deliveryType = selText('deliveryType') || '';
+    const deliveryPlace = (document.getElementById('deliveryType').value === 'branch')
+      ? selText('deliveryBranch') : (document.getElementById('deliveryAddress').value || '');
+    const notes = document.getElementById('notes').value || '';
+    const total = parseFloat(document.getElementById('totalInvoice').textContent) || 0.00;
+    const paidVal = parseFloat(document.getElementById('paidAmount')?.value) || 0.00;
+    const remainingVal = (total - paidVal);
+
+    // build items rows by reading current table body (exclude delete column)
+    const rows = [];
+    document.querySelectorAll('#itemsBody tr').forEach(tr => {
+      const nameInput = tr.cells[0].querySelector('input');
+      const name = nameInput ? nameInput.value.trim() : tr.cells[0].textContent.trim();
+      const code = tr.cells[1] ? tr.cells[1].textContent.trim() : '';
+      const qtyInput = tr.cells[2].querySelector('input');
+      const qty = qtyInput ? qtyInput.value : (tr.cells[2].textContent.trim() || '0');
+      const priceInput = tr.cells[3].querySelector('input');
+      const price = priceInput ? priceInput.value : (tr.cells[3].textContent.trim() || '0');
+      const subtotal = tr.cells[4] ? tr.cells[4].textContent.trim() : ( (parseFloat(qty)||0) * (parseFloat(price)||0) ).toFixed(2);
+      const section = nameInput && nameInput.dataset && nameInput.dataset.section ? nameInput.dataset.section : '';
+      if (name) rows.push({ name, code, section, qty, price, subtotal });
+    });
+
+    const itemsHtml = rows.map(r => `
+      <tr>
+        <td class="right cell-name">${escapeHtml(r.name)}</td>
+        <td class="center">${escapeHtml(r.code)}</td>
+        <td class="center">${escapeHtml(r.section || '')}</td>
+        <td class="center">${escapeHtml(r.qty)}</td>
+        <td class="center">${escapeHtml(Number(r.price).toFixed(2))}</td>
+        <td class="center">${escapeHtml(Number(r.subtotal).toFixed(2))}</td>
+      </tr>
+    `).join('');
+
+    // small helper to avoid injection (basic)
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // Compose HTML with nicer CSS
+    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;800&display=swap" rel="stylesheet">`;
+    const css = `
+      <style>
+        @page { margin: 12mm; }
+        html,body{height:100%;margin:0;padding:0}
+        body{font-family: 'Cairo', sans-serif; direction: rtl; color:#222; background:#fff; padding:14px 12px; box-sizing:border-box;}
+        .card{max-width:980px;margin:0 auto;border-radius:10px;padding:18px;border:1px solid #eee;box-shadow:0 6px 20px rgba(0,0,0,0.06);}
+        .header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}
+        .brand{ text-align:right; }
+        .brand h2{ margin:0; color:#1f2937; font-size:20px; letter-spacing:0.5px; font-weight:800; }
+        .brand p{ margin:4px 0 0 0; color:#555; font-size:12px; }
+        .meta{ text-align:left; font-size:12px; color:#333; }
+        .meta .box{ border:1px solid #ddd; padding:8px 10px; border-radius:8px; background:linear-gradient(180deg,#fff,#fbfbfb); }
+        .customer{ margin:10px 0; display:flex; gap:12px; }
+        .customer .left, .customer .right { width:50%; font-size:13px; }
+        .customer table{ width:100%; border-collapse:collapse; }
+        .customer td{ padding:6px 8px; vertical-align:top; }
+        table.items{ width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; }
+        table.items thead th{ background:#f8f9fb; color:#111; padding:10px; border-bottom:2px solid #e6e6e6; font-weight:700; text-align:center; }
+        table.items tbody td{ padding:10px; border-bottom:1px dashed #e6e6e6; color:#222; vertical-align:middle; }
+        table.items tbody tr:nth-child(even) td{ background: #fff; }
+        .cell-name{ text-align:right; padding-right:14px; }
+        .center{ text-align:center; }
+        .totals{ display:flex; justify-content:flex-end; margin-top:12px; gap:12px; align-items:center; }
+        .totals .box{ background:#111827;color:#fff;padding:12px 16px;border-radius:8px;font-weight:800; }
+        .totals .label{ color:#444;font-size:13px;padding:6px 10px; }
+        .foot{ margin-top:18px; font-size:12px; color:#666; text-align:center; }
+        .accent{ color:#d97706; font-weight:800; }
+        /* Make printing sharp */
+        @media print{
+          body{padding:0}
+          .card{box-shadow:none;border:0}
+        }
+      </style>
+    `;
+
+    const invoiceNo = document.getElementById('invoiceNumber')?.value || '';
+    const header = `
+      <div class="card">
+        <div class="header">
+          <div class="brand">
+            <h2>فاتورة</h2>
+            <p>LE DOUX</p>
+          </div>
+          <div class="meta">
+            <div class="box">
+              <div><strong>رقم الفاتورة:</strong> ${escapeHtml(invoiceNo)}</div>
+              <div><strong>الفرع:</strong> ${escapeHtml(branch)}</div>
+              <div><strong>تاريخ الأوردر:</strong> ${escapeHtml(orderDate)}</div>
+              <div><strong>تاريخ التسليم:</strong> ${escapeHtml(deliveryDate)} ${deliveryTime ? ' - ' + escapeHtml(deliveryTime) : ''}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="customer">
+          <div class="right">
+            <table>
+              <tr><td><strong>اسم العميل</strong></td><td>${escapeHtml(createdBy || '—')}</td></tr>
+              <tr><td><strong>موبايل</strong></td><td>${escapeHtml(clientPhone || '—')}</td></tr>
+            </table>
+          </div>
+          <div class="left">
+            <table>
+              <tr><td><strong>مكان التسليم</strong></td><td>${escapeHtml(deliveryPlace || '—')}</td></tr>
+              <tr><td><strong>نوع التسليم</strong></td><td>${escapeHtml(deliveryType || '—')}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:6px;">
+          <table class="items" role="table">
+            <thead>
+              <tr>
+                <th>اسم الصنف</th>
+                <th>الكود</th>
+                <th>القسم</th>
+                <th>الكمية</th>
+                <th>السعر</th>
+                <th>الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml || '<tr><td class="center" colspan="6">لا توجد أصناف</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="totals">
+          <div style="text-align:right;">
+            <div class="label">المدفوع</div>
+            <div class="box" style="background:#059669;">${escapeHtml(paidVal.toFixed(2))} جنيه</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="label">المتبقي</div>
+            <div class="box">${escapeHtml(remainingVal.toFixed(2))} جنيه</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="label">الإجمالي</div>
+            <div class="box">${escapeHtml(Number(total).toFixed(2))} جنيه</div>
+          </div>
+        </div>
+
+        <div class="foot">شكراً لتعاملكم مع LE DOUX — تم إصدار الفاتورة بتاريخ ${escapeHtml(new Date().toLocaleString())}</div>
+      </div>
+    `;
+
+    return `<!doctype html><html lang="ar"><head><meta charset="utf-8">${fontLink}${css}<title>فاتورة</title></head><body>${header}</body></html>`;
+  }
+
+  async function saveOrder() {
+    const branch = document.getElementById("branch").value;
+    const orderDate = document.getElementById("orderDate").value;
+    const deliveryDate = document.getElementById("deliveryDate").value;
+    const deliveryTime = document.getElementById("deliveryTime").value;
+    const createdBy = document.getElementById("createdBy").value;
+    const clientPhone = document.getElementById("clientPhone").value;
+    const deliveryType = document.getElementById("deliveryType").value;
+    const deliveryPlace = (deliveryType === "branch")
+      ? document.getElementById("deliveryBranch").value : document.getElementById("deliveryAddress").value;
+    const notes = document.getElementById("notes").value;
+
+    // invoice / payment fields — عيّن رقم الفاتورة الرسمي الآن عبر المعاملة (زيادة العداد)
+    const invoiceNumber = await generateInvoiceNumber();
+    // عكس الرقم الرسمي في الحقل الظاهر حتى تظهر الفاتورة المطبوعة بالرقم الصحيح
+    const invEl = document.getElementById('invoiceNumber');
+    if (invEl) invEl.value = invoiceNumber;
+
+    const paid = parseFloat(document.getElementById('paidAmount')?.value) || 0;
+    const computedTotal = parseFloat(document.getElementById('totalInvoice').textContent) || 0;
+    const remaining = computedTotal - paid;
+
+    // gather items data
+    const tbody = document.getElementById("itemsBody");
+    const items = [];
+    let total = 0;
+
+    tbody.querySelectorAll("tr").forEach(row => {
+      const input = row.cells[0].querySelector("input");
+      const name = input.value.trim();
+      const code = input.dataset.code || name.toLowerCase().replace(/\s+/g, "_");
+      const section = input.dataset.section || selectedSection || "غير محدد";
+      const qty = parseFloat(row.cells[2].querySelector("input").value) || 0;
+      const price = parseFloat(row.cells[3].querySelector("input").value) || 0;
+      if (name && qty > 0) {
+        const subtotal = qty * price;
+        total += subtotal;
+        items.push({ name, code, qty, price, subtotal, sheet: section });
+      }
+    });
+
+    if (items.length === 0) {
+      // استخدم SweetAlert2 لعرض رسالة خطأ
+      Swal.fire({
+        icon: 'warning',
+        title: '⚠️ خطأ',
+        text: 'يجب إدخال صنف واحد على الأقل.',
+      });
+      return;
+    }
+
+    const reservation = {
+      branch, orderDate, deliveryDate, deliveryTime,
+      createdBy, clientPhone, deliveryType, deliveryPlace,
+      notes, items, total, timestamp: new Date(),
+      invoiceNumber, paid, remaining
+    };
+
+    try {
+      await db.collection("reservations").add(reservation);
+
+      for (const item of items) {
+        await db.collection("orders").add({
+          code: item.code,
+          name: item.name,
+          qty: item.qty,
+          sheet: item.sheet,
+          branch,
+          orderDate: deliveryDate,
+          source: "reservation",
+          invoiceNumber
+        });
+      }
+
+      // إظهار حوار نجاح مع زر للطباعة
+      Swal.fire({
+        title: '✅ تم الحفظ',
+        text: 'تم تسجيل الطلبية بنجاح. هل تريد طباعة الفاتورة الآن؟',
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: '🖨️ طباعة',
+        cancelButtonText: 'إغلاق',
+        allowOutsideClick: false
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const printed = await printInvoice();
+          if (printed) {
+            // بعد الطباعة نعيد تحميل الصفحة لتنظيف النموذج
+            setTimeout(() => location.reload(), 700);
+          } else {
+            // فشل الطباعة - عرض خيار إعادة المحاولة
+            const retry = await Swal.fire({
+              icon: 'warning',
+              title: 'فشل الطباعة',
+              text: 'هل تريد محاولة الطباعة مرة أخرى؟',
+              showCancelButton: true,
+              confirmButtonText: 'حاول مرة أخرى',
+              cancelButtonText: 'لا'
+            });
+            if (retry.isConfirmed) {
+              const ok2 = await printInvoice();
+              if (ok2) setTimeout(() => location.reload(), 700);
+            }
+          }
+        } else {
+          location.reload();
+        }
+      });
+
+      // تحديث الحالة داخل الصفحة
+      document.getElementById("statusLabel").textContent = "✅ تم الحفظ بنجاح";
+    } catch (err) {
+      console.error(err);
+      // استخدم SweetAlert2 لعرض رسالة خطأ عند الفشل
+      Swal.fire({
+        icon: 'error',
+        title: '❌ حدث خطأ',
+        text: 'حدث خطأ أثناء الحفظ. حاول مرة أخرى.',
+      });
+    }
+  }
+
+  // REPLACE: robust print function returning Promise + adjusted Swal handler in saveOrder
+  function printInvoice() {
+    return new Promise((resolve) => {
+      try {
+        const html = createPrintableHTML();
+        // افتح النافذة مباشرة (لتقليل فرصة حظرها)
+        const w = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
+        if (!w) {
+          Swal.fire({
+            icon: 'error',
+            title: '❌ فشل فتح نافذة الطباعة',
+            text: 'يبدو أن النافذة المنبثقة محظورة. الرجاء السماح بالمنبثقات ثم حاول مرة أخرى.'
+          });
+          return resolve(false);
+        }
+
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+
+        // انتظر لتحميل الخطوط/المحتوى ثم اطبع، مع معالجة الأخطاء
+        setTimeout(() => {
+          try {
+            // بعض المتصفحات لا ترمي خطأ حتى لو فشل الطباعة، لذا نعالج ما يمكننا
+            w.print();
+            // أغلق النافذة بعد طباعة (متعمد تأخير صغير)
+            setTimeout(() => { try { w.close(); } catch (e) { /* ignore */ } }, 500);
+            resolve(true);
+          } catch (err) {
+            console.error('Print error:', err);
+            Swal.fire({
+              icon: 'error',
+              title: '❌ خطأ أثناء الطباعة',
+              text: 'حدث خطأ أثناء استدعاء أمر الطباعة.'
+            });
+            try { w.close(); } catch (e) {}
+            resolve(false);
+          }
+        }, 800);
+      } catch (err) {
+        console.error('Prepare print error:', err);
+        Swal.fire({
+          icon: 'error',
+          title: '❌ خطأ',
+          text: 'حدث خطأ أثناء تجهيز الفاتورة للطباعة.'
+        });
+        resolve(false);
+      }
+    });
+  }
+
+// إضافة دعم لفرع العبور
+const branches = ["dokki", "korba", "tagamo3", "obour"];
+
+</script>
+</body>
+</html>

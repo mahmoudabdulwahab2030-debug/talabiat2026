@@ -1,0 +1,46 @@
+body * {
+  visibility: hidden;
+}
+
+#invoicePrintSection, #invoicePrintSection * {
+  visibility: visible;
+}
+
+#invoicePrintSection {
+  display: block !important;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  background: white;
+  color: black;
+}
+
+#invoicePrintSection table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  color: black;
+}
+
+#invoicePrintSection table th,
+#invoicePrintSection table td {
+  border: 1px solid #000;
+  background: white;
+  color: black;
+  padding: 8px;
+}
+
+#invoicePrintSection h2,
+#invoicePrintSection p {
+    color: black;
+}
+
+#invoicePrintSection thead tr {
+    background-color: #f2f2f2;
+}
+
+
+@page {
+  margin: 1cm;
+}

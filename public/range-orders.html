@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>📅 تقرير الطلبيات بفترة زمنية - LE DOUX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <script src="notifications.js"></script>
+  <style>
+    :root{
+      --bg: #0f0f10;
+      --panel: #121212;
+      --muted: #a8b0b6;
+      --text: #e6e6e6;
+      --accent: #ffd166;
+      --accent-2: #f0ad4e;
+      --primary: #ffd166;
+      --secondary: #28343a;
+      --danger: #ef476f;
+      --ghost-border: rgba(255,255,255,0.06);
+      --radius: 10px;
+      --glass: rgba(255,255,255,0.03);
+    }
+    html,body{height:100%}
+    body {
+      background: linear-gradient(180deg,#0b0b0b 0%, #121212 60%);
+      color: var(--text);
+      font-family: "Cairo", sans-serif;
+      margin: 12px;
+      direction: rtl;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.45;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h2{ color:var(--accent); margin:0 0 14px 0; text-align:center; font-size:22px; text-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+    .container{ max-width:1280px; margin: 0 auto; padding: 14px; }
+    .controls{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+    .controls .row{ display:flex; gap:12px; align-items:center; width:100%; flex-wrap:wrap; }
+    .controls .field{ display:flex; gap:8px; align-items:center; flex:1; min-width:220px; }
+    .controls label{ min-width:110px; color:var(--muted); font-weight:700; font-size:13px; }
+    select[multiple]{ min-height:110px; font-size:14px; }
+    input[type="date"], select, .controls input[type="text"]{
+      background: linear-gradient(180deg,var(--panel), #101010);
+      color:var(--text);
+      border:1px solid var(--ghost-border);
+      padding:7px 10px;
+      border-radius:10px;
+      width:100%;
+      min-height:36px;
+      font-size:13px;
+      box-sizing:border-box;
+      outline: none;
+      transition: box-shadow .12s, transform .08s;
+    }
+    input[type="date"]::placeholder, select::placeholder{ color:var(--muted); }
+    input[type="date"]:focus, select:focus, input:focus{ box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08); transform: translateY(-1px); }
+    .btn-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .btn{ background:var(--secondary); color:var(--text); border:1px solid rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:800; letter-spacing:0.6px; display:inline-flex; align-items:center; gap:8px; transition: transform .08s ease, box-shadow .12s ease, background .12s ease; }
+    .btn:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+    .btn.primary{ background: linear-gradient(180deg,var(--primary), var(--accent-2)); color:#000; border-color: rgba(0,0,0,0.25); }
+    .table-wrap{ overflow:auto; margin-top:16px; border-radius:14px; border:1px solid rgba(255,255,255,0.06); }
+    table{ width:100%; border-collapse:collapse; min-width:720px; }
+    th, td{ padding:12px 10px; border:1px solid rgba(255,255,255,0.08); text-align:right; }
+    thead th{ background: rgba(255,209,102,0.12); color:var(--accent); }
+    tbody tr:nth-child(even){ background: rgba(255,255,255,0.03); }
+    .branch-card{ margin-bottom:26px; }
+    .branch-title{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; padding:14px 16px; background: rgba(255,255,255,0.04); border-radius:14px; border:1px solid rgba(255,255,255,0.05); }
+    .branch-title h3{ margin:0; color:var(--accent); font-size:18px; }
+    .small-badge{ background: rgba(255,209,102,0.16); color:var(--accent); border-radius:999px; padding:6px 10px; font-size:13px; }
+    .status-box{ margin-top:12px; color:var(--accent); font-size:14px; }
+    .loader{ display:none; align-items:center; gap:8px; padding:10px 12px; background: rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.05); }
+    .loader span{ width:10px; height:10px; border-radius:50%; background:var(--accent); animation: blink 1s infinite alternate; }
+    .loader span:nth-child(2){ animation-delay: 0.2s; }
+    .loader span:nth-child(3){ animation-delay: 0.4s; }
+    @keyframes blink{ to { opacity:0.2; transform: translateY(-2px); } }
+    @media print{
+      body{ background:#fff; color:#000; }
+      .controls, .btn-row, .branch-title, .loader, #status, #actionsRow{ display:none !important; }
+      #printSection, #printSection *{ visibility: visible; }
+      #printSection{ position:absolute; left:0; top:0; width:100%; padding:0; margin:0; background:#fff; color:#000; }
+      #printSection table{ border-collapse:collapse; width:100%; background:#fff; color:#000; }
+      #printSection table th, #printSection table td{ border:1px solid #000; color:#000; }
+    }
+  </style>
+</head>
+<body>
+  <h2>📅 تقرير الطلبيات حسب الفترة الزمنية</h2>
+  <div class="container">
+    <div class="controls">
+      <div class="row">
+        <div class="field"><label for="rangeFrom">من:</label><input type="date" id="rangeFrom" /></div>
+        <div class="field"><label for="rangeTo">إلى:</label><input type="date" id="rangeTo" /></div>
+      </div>
+      <div class="row">
+        <div class="field" style="align-items:flex-start">
+          <label for="sheetSelector">🧾 الأقسام:</label>
+          <select id="sheetSelector" multiple size="5" title="اضغط Ctrl لاختيار أقسام متعددة">
+            <option value="ALL" selected>— كل الأقسام —</option>
+          </select>
+        </div>
+        <div class="field" style="align-items:flex-start">
+          <label for="branchSelector">🏷️ الفروع:</label>
+          <select id="branchSelector" multiple size="5" title="اضغط Ctrl لاختيار فروع متعددة">
+            <option value="ALL" selected>— كل الفروع —</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:auto;"><div id="loader" class="loader" aria-live="polite" aria-hidden="true"><span></span><span></span><span></span><strong>جاري التحميل...</strong></div></div>
+      </div>
+      <div id="actionsRow" class="row btn-row">
+        <button id="runReportBtn" class="btn primary"><span>📊</span>عرض التقرير</button>
+        <button id="exportExcelBtn" class="btn"><span>🧾</span>تصدير Excel</button>
+        <button id="printBtn" class="btn"><span>🖨️</span>طباعة</button>
+        <button id="shareBtn" class="btn"><span>📸</span>مشاركة صورة</button>
+      </div>
+    </div>
+
+    <div id="status" class="status-box"></div>
+    <div id="resultArea"></div>
+  </div>
+
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+let allData = [];
+const branchLabels = { korba:'كوربة', dokki:'دقي', tagamo3:'التجمع', obour:'العبور', unknown:'غير معروف' };
+const branchOrder = ['dokki','korba','tagamo3','obour'];
+
+function showStatus(text){ const el = document.getElementById('status'); if (el) el.textContent = text; }
+function formatNumber(num){ num = Number(num||0); return Number.isInteger(num) ? num.toString() : num.toFixed(2); }
+function escapeHtml(text){ if (!text) return ''; return String(text).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function normalizeBranchKey(branch){ const raw = (branch||'').toString().trim(); const map = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }; return map[raw] || raw.toLowerCase() || 'unknown'; }
+function getSelectedValues(select){ return Array.from(select.selectedOptions).map(o=>o.value); }
+function isAllSelected(values){ return !values.length || values.includes('ALL'); }
+function initMultiSelectBehavior(){ ['sheetSelector','branchSelector'].forEach(id=>{
+  const sel=document.getElementById(id);
+  if (!sel) return;
+  sel.addEventListener('change', ()=>{
+    const values = getSelectedValues(sel);
+    const allOpt = sel.querySelector('option[value="ALL"]');
+    if (values.includes('ALL') && values.length > 1){
+      Array.from(sel.options).forEach(o=>{ if (o.value !== 'ALL') o.selected = false; });
+    } else if (!values.length){
+      if (allOpt) allOpt.selected = true;
+    } else {
+      if (allOpt) allOpt.selected = false;
+    }
+  });
+}); }
+function dateRange(from, to){ const arr=[]; let current=new Date(from); const end=new Date(to); while(current<=end){ const year=current.getFullYear().toString().padStart(4,'0'); const month=(current.getMonth()+1).toString().padStart(2,'0'); const day=current.getDate().toString().padStart(2,'0'); arr.push(`${year}-${month}-${day}`); current.setDate(current.getDate()+1); } return arr; }
+function parseQuery(){ const q=new URLSearchParams(window.location.search); return { sheet:q.get('sheet')||'ALL' }; }
+
+async function fetchData(){ const sheetSelector=document.getElementById('sheetSelector'); const branchSelector=document.getElementById('branchSelector'); const loader=document.getElementById('loader'); if (loader){ loader.style.display='flex'; loader.setAttribute('aria-hidden','false'); }
+  try{
+    if(sheetSelector){ sheetSelector.innerHTML='<option value="ALL">— كل الأقسام —</option>'; sheetSelector.disabled=true; }
+    if(branchSelector){ branchSelector.innerHTML='<option value="ALL">— كل الفروع —</option>'; branchSelector.disabled=true; }
+  } catch(e){}
+  const snap = await db.collection('orders').get(); allData=[];
+  snap.forEach(doc=>{ const d=doc.data(); if (d && d.isDeleted) return; if ((d.name && d.sheet && d.branch) && (d.orderDate || d.deliveryDate)) { allData.push({ ...d, id: doc.id }); }});
+  const sheets=[...new Set(allData.map(d=>d.sheet).filter(s=>s && s!=='main'))].sort((a,b)=>a.localeCompare(b,'ar'));
+  const branches=[...new Set(allData.map(d=>normalizeBranchKey(d.branch)).filter(b=>b))].sort((a,b)=>{ const order=['dokki','korba','tagamo3','obour']; const ai=order.indexOf(a); const bi=order.indexOf(b); if(ai!==-1&&bi!==-1) return ai-bi; if(ai!==-1) return -1; if(bi!==-1) return 1; return a.localeCompare(b,'ar'); });
+  if(sheetSelector){ sheetSelector.innerHTML='<option value="ALL" selected>— كل الأقسام —</option>'; sheets.forEach(s=>{ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; sheetSelector.appendChild(opt); }); sheetSelector.disabled=false; }
+  if(branchSelector){ branchSelector.innerHTML='<option value="ALL" selected>— كل الفروع —</option>'; branches.forEach(b=>{ const opt=document.createElement('option'); opt.value=b; opt.textContent=branchLabels[b]||b; branchSelector.appendChild(opt); }); branchSelector.disabled=false; }
+  try{ const { sheet } = parseQuery(); if (sheet && sheetSelector){ const values=sheet.split(',').map(v=>v.trim()).filter(Boolean); if(isAllSelected(values)){ sheetSelector.querySelector('option[value="ALL"]').selected=true; } else { Array.from(sheetSelector.options).forEach(opt=>{ if(values.includes(opt.value)) opt.selected=true; }); } }}catch(e){}
+  if (loader){ loader.style.display='none'; loader.setAttribute('aria-hidden','true'); }
+  showStatus('✅ تم تحميل البيانات. اختر الفترة ثم اضغط عرض التقرير.');
+}
+
+function buildReport(){ const fromEl=document.getElementById('rangeFrom'); const toEl=document.getElementById('rangeTo'); const sheetSelector=document.getElementById('sheetSelector'); const branchSelector=document.getElementById('branchSelector');
+  const sheetValues = getSelectedValues(sheetSelector); const branchValues = getSelectedValues(branchSelector);
+  const from=fromEl.value; const to=toEl.value;
+  if (!from || !to){ showStatus('⚠️ يرجى اختيار من وإلى.'); return; }
+  if (from > to){ showStatus('⚠️ تأكد أن تاريخ البداية قبل تاريخ النهاية.'); return; }
+  const dates = dateRange(from,to);
+  const acceptedSheets = isAllSelected(sheetValues) ? [] : sheetValues;
+  const acceptedBranches = isAllSelected(branchValues) ? [] : branchValues;
+  const filtered = allData.filter(d=>{
+    const rowDate = (d.orderDate||d.deliveryDate||'').toString();
+    const inRange = dates.includes(rowDate);
+    const sheetMatch = isAllSelected(acceptedSheets) || acceptedSheets.includes(d.sheet);
+    const branchMatch = isAllSelected(acceptedBranches) || acceptedBranches.includes(normalizeBranchKey(d.branch));
+    return inRange && sheetMatch && branchMatch;
+  });
+  if (!filtered.length){ document.getElementById('resultArea').innerHTML = `<div style="padding:16px;background:rgba(255,255,255,0.05);border-radius:12px;">⚠️ لا توجد طلبيات في هذه الفترة للقسم/الفروع المحددة.</div>`; showStatus('⚠️ لم يتم العثور على بيانات داخل الفترة.'); return; }
+
+  const grouped = {};
+  filtered.forEach(d=>{
+    const branch = normalizeBranchKey(d.branch);
+    if (!grouped[branch]) grouped[branch] = {};
+    const key = `${String(d.code||'').trim()}||${String(d.name||'').trim()}`;
+    if (!grouped[branch][key]) grouped[branch][key] = { code: d.code||'', name: d.name||'', dates: {}, total:0 };
+    const rowDate = (d.orderDate||d.deliveryDate||'').toString();
+    const qty = Number(d.qty)||0;
+    grouped[branch][key].dates[rowDate] = (grouped[branch][key].dates[rowDate]||0) + qty;
+    grouped[branch][key].total += qty;
+  });
+
+  const sheetLabel = isAllSelected(acceptedSheets) ? 'كل الأقسام' : acceptedSheets.map(s=>escapeHtml(s)).join(', ');
+  const branchLabel = isAllSelected(acceptedBranches) ? 'كل الفروع' : acceptedBranches.map(b=>escapeHtml(branchLabels[b]||b)).join(', ');
+  let html = `<div id="printSection"><div style="text-align:center;margin-bottom:14px;"><strong>📋 تقرير الطلبيات من ${from} إلى ${to}</strong><br>القسم: ${sheetLabel}<br>الفروع: ${branchLabel}<br>عدد السجلات: ${filtered.length}</div>`;
+  const branchKeys = branchOrder.filter(b=> grouped[b] && Object.keys(grouped[b]).length).concat(Object.keys(grouped).filter(b=>!branchOrder.includes(b)));
+  branchKeys.forEach(branch=>{
+    const items = Object.values(grouped[branch]);
+    if (!items.length) return;
+    html += `<div class="branch-card"><div class="branch-title"><h3>${escapeHtml(branchLabels[branch]||branch)}</h3><span class="small-badge">عدد الأصناف: ${items.length}</span></div><div class="table-wrap"><table><thead><tr><th>كود الصنف</th><th>الصنف</th>${dates.map(d=>`<th>${escapeHtml(d)}</th>`).join('')}<th>الإجمالي</th></tr></thead><tbody>`;
+    const sorted = items.sort((a,b)=>{ const ac=String(a.code||'').localeCompare(String(b.code||''), 'ar'); return ac || String(a.name||'').localeCompare(String(b.name||''), 'ar'); });
+    sorted.forEach(item=>{
+      html += `<tr><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td>${dates.map(d=>`<td>${item.dates[d] ? formatNumber(item.dates[d]) : ''}</td>`).join('')}<td><strong>${formatNumber(item.total)}</strong></td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  });
+  html += `<div style="margin-top:18px;font-size:13px;color:var(--muted);text-align:right;">تم توليد التقرير بواسطة <strong>${escapeHtml(localStorage.getItem('username')||localStorage.getItem('userCode')||'النظام')}</strong></div></div>`;
+  document.getElementById('resultArea').innerHTML = html;
+  showStatus(`✅ التقرير جاهز. عرض ${branchKeys.length} فرعاً.`);
+}
+
+function exportCurrentTableToExcel(){ const tables = Array.from(document.querySelectorAll('#printSection table')); if (!tables.length){ showStatus('⚠️ لا يوجد تقرير لتصدير.'); return; }
+  try{
+    const workbook = XLSX.utils.book_new();
+    tables.forEach((table, idx)=>{
+      const titleEl = table.closest('.branch-card')?.querySelector('.branch-title h3');
+      const sheetName = titleEl ? titleEl.textContent.trim().slice(0,31) : `Report${idx+1}`;
+      const ws = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(workbook, ws, sheetName || `Sheet${idx+1}`);
+    });
+    XLSX.writeFile(workbook, `range-orders-${new Date().toISOString().slice(0,10)}.xlsx`);
+  }catch(err){ console.error(err); showStatus('❌ فشل تصدير Excel.'); }
+}
+
+function printTable(){ const printSection = document.getElementById('printSection'); if (!printSection){ showStatus('⚠️ لا يوجد تقرير للطباعة.'); return; } window.print(); }
+
+async function shareAsImage(){ const node=document.getElementById('printSection'); if (!node){ showStatus('⚠️ لا يوجد تقرير للمشاركة.'); return; }
+  try{
+    const canvas = await html2canvas(node, { scale:2, backgroundColor:null });
+    canvas.toBlob(async blob=>{
+      const file = new File([blob], `range-report-${Date.now()}.png`, { type:'image/png' });
+      if (navigator.canShare && navigator.canShare({ files:[file] })){ try{ await navigator.share({ files:[file], title:'تقرير الطلبيات بالفترة', text:'تقرير الفترات الزمنية للطلبيات' }); return; }catch(e){} }
+      const url = URL.createObjectURL(file); window.open(url, '_blank');
+    });
+  }catch(err){ console.error(err); showStatus('❌ فشل إنشاء صورة.'); }
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('runReportBtn').addEventListener('click', buildReport);
+  document.getElementById('exportExcelBtn').addEventListener('click', exportCurrentTableToExcel);
+  document.getElementById('printBtn').addEventListener('click', printTable);
+  document.getElementById('shareBtn').addEventListener('click', shareAsImage);
+  initMultiSelectBehavior();
+  fetchData().catch(e=>{ console.error(e); showStatus('❌ فشل تحميل البيانات.'); });
+});
+  </script>
+</body>
+</html>

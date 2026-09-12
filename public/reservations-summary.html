@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8" />
+<title>ملخص الحجوزات — LE DOUX</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --bg:#0b0f12;
+    --panel:#0f1416;
+    --muted:#9aa3a8;
+    --text:#e6eef0;
+    --accent:#ffd166;
+    --accent-2:#f0b24a;
+    --glass: rgba(255,255,255,0.02);
+    --radius:10px;
+    --card-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+
+  /* Base */
+  html,body{height:100%;margin:0}
+  body{
+    font-family:'Cairo',sans-serif;
+    direction:rtl;
+    background:linear-gradient(180deg,var(--bg),#070909);
+    color:var(--text);
+    padding:20px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .container{max-width:1200px;margin:0 auto}
+
+  /* ensure Arabic font applies to primitive elements */
+  * , input, select, textarea, button, table, th, td { font-family: 'Cairo', sans-serif; }
+
+  /* Header */
+  .page-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .title {
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .title h1{
+    margin:0;
+    font-size:20px;
+    color:var(--accent);
+    font-weight:800;
+  }
+  .back-btn{
+    background:transparent;
+    color:var(--text);
+    border:1px solid rgba(255,255,255,0.06);
+    padding:8px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .back-btn:hover{ background:rgba(255,255,255,0.02); transform:translateY(-2px) }
+
+  /* Filters row */
+  .filters {
+    display:grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap:12px;
+    align-items:end;
+    margin-bottom:14px;
+  }
+  .filter {
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  label{ color:var(--muted); font-weight:700; font-size:13px; text-align:right }
+  /* inputs: smaller, dark, white text, above other elements */
+  input[type="date"], select {
+    padding:6px 8px;
+    font-size:13px;
+    height:36px;
+    line-height:18px;
+    border-radius:8px;
+    background:linear-gradient(180deg, #0f1416, #0c1012);
+    border:1px solid rgba(255,255,255,0.04);
+    color:#ffffff;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    z-index: 2; /* ensure inputs are interactive above overlays */
+  }
+  /* dropdown arrow spacing on WebKit */
+  select { padding-inline-end: 34px; background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%); background-position: calc(100% - 18px) calc(1em + 1px), calc(100% - 13px) calc(1em + 1px); background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
+  /* options: try dark background (may vary by browser) */
+  select option { background:#0f1416; color:#fff; }
+  .actions { display:flex; gap:10px; justify-content:flex-end; align-items:center }
+  .btn {
+    padding:9px 14px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    font-weight:800;
+    background:linear-gradient(180deg,var(--accent),var(--accent-2));
+    color:#000;
+  }
+  .btn.ghost {
+    background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);
+  }
+  .btn:focus{ outline: 3px solid rgba(255,209,102,0.06) }
+
+  /* Table */
+  .table-card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04));
+    border-radius:12px;
+    padding:10px;
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow:var(--card-shadow);
+    overflow:auto;
+  }
+  table{ width:100%; border-collapse:collapse; min-width:700px; }
+  thead th{
+    position:sticky; top:0;
+    background:linear-gradient(180deg,#121416,#0f1112);
+    color:var(--accent); font-weight:800; padding:12px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.04)
+  }
+  tbody td{ padding:10px; text-align:center; border-top:1px solid rgba(255,255,255,0.02); color:var(--text) }
+  tbody tr:nth-child(even) td{ background: rgba(255,255,255,0.012) }
+  tbody tr:hover td{ background: rgba(255,209,102,0.03) }
+
+  /* Summary */
+  .summary {
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:12px;
+    align-items:center;
+  }
+  .summary .info {
+    background:linear-gradient(180deg,#0e1112,#0b0c0d);
+    border:1px solid rgba(255,255,255,0.03);
+    padding:10px 14px;
+    border-radius:10px;
+    color:var(--muted);
+    font-weight:700;
+  }
+  .summary .total{
+    background:linear-gradient(180deg,var(--accent),var(--accent-2));
+    padding:10px 16px;
+    border-radius:10px;
+    font-weight:900;
+    color:#000;
+  }
+
+  /* Empty / status */
+  .muted { color:var(--muted); text-align:center; margin-top:18px; font-weight:700 }
+
+  /* Responsive */
+  @media (max-width:880px){
+    .filters{ grid-template-columns: 1fr; }
+    .actions{ justify-content:flex-start }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- header -->
+    <div class="page-header">
+      <div class="title">
+        <h1>📥 ملخص حجوزات الفروع</h1>
+      </div>
+      <div>
+        <button class="back-btn" onclick="location.href='all-orders.html'">رجوع ⬅️</button>
+      </div>
+    </div>
+
+    <!-- filters -->
+    <div class="filters" role="region" aria-label="فلاتر">
+      <div class="filter">
+        <label for="dateSelector">📅 تاريخ الحجز</label>
+        <input type="date" id="dateSelector" />
+      </div>
+
+      <div class="filter">
+        <label for="branchSelector">🏷️ الفرع</label>
+        <select id="branchSelector">
+          <option value="">— اختر فرع —</option>
+          <option value="all">— كل الفروع —</option>
+          <option value="korba">كوربة</option>
+          <option value="dokki">دقي</option>
+          <option value="tagamo3">تجمع</option>
+          <option value="obour">عبور</option>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button class="btn show" id="showBtn" onclick="renderReservations()">عرض</button>
+        <button class="btn ghost" onclick="location.reload()">🔄 إعادة تحميل</button>
+      </div>
+    </div>
+
+    <!-- status -->
+    <div id="status" class="muted">⏳ لم يتم العرض بعد</div>
+
+    <!-- results -->
+    <div id="resultsArea" style="margin-top:12px">
+      <div id="tableWrap" class="table-card" style="display:none">
+        <table id="resTable" role="table" aria-live="polite">
+          <thead id="resHead"></thead>
+          <tbody id="resBody"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyMsg" class="muted" style="display:block">لا توجد بيانات.</div>
+
+      <div id="summary" style="display:none" class="summary"></div>
+    </div>
+  </div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// populateBranchOptions (keeps defaults, append DB branches)
+async function populateBranchOptions() {
+  try {
+    const snap = await db.collection('orders').get();
+    const set = new Set();
+    snap.forEach(doc => { const d = doc.data(); if (d.branch) set.add(d.branch); });
+    const defaults = ['korba','dokki','tagamo3','obour'];
+    const sel = document.getElementById('branchSelector');
+    const existingOptions = new Set(Array.from(sel.options).map(o => o.value).filter(Boolean));
+    defaults.forEach(b => { if (!existingOptions.has(b)) { const op = document.createElement('option'); op.value = b; op.textContent = b; sel.appendChild(op); existingOptions.add(b); }});
+    Array.from(set).sort().forEach(b => { if (!existingOptions.has(b)) { const op = document.createElement('option'); op.value = b; op.textContent = b; sel.appendChild(op); existingOptions.add(b); }});
+  } catch (err) { console.error('populateBranchOptions error', err); }
+}
+
+function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+// renderReservations (keeps logic; updates UI sections)
+async function renderReservations(){
+  const dateFilter = document.getElementById('dateSelector').value;
+  const branchFilter = document.getElementById('branchSelector').value;
+  // require both
+  if (!dateFilter || !branchFilter) {
+    document.getElementById('status').textContent = '⚠️ يرجى اختيار التاريخ والفرع ثم اضغط عرض';
+    document.getElementById('tableWrap').style.display = 'none';
+    document.getElementById('emptyMsg').style.display = 'block';
+    document.getElementById('summary').style.display = 'none';
+    return;
+  }
+  document.getElementById('status').textContent = '⏳ جاري التحميل...';
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('emptyMsg').style.display = 'none';
+  document.getElementById('resHead').innerHTML = '';
+  document.getElementById('resBody').innerHTML = '';
+  document.getElementById('summary').innerHTML = '';
+
+  try{
+    const snap = await db.collection('orders').where('source','==','reservation').get();
+    if (snap.empty) {
+      document.getElementById('status').textContent = '⚠️ لا توجد حجوزات.';
+      document.getElementById('emptyMsg').style.display = 'block';
+      return;
+    }
+    const filteredDocs = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      const matchesDate = d.orderDate === dateFilter || d.deliveryDate === dateFilter;
+      const matchesBranch = (branchFilter === 'all') ? true : (d.branch === branchFilter);
+      if (matchesDate && matchesBranch) filteredDocs.push(d);
+    });
+    if (filteredDocs.length === 0) {
+      document.getElementById('status').textContent = '⚠️ لا توجد نتائج لهذا الفلتر.';
+      document.getElementById('emptyMsg').style.display = 'block';
+      return;
+    }
+    const grouped = {}; const branchesSet = new Set();
+    filteredDocs.forEach(d => {
+      const key = String(d.code || d.name || '').trim().toLowerCase();
+      const branch = d.branch || 'غير محدد';
+      branchesSet.add(branch);
+      if (!grouped[key]) grouped[key] = { code: d.code||'', name: d.name||'', branches: {}, reservationQty: 0 };
+      grouped[key].branches[branch] = (grouped[key].branches[branch] || 0) + (Number(d.qty) || 0);
+      grouped[key].reservationQty += (Number(d.qty) || 0);
+    });
+    const branches = Array.from(branchesSet).sort();
+    const theadCells = ['<th>الكود</th>','<th>الصنف</th>']
+      .concat(branches.map(b=>`<th>${escapeHtml(b)}</th>`))
+      .concat(['<th>مطلوب للحجز</th>','<th>الإجمالي</th>']);
+    document.getElementById('resHead').innerHTML = '<tr>' + theadCells.join('') + '</tr>';
+    const tbody = document.getElementById('resBody'); let grand = 0;
+    Object.values(grouped).forEach(item => {
+      let row = `<td>${escapeHtml(item.code)}</td><td style="text-align:right;padding-right:12px">${escapeHtml(item.name)}</td>`;
+      let itemBranchesTotal = 0;
+      branches.forEach(b => {
+        const v = item.branches[b] || 0;
+        itemBranchesTotal += v;
+        row += `<td>${v}</td>`;
+      });
+      const rQty = item.reservationQty || 0;
+      const total = itemBranchesTotal + rQty;
+      grand += total;
+      row += `<td>${rQty}</td><td><strong>${total}</strong></td>`;
+      const tr = document.createElement('tr'); tr.innerHTML = row; tbody.appendChild(tr);
+    });
+    document.getElementById('tableWrap').style.display = '';
+    document.getElementById('status').textContent = `✅ عرض ${Object.keys(grouped).length} صنف — الإجمالي الكلي: ${grand}`;
+    document.getElementById('summary').innerHTML = `<div class="info">مجموع الأصناف: <strong>${Object.keys(grouped).length}</strong></div><div class="total">${grand}</div>`;
+    document.getElementById('summary').style.display = 'flex';
+    document.getElementById('emptyMsg').style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    document.getElementById('status').textContent = '❌ حدث خطأ أثناء جلب البيانات';
+    document.getElementById('emptyMsg').style.display = 'block';
+  }
+}
+
+// init
+document.addEventListener('DOMContentLoaded', async () => {
+  await populateBranchOptions();
+  // لا تهيئ قيمة التاريخ افتراضياً — اترك المستخدم يختار (ويجب ألا يمنع الاختيار)
+  // احتفظ بقيمة الفرع فارغة كبداية
+  document.getElementById('branchSelector').value = '';
+});
+</script>
+</body>
+</html>

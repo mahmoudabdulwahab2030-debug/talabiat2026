@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>لوحة المستخدم</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Arabic webfont -->
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-1:#f6f8ff; --bg-2:#eef6ff; --card:#ffffff; --muted:#6b7280; --primary-1:#4056ff; --primary-2:#7b61ff; --accent:#ffb648;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{background:linear-gradient(180deg,var(--bg-1),var(--bg-2));direction:rtl;padding:28px;font-family:'Tajawal',system-ui,Arial,sans-serif;color:#0f172a}
+    .user-badge{position:fixed;top:14px;left:14px;border-radius:12px;padding:6px;z-index:1300}
+    .user-icon{width:44px;height:44px;border-radius:10px;display:inline-grid;place-items:center;background:linear-gradient(90deg,#ffffff,#fbfdff);border:1px solid rgba(99,102,241,0.06);box-shadow:0 8px 20px rgba(16,24,40,0.06);color:var(--primary-2);font-size:22px;cursor:pointer}
+    .user-icon:focus{outline:none;box-shadow:0 0 0 4px rgba(64,86,255,0.08)}
+    .user-menu{min-width:200px;background:var(--card);border-radius:10px;padding:12px;border:1px solid rgba(15,23,42,0.04);box-shadow:0 12px 30px rgba(15,23,42,0.06);margin-top:8px;display:none}
+    .user-menu[aria-hidden="false"]{display:block}
+    .user-menu-item{color:var(--muted);font-weight:600;text-align:right}
+    h2.page-title{font-weight:800;margin-bottom:18px;color:var(--primary-1);font-size:28px}
+    .cards { max-width:1100px; margin:0 auto }
+    .card-tile{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:14px;padding:22px;border:1px solid rgba(15,23,42,0.04);box-shadow:0 12px 30px rgba(15,23,42,0.04);transition:transform .28s cubic-bezier(.2,.9,.2,1),box-shadow .28s}
+    .card-tile:hover{transform:translateY(-8px) scale(1.01);box-shadow:0 20px 40px rgba(15,23,42,0.08)}
+    .card-btn{display:flex;align-items:center;justify-content:center;gap:12px;padding:18px;border-radius:12px;font-weight:700}
+    .btn-primary{background:linear-gradient(90deg,var(--primary-1),var(--primary-2));border:none}
+    .btn-outline-primary{border:1px solid rgba(64,86,255,0.12);background:transparent;color:var(--primary-1)}
+    .btn-lg { height:78px; font-size:16px }
+    .card-icon{width:40px;height:40px;border-radius:10px;display:inline-grid;place-items:center;background:linear-gradient(180deg,rgba(124,58,237,0.12),rgba(99,102,241,0.06));color:var(--primary-2);font-size:18px}
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:18px }
+    /* Floating action menu */
+    .fab-wrap{position:fixed;right:20px;bottom:24px;z-index:1200}
+    .fab{width:64px;height:64px;border-radius:50%;display:inline-grid;place-items:center;background:linear-gradient(135deg,var(--primary-1),var(--primary-2));color:#fff;font-size:28px;box-shadow:0 20px 40px rgba(99,102,241,0.18);cursor:pointer;transition:transform .25s}
+    .fab.open{transform:rotate(135deg)}
+    .fab-menu{position:absolute;right:0;bottom:80px;display:flex;flex-direction:column;gap:12px;align-items:flex-end;opacity:0;pointer-events:none;transform:translateY(8px) scale(.96);transition:all .28s cubic-bezier(.2,.9,.2,1)}
+    .fab.open + .fab-menu{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
+    .fab-item{background:var(--card);padding:10px 14px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);display:inline-flex;align-items:center;gap:10px;min-width:160px;box-shadow:0 12px 30px rgba(15,23,42,0.06);transform-origin:right center}
+    .fab-item a{color:#0f172a;text-decoration:none;font-weight:600}
+    .fab-item .bi{font-size:18px;color:var(--primary-2)}
+    /* small responsive tweaks */
+    @media (max-width:576px){ .card-btn{padding:14px} .btn-lg{height:64px} .fab{width:56px;height:56px;font-size:24px} }
+    /* subtle entrance */
+    .cards { animation:fadeUp .6s ease both }
+    @keyframes fadeUp{ from {opacity:0;transform:translateY(10px)} to {opacity:1;transform:none} }
+  </style>
+</head>
+<body>
+  <div class="user-badge">
+    <button id="userBadgeBtn" class="user-icon" aria-expanded="false" aria-haspopup="true" title="المستخدم"><i class="bi bi-person-circle"></i></button>
+    <div id="userMenu" class="user-menu" aria-hidden="true">
+      <div class="user-menu-item">المستخدم: <strong id="userNameBadge">-</strong></div>
+      <button id="logoutBtn" class="btn btn-sm btn-outline-danger mt-2">تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="container mt-4 text-center cards">
+    <h2 class="page-title">مرحبا بك في إدارة المخازن</h2>
+    <div class="grid">
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-primary w-100" href="LO7ETTA7KOM.html"><span class="card-icon"><i class="bi bi-speedometer2"></i></span>لوحة التحكم</a></div>
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-outline-primary w-100" href="products.html"><span class="card-icon"><i class="bi bi-box-seam"></i></span>دليل الأصناف</a></div>
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-outline-success w-100" href="add-product.html"><span class="card-icon"><i class="bi bi-plus-square"></i></span>إضافة صنف</a></div>
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-outline-warning w-100" href="stock-in.html"><span class="card-icon"><i class="bi bi-truck"></i></span>وارد</a></div>
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-outline-danger w-100" href="issue-note.html"><span class="card-icon"><i class="bi bi-receipt"></i></span>أذن صرف</a></div>
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-outline-secondary w-100" href="suppliers.html"><span class="card-icon"><i class="bi bi-people"></i></span>الموردين</a></div>
+      <div class="card-tile"><a class="card-btn btn btn-lg btn-outline-dark w-100" href="reports.html"><span class="card-icon"><i class="bi bi-bar-chart"></i></span>التقارير</a></div>
+    </div>
+  </div>
+
+  <!-- Floating action menu (navbar-like) -->
+  <div class="fab-wrap">
+    <div id="mainFab" class="fab" aria-label="menu">+</div>
+    <div id="mainFabMenu" class="fab-menu" aria-hidden="true">
+      <div class="fab-item"><i class="bi bi-speedometer2"></i><a href="LO7ETTA7KOM.html">لوحة التحكم</a></div>
+      <div class="fab-item"><i class="bi bi-box-seam"></i><a href="products.html">الأصناف</a></div>
+      <div class="fab-item"><i class="bi bi-plus-square"></i><a href="add-product.html">إضافة صنف</a></div>
+      <div class="fab-item"><i class="bi bi-truck"></i><a href="stock-in.html">وارد</a></div>
+      <div class="fab-item"><i class="bi bi-receipt"></i><a href="issue-note.html">أذون صرف</a></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // no login required — show username if available, otherwise default to زائر
+      const stored = localStorage.getItem('stock_loggedUser') || 'زائر';
+      const full = (stored || 'زائر').trim();
+      const first = full.split(/\s+/)[0] || full || 'زائر';
+      const el = document.getElementById('userNameBadge');
+      if (el) el.textContent = full;
+      // update page title and hero greeting
+      const titleEl = document.querySelector('.page-title');
+      if (titleEl) titleEl.textContent = `مرحبا بك في إدارة المخازن يا ${first}`;
+      document.title = `مرحبا ${first} — إدارة المخازن`;
+
+      // Floating action menu behavior
+      const fab = document.getElementById('mainFab');
+      const menu = document.getElementById('mainFabMenu');
+      function toggleFab(open) {
+        const willOpen = typeof open === 'boolean' ? open : !fab.classList.contains('open');
+        if (willOpen) { fab.classList.add('open'); menu.setAttribute('aria-hidden','false'); fab.textContent = '×'; } else { fab.classList.remove('open'); menu.setAttribute('aria-hidden','true'); fab.textContent = '+'; }
+      }
+      fab.addEventListener('click', (e) => { e.preventDefault(); toggleFab(); });
+      // close menu on outside click
+      document.addEventListener('click', (e) => { if (!e.target.closest('.fab-wrap')) { toggleFab(false); } });
+      // keyboard accessible
+      fab.addEventListener('keydown', (e) => { if (e.key === 'Escape') { toggleFab(false); } });
+
+      // User badge/menu behavior
+      const userBtn = document.getElementById('userBadgeBtn');
+      const userMenu = document.getElementById('userMenu');
+      const logoutBtn = document.getElementById('logoutBtn');
+      function openUserMenu(open){
+        const will = typeof open === 'boolean' ? open : userMenu.getAttribute('aria-hidden') === 'true';
+        userMenu.setAttribute('aria-hidden', will ? 'false' : 'true');
+        userBtn.setAttribute('aria-expanded', will ? 'true' : 'false');
+      }
+      if(userBtn){
+        userBtn.addEventListener('click', (e)=>{ e.stopPropagation(); openUserMenu(); });
+      }
+      // close user menu on outside click
+      document.addEventListener('click', (e)=>{ if (!e.target.closest('.user-badge')) { openUserMenu(false); } });
+      // prevent clicks inside menu from closing
+      if(userMenu){ userMenu.addEventListener('click', (e)=>{ e.stopPropagation(); }); }
+      // logout action: clear stored user and update UI (no redirect since login removed)
+      if(logoutBtn){ logoutBtn.addEventListener('click', ()=>{ try{ if (window.activityLogger) activityLogger.logActivity('logout', location.pathname, {}); } catch(e){} localStorage.removeItem('stock_loggedUser'); const el = document.getElementById('userNameBadge'); if(el) el.textContent = 'زائر'; openUserMenu(false); }); }
+    });
+  </script>
+</body>
+</html>

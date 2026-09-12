@@ -1,0 +1,30 @@
+نص جاهز لإرسال لفريق الاستضافة (عربي/إنجليزي)
+
+--- Arabic ---
+مرحبًا فريق الدعم،
+
+أرجو مساعدتكم في إتاحة الوصول إلى هذه الصفحة من موقعي: https://ledoux.kesug.com/chat.html
+حالياً الطلب يعيد 403 Forbidden بينما ملفات أخرى تعمل.
+
+الرجاء التحقق من سجلات الخطأ عند الوقت التالي ومحاولة تحديد سبب الحظر (mod_security أو WAF أو ملف .htaccess):
+- الطلب: /chat.html
+- الوقت: أرسل لي لو احتجتم وقتاً محدداً لأتحقق من الطلب.
+
+خطوات مقترحة لفحص:
+- ابحثوا في سجلات الأخطاء عن اسطر تتعلق بـ chat.html أو قاعدة mod_security blocking rule ID.
+- إن وُجد rule id، رجاءً شاركوه وسنطلب استبعاد المسار أو الملف من القاعدة إن كان خطأً (false positive).
+- تأكدوا أن صلاحيات الملف وملكية الملف صحيحة (مثال: 644 للملف و755 للمجلد).
+
+شكراً لكم.
+
+--- English ---
+Hello Support,
+
+Please help with access to: https://ledoux.kesug.com/chat.html — it returns 403 Forbidden while other files are accessible.
+
+Could you:
+1) Check error logs for entries when requesting /chat.html (look for mod_security or WAF blocks and provide the rule ID)
+2) Confirm file permissions/ownership are correct (example: chmod 644 for files)
+3) Temporarily whitelist or disable the blocking rule for this path if it's a false positive
+
+Thanks in advance.

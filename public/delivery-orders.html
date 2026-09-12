@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>📦 فواتير التسليم</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Firebase -->
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- html2pdf -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="notifications.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700&display=swap');
+
+    :root {
+      --bg: #1b1b1b;
+      --surface: #2c2c2c;
+      --text: #f1f1f1;
+      --primary: #8B0000;
+      --accent: #FFD700;
+      --border: #444;
+      --shadow: rgba(0, 0, 0, 0.2);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      color: var(--text);
+      transition: var(--transition);
+    }
+
+    body {
+      background-color: var(--bg);
+      padding: 20px;
+      max-width: 1200px;
+      margin: auto;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(139, 0, 0, 0.2) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 20%);
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--accent);
+      margin-bottom: 25px;
+      font-size: 2rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      position: relative;
+      padding-bottom: 15px;
+    }
+
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 50%;
+      transform: translateX(50%);
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    label {
+      font-weight: 500;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    input[type="date"],
+    select {
+      padding: 10px 15px;
+      width: 100%;
+      max-width: 280px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      margin-bottom: 20px;
+      font-size: 16px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      transition: var(--transition);
+    }
+
+    input[type="date"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg fill='%23FFD700' viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='70,100 20,40 120,40'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 15px center;
+      background-size: 12px;
+      padding-right: 30px;
+      cursor: pointer;
+    }
+
+    select:hover {
+      background-color: #353535;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: var(--accent);
+      border: none;
+      border-radius: 6px;
+      padding: 12px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 1rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 0;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      transition: width 0.3s ease;
+      z-index: 0;
+    }
+
+    button:hover::before {
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #a00000;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    #buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 20px 0;
+      gap: 10px;
+    }
+
+    /* Normal button container instead of floating sidebar */
+    .sidebar {
+      display: none;
+    }
+
+    .invoiceBox {
+      background-color: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 25px;
+      margin-bottom: 30px;
+      page-break-after: always;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .invoiceBox::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 5px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--primary), var(--accent));
+    }
+
+    .invoiceBox:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .invoiceBox h3 {
+      text-align: center;
+      color: var(--accent);
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .invoiceBox h3::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 50%;
+      transform: translateX(50%);
+      width: 60px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .invoiceBox table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .invoiceBox th,
+    .invoiceBox td {
+      border: 1px solid var(--border);
+      padding: 12px;
+      text-align: center;
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    .invoiceBox th {
+      background-color: var(--primary);
+      color: var(--accent);
+    }
+
+    .total {
+      text-align: right;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    /* paid / remaining styles */
+    .paid { text-align: right; margin-top: 6px; font-weight: 700; color: #7ed957; }
+    .remaining { text-align: right; margin-top: 6px; font-weight: 800; color: var(--accent); }
+
+    /* hide-money helper: when applied to body, hide any monetary columns/labels in invoices */
+    .hide-money .invoiceBox th:nth-child(3),
+    .hide-money .invoiceBox th:nth-child(4),
+    .hide-money .invoiceBox td:nth-child(3),
+    .hide-money .invoiceBox td:nth-child(4),
+    .hide-money .total,
+    .hide-money .paid,
+    .hide-money .remaining { display: none !important; }
+
+    #status {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+
+      body * {
+        visibility: hidden;
+        color: black !important;
+      }
+
+      #printSection, #printSection * {
+        visibility: visible;
+        color: black !important;
+      }
+
+      #printSection {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 20px;
+        width: 100%;
+      }
+
+      .invoiceBox {
+        background: white !important;
+        color: black !important;
+        border: none !important;
+        page-break-after: always;
+      }
+
+      .invoiceBox h3,
+      .invoiceBox p,
+      .invoiceBox th,
+      .invoiceBox td,
+      .invoiceBox .total,
+      .invoiceBox .paid,
+      .invoiceBox .remaining {
+        color: black !important;
+      }
+
+      .invoiceBox th,
+      .invoiceBox td {
+        border: 1px solid #333 !important;
+      }
+
+      button, input, select {
+        display: none !important;
+      }
+    }
+
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+        max-width: 100%;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .action-buttons button {
+        width: 100%;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+        justify-content: center;
+      }
+
+      div[style*="display: flex"] {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      input[type="date"],
+      select {
+        width: 100%;
+        max-width: none;
+        margin-bottom: 15px;
+      }
+
+      .invoiceBox {
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .invoiceBox h3 {
+        font-size: 1.2rem;
+      }
+
+      .invoiceBox table {
+        font-size: 0.8rem;
+      }
+
+      .invoiceBox th,
+      .invoiceBox td {
+        padding: 8px 4px;
+      }
+
+      .total {
+        font-size: 0.9rem;
+      }
+    }
+
+    /* Extra small devices */
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      h2 {
+        font-size: 1.3rem;
+      }
+
+      .action-buttons button {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+      }
+
+      .invoiceBox {
+        padding: 12px;
+      }
+
+      .invoiceBox h3 {
+        font-size: 1.1rem;
+      }
+
+      .invoiceBox table {
+        font-size: 0.75rem;
+      }
+
+      .invoiceBox th,
+      .invoiceBox td {
+        padding: 6px 3px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>📦 فواتير أوردرات التسليم حسب التاريخ</h2>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 20px;">
+    <div>
+      <label for="deliveryDate">📅 تاريخ التسليم:</label>
+      <input type="date" id="deliveryDate" />
+    </div>
+
+    <div>
+      <label for="branchSelect">🏬 الفرع:</label>
+      <select id="branchSelect">
+        <option value="">كل الفروع</option>
+        <option value="korba">korba</option>
+        <option value="doki">doki</option>
+        <option value="tagamo3">tagamo3</option>
+        <option value="obour">العبور</option>
+      </select>
+    </div>
+
+    <button onclick="fetchInvoices()">📥 تحميل</button>
+  </div>
+
+  <!-- Action buttons container -->
+  <div id="buttons" class="action-buttons">
+    <button onclick="printInvoices()">🖨️ طباعة الفواتير</button>
+    <button onclick="downloadPDF()">💾 تحميل PDF</button>
+    <button onclick="downloadPDFWithoutMoney()">💾 تحميل PDF بدون مبالغ</button>
+    <button onclick="sharePDF()">📤 مشاركة PDF</button>
+    <button onclick="printWithoutMoney()">🖨️ طباعة بدون مبالغ</button>
+    <button id="btnAllReservations" onclick="window.location.href='all-reservations.html'">📋 الحجوزات الكاملة</button>
+  </div>
+
+  <div id="status">📄 لم يتم اختيار تاريخ بعد.</div>
+
+  <div id="printSection">
+    <div id="invoicesArea"></div>
+  </div>
+
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // إضافة دعم لفرع العبور
+const branches = ["dokki", "korba", "tagamo3", "obour"];
+
+// خريطة أسماء الفروع (تضم قيماً بالإنجليزية والعربية/أسماء بديلة)
+const branchMap = {
+  "korba": ["korba", "كوربة"],
+  "dokki": ["dokki", "doki", "دقي", "دوكي"],
+  "tagamo3": ["tagamo3", "تجمع"],
+  "obour": ["obour", "العبور", "obour"]
+};
+
+// تحويل قيمة select أو اسم من الداتا إلى المفتاح الكانوني للخريطة (مثل "doki" -> "dokki")
+function resolveCanonicalBranch(value) {
+  if (!value) return null;
+  const v = value.toString().trim().toLowerCase();
+  for (const key of Object.keys(branchMap)) {
+    if (branchMap[key].map(n=>n.toLowerCase()).includes(v)) return key;
+  }
+  return null;
+}
+
+// إستخراج الفروع المسموح بها من مصفوفة roles.
+// تُعيد null للدلالة على "صلاحية لجميع الفروع"
+function getAllowedBranches() {
+  if (!Array.isArray(roles)) return null;
+  const low = roles.map(r => (r||"").toString().toLowerCase());
+  // مفتاح عام للصلاحيات الشاملة
+  if (low.includes("all") || low.includes("all_reservations_page") || low.includes("all_reservations")) return null;
+
+  const allowed = new Set();
+  for (const r of low) {
+    // إذا احتوى الدور على نمط branch:korba أو branch_korba أو احتوى اسم الفرع مباشرة
+    for (const key of Object.keys(branchMap)) {
+      const names = branchMap[key].map(n => n.toLowerCase());
+      if (r === key || names.some(n => r === n || r.includes(n)) || r.includes("branch:"+key) || r.includes("branch_"+key)) {
+        allowed.add(key);
+      }
+    }
+  }
+  return Array.from(allowed); // [] => لا صلاحية لأي فرع، null => صلاحية كاملة
+}
+
+    async function fetchInvoices() {
+      const date = document.getElementById("deliveryDate").value;
+      const branchValue = document.getElementById("branchSelect").value.trim();
+      const branch = branchValue || ""; // القيمة كما اختارها المستخدم (قد تكون "doki")
+      const status = document.getElementById("status");
+      const area = document.getElementById("invoicesArea");
+
+      if (!date) {
+        status.textContent = "⚠️ يرجى اختيار تاريخ أولًا.";
+        return;
+      }
+
+      // احصل على الفروع المسموح بها للمستخدم (null يعني "كل الفروع")
+      const allowed = getAllowedBranches();
+
+      // إذا المستخدم اختار فرعًا صريحًا لكنه ليس ضمن الصلاحيات — لا تحميل
+      const selectedCanonical = resolveCanonicalBranch(branch);
+      if (branch && allowed && allowed.length > 0) {
+        // إذا الفرع المحدد ليس واحدًا من المسموح بهم
+        if (!selectedCanonical || !allowed.includes(selectedCanonical)) {
+          status.textContent = "❌ ليس لديك صلاحية عرض الفواتير لهذا الفرع.";
+          area.innerHTML = "";
+          return;
+        }
+      }
+
+      status.textContent = "⏳ جاري تحميل الفواتير...";
+      area.innerHTML = "";
+
+      try {
+        const query = db.collection("reservations")
+          .where("deliveryDate", "==", date)
+          .orderBy("timestamp", "asc");
+
+        const snap = await query.get();
+        let count = 0;
+
+        snap.forEach(doc => {
+          const d = doc.data();
+          console.log("معالجة مستند:", doc.id, d); // تسجيل معلومات المستند للتصحيح
+
+          // اسم الفرع الموجود داخل المستند (مُطَبَّع)
+          const docBranchNormalized = ((d.branch || "").toString().trim().toLowerCase());
+          console.log("اسم الفرع في المستند:", d.branch, "بعد التنظيف:", docBranchNormalized); // تسجيل اسم الفرع
+
+          // تحقق من صلاحية الملف وفقًا لصلاحيات المستخدم (إن لم تكن صلاحية كاملة)
+          if (allowed && allowed.length > 0) {
+            console.log("الفروع المسموح بها:", allowed); // تسجيل الفروع المسموح بها
+            // إذا اسم الفرع في المستند لا يتطابق مع أي اسم ضمن الفروع المسموح بها فلا نعرضه
+            const matchesAllowed = allowed.some(key =>
+              branchMap[key].map(n => n.toLowerCase()).includes(docBranchNormalized)
+            );
+            console.log("هل يتطابق مع الفروع المسموح بها؟", matchesAllowed); // تسجيل نتيجة المطابقة
+            if (!matchesAllowed) {
+              console.log("تم تجاهل المستند بسبب عدم تطابق صلاحيات الفرع"); // تسجيل سبب التجاهل
+              return; // تجاهل هذا المستند
+            }
+          }
+
+          // لو المستخدم اختار فرعًا محددًا (select) فلنأخذ فقط المستندات المطابقة لذلك الاختيار
+          if (branch) {
+            const validNames = branchMap[selectedCanonical] || [branch];
+            console.log("الفروع المختارة:", validNames); // تسجيل الفروع المختارة
+            const branchMatch = validNames.map(n => n.trim().toLowerCase()).includes(docBranchNormalized);
+            console.log("هل يتطابق مع الفرع المختار؟", branchMatch); // تسجيل نتيجة المطابقة
+            if (!branchMatch) {
+              console.log("تم تجاهل المستند بسبب عدم تطابق الفرع المختار"); // تسجيل سبب التجاهل
+              return;
+            }
+          }
+
+          count++;
+
+          // حساب المبالغ المدفوعة والمتبقية - دعم لأسماء حقول شائعة
+          const paid = Number(d.paid ?? d.paidAmount ?? d.paid_amount ?? d.paidValue ?? 0) || 0;
+          const totalVal = Number(d.total || 0) || 0;
+          const remaining = Math.max(0, totalVal - paid);
+
+          const itemsHTML = (d.items || []).map(i => `
+            <tr>
+              <td>${i.name}</td>
+              <td>${i.qty}</td>
+              <td>${(Number(i.price)||0).toFixed(2)}</td>
+              <td>${(Number(i.subtotal)||0).toFixed(2)}</td>
+            </tr>
+          `).join("");
+
+          // استخدام رقم الفاتورة الفعلي من قاعدة البيانات إن وجد، وإلا استخدام العداد
+          const invoiceNumber = d.invoiceNumber || d.invoice_id || d.id || count;
+
+          area.innerHTML += `
+            <div class="invoiceBox">
+              <h3>🧾 فاتورة رقم ${invoiceNumber}</h3>
+              <p><strong>الفرع:</strong> ${d.branch}</p>
+              <p><strong>العميل:</strong> ${d.createdBy} | <strong>موبايل:</strong> ${d.clientPhone}</p>
+              <p><strong>التسليم:</strong> ${d.deliveryType === "branch" ? "فرع " + d.deliveryPlace : d.deliveryPlace}</p>
+              <p><strong>ملاحظات:</strong> ${d.notes || "لا يوجد"}</p>
+              <p><strong>تاريخ الحجز:</strong> ${d.orderDate} | <strong>تاريخ التسليم:</strong> ${d.deliveryDate}</p>
+              <p><strong>⏰ ساعة الاستلام:</strong> ${d.deliveryTime || "غير محددة"}</p>
+              <table>
+                <thead><tr>
+                  <th>الصنف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th>
+                </tr></thead>
+                <tbody>${itemsHTML}</tbody>
+              </table>
+              <div class="total">💰 الإجمالي: ${totalVal.toFixed(2)} جنيه</div>
+              <div class="paid">💵 مدفوع: ${paid.toFixed(2)} جنيه</div>
+              <div class="remaining">⏳ المتبقي: ${remaining.toFixed(2)} جنيه</div>
+            </div>
+          `;
+        });
+
+        status.textContent = count > 0
+          ? `✅ تم تحميل ${count} فاتورة للتاريخ ${date}${branch ? " - الفرع " + branch : ""}`
+          : `📭 لا توجد فواتير لهذا التاريخ${branch ? " في الفرع " + branch : ""}`;
+      } catch (error) {
+        console.error("🔥 Firestore error:", error);
+        status.textContent = "❌ حدث خطأ أثناء تحميل الفواتير.";
+      }
+    }
+
+    function printInvoices() {
+      window.print();
+    }
+
+    function downloadPDF() {
+      const el = document.getElementById("printSection");
+      const date = document.getElementById("deliveryDate").value || "بدون_تاريخ";
+      html2pdf().set({
+        margin: 10,
+        filename: `فواتير-${date}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      }).from(el).save();
+    }
+
+    // توليد PDF بدون أي مبالغ: نضيف الصنف hide-money مؤقتاً أثناء التصدير
+    async function downloadPDFWithoutMoney() {
+      const el = document.getElementById("printSection");
+      const date = document.getElementById("deliveryDate").value || "بدون_تاريخ";
+      try {
+        document.body.classList.add('hide-money');
+        await html2pdf().set({
+          margin: 10,
+          filename: `فواتير-بدون_مبالغ-${date}.pdf`,
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+        }).from(el).save();
+      } catch (err) {
+        console.error('PDF without money error:', err);
+        try { document.getElementById('status').textContent = '❌ فشل توليد PDF بدون مبالغ.'; } catch(e){}
+      } finally {
+        document.body.classList.remove('hide-money');
+      }
+    }
+
+    function sharePDF() {
+      const el = document.getElementById("printSection");
+
+      html2pdf().set({
+        margin: 10,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      }).from(el).outputPdf("blob").then(blob => {
+        const file = new File([blob], "فواتير.pdf", { type: "application/pdf" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            title: "📦 فواتير التسليم",
+            text: "تقرير الطلبات",
+            files: [file]
+          });
+        } else {
+          showError("❌ المتصفح لا يدعم مشاركة PDF مباشرة.");
+        }
+      });
+    }
+
+    function printWithoutMoney() {
+      // add helper class to hide any monetary values (unit price, subtotal, total, paid, remaining)
+      document.body.classList.add('hide-money');
+      // ensure DOM updates before opening print dialog
+      setTimeout(() => {
+        window.print();
+        // remove the helper class shortly after (give time for print dialog to capture)
+        setTimeout(() => document.body.classList.remove('hide-money'), 800);
+      }, 120);
+    }
+
+    // قم بتحميل/حفظ الصلاحيات: أولا من الـ URL، إن وُجدت خزّنها في localStorage، وإلا اقرأ من localStorage
+    const roles = (function() {
+      const q = new URLSearchParams(window.location.search).get("roles");
+      if (q) {
+        try { localStorage.setItem('roles', q); } catch(e) { /* تجاهل أخطاء التخزين */ }
+        return q.split(",");
+      }
+      const stored = localStorage.getItem('roles');
+      return stored ? stored.split(",") : [];
+    })();
+
+    // دالة للتنقل مع إضافة roles إذا كانت محفوظة
+    function navigateWithRoles(url) {
+      const stored = localStorage.getItem('roles');
+      if (stored) {
+        const sep = url.includes('?') ? '&' : '?';
+        window.location.href = url + sep + 'roles=' + encodeURIComponent(stored);
+      } else {
+        window.location.href = url;
+      }
+    }
+
+    // عند تحميل الصفحة، اضبط ظهور زر "الحجوزات الكاملة" كما بقية الأزرار
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnAllReservations = document.getElementById('btnAllReservations');
+      if (btnAllReservations) {
+        if (!roles.includes("all") && !roles.includes("all_reservations_page")) {
+          btnAllReservations.style.display = "none";
+        } else {
+          btnAllReservations.style.display = ""; // أو "inline-block" حسب التصميم
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
+</html>

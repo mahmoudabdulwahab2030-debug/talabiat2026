@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>📂 إدارة الملفات المرفوعة</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      background: linear-gradient(120deg, #23232a 60%, #2c2c2c 100%);
+      color: #fff;
+      font-family: 'Cairo', Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+    h2 {
+      text-align: center;
+      color: #ffd166;
+      margin: 32px 0 18px 0;
+      font-size: 2rem;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #222;
+    }
+    p {
+      text-align: center;
+      color: #bbb;
+      margin-bottom: 24px;
+      font-size: 1.1rem;
+    }
+    #actionButtons {
+      margin: 24px auto 10px auto;
+      text-align: center;
+      display: none;
+      gap: 12px;
+      max-width: 700px;
+    }
+    #actionButtons button {
+      background: linear-gradient(90deg, #ffd166 60%, #ff6f56 100%);
+      color: #23232a;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin: 0 8px 8px 0;
+      cursor: pointer;
+      box-shadow: 0 2px 12px rgba(255,214,102,0.13);
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    #actionButtons button:hover {
+      background: linear-gradient(90deg, #ff6f56 60%, #ffd166 100%);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(255,111,86,0.18);
+    }
+    #status {
+      margin-top: 18px;
+      color: #ffd166;
+      font-weight: bold;
+      text-align: center;
+      font-size: 1.1rem;
+    }
+    #resultArea {
+      margin: 0 auto;
+      max-width: 900px;
+      padding: 0 10px 40px 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: linear-gradient(120deg, #23232a 80%, #2c2c2c 100%);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      margin: 0 auto;
+      font-size: 1.05rem;
+    }
+    thead th {
+      background: linear-gradient(90deg, #ffd166 60%, #ff6f56 100%);
+      color: #23232a;
+      padding: 14px 10px;
+      border: none;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+    tbody td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #444;
+      text-align: center;
+      background: rgba(255,255,255,0.01);
+      color: #fff;
+      font-size: 1rem;
+    }
+    tbody tr:nth-child(even) td {
+      background: rgba(255,255,255,0.03);
+    }
+    tbody tr:hover td {
+      background: #ffd16622;
+      color: #ffd166;
+    }
+    .btn-delete {
+      background: linear-gradient(90deg, #ef476f 60%, #ff6f56 100%);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-delete:hover {
+      background: linear-gradient(90deg, #ff6f56 60%, #ef476f 100%);
+      color: #fff;
+    }
+    .select-upload {
+      width: 22px;
+      height: 22px;
+      accent-color: #ffd166;
+      cursor: pointer;
+    }
+    @media (max-width: 700px) {
+      table, thead, tbody, th, td, tr { font-size: 0.95rem; }
+      #resultArea { padding: 0 2px 30px 2px; }
+      #actionButtons button { font-size: 1rem; padding: 10px 10px; }
+    }
+    @media (max-width: 500px) {
+      table, thead, tbody, th, td, tr { font-size: 0.85rem; }
+      h2 { font-size: 1.2rem; }
+      #actionButtons button { font-size: 0.95rem; padding: 8px 6px; }
+    }
+
+    /* === Filter panel styles === */
+    #filterToggleBtn {
+      position: fixed;
+      left: 16px;
+      top: 90px;
+      z-index: 1100;
+      background: linear-gradient(90deg, #ffd166 60%, #ff6f56 100%);
+      color: #23232a;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      font-weight: bold;
+    }
+
+    #filterPanel {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 340px;
+      max-width: 90%;
+      background: linear-gradient(120deg, #2b2b2f, #23232a);
+      color: #fff;
+      padding: 18px;
+      z-index: 1200;
+      transform: translateX(-110%);
+      transition: transform 260ms ease;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+      overflow: auto;
+      direction: rtl;
+    }
+
+    #filterPanel.open { transform: translateX(0); }
+
+    #filterPanel .filter-header {
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    #filterPanel .filter-header h3 { margin:0; color:#ffd166; }
+    #filterPanel .filter-header button {
+      background: transparent;
+      color: #fff;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    #filterPanel label { display:block; margin:10px 0; font-size:0.98rem; color:#ddd; }
+    #filterPanel input, #filterPanel select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      /* Use the filter panel's background so the combobox matches the panel */
+      background: linear-gradient(120deg, #2b2b2f, #23232a);
+      color: #fff;
+      box-sizing: border-box;
+      margin-top:6px;
+    }
+    /* Ensure the dropdown option list also uses the dark panel color */
+    #filterPanel select option {
+      background: #23232a;
+      color: #fff;
+    }
+
+    /* Date inputs pair styling */
+    #filterPanel .date-pair { display:flex; gap:8px; }
+
+    /* Active filter badges */
+    #activeFilters { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    .filter-badge {
+      background: rgba(255,209,102,0.12);
+      color: #ffd166;
+      border: 1px solid rgba(255,209,102,0.18);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size:0.9rem;
+      font-weight:600;
+    }
+
+    #filterPanel .filter-actions {
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+      justify-content: flex-start;
+      align-items:center;
+    }
+    #filterPanel .filter-actions button {
+      background: linear-gradient(90deg, #ffd166 60%, #ff6f56 100%);
+      color: #23232a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    #filterPanel .filter-actions button.secondary {
+      background: transparent;
+      color: #ffd166;
+      border: 1px solid #ffd16655;
+    }
+
+  </style>
+</head>
+<body>
+  <h2>📂 إدارة البيانات المرفوعة</h2>
+  <p>يعرض هذا التقرير جميع ملفات الطلبات المُجمعة حسب الفرع والتاريخ.</p>
+  <div id="actionButtons">
+    <button onclick="selectAllUploads()">✅ تحديد الكل</button>
+    <button onclick="deleteSelectedUploads()">🗑️ حذف الملفات المحددة</button>
+    <button onclick="loadUploads()">🔄 تحديث القائمة</button>
+  </div>
+
+  <!-- Filter toggle button -->
+  <button id="filterToggleBtn" onclick="toggleFilterPanel()" title="فتح/إغلاق الفلتر">🔎 فلتر</button>
+
+  <!-- Floating filter panel -->
+  <div id="filterPanel" aria-hidden="true">
+    <div class="filter-header">
+      <h3>🔎 نظام الفلترة</h3>
+      <button id="closeFilterBtn" onclick="closeFilterPanel()">✖️</button>
+    </div>
+    <div class="filter-body">
+      <label>الفرع
+        <select id="filterBranch">
+          <option value="">— كل الفروع —</option>
+          <option value="korba">فرع الكوربة</option>
+          <option value="dokki">فرع الدقي</option>
+          <option value="tagamo3">فرع التجمع</option>
+          <option value="obour">فرع العبور</option>
+          <option value="best_sweet_1">اول اجمال</option>
+          <option value="best_sweet_abbassia">العباسيه</option>
+          <option value="best_sweet_helw_zaytoun">حلو منه</option>
+          <option value="best_sweet_market_zaytoun">الزيتون ماركت</option>
+          <option value="best_sweet_helwan">حلوان</option>
+        </select>
+      </label>
+
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="flex:1">التاريخ من
+          <input type="date" id="filterDateFrom" />
+        </label>
+        <label style="flex:1">إلى
+          <input type="date" id="filterDateTo" />
+        </label>
+      </div>
+
+      <div class="filter-actions">
+        <button onclick="applyFilters()">تطبيق</button>
+        <button class="secondary" onclick="resetFilters()">إعادة</button>
+        <button class="secondary" onclick="closeFilterPanel()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="status">
+    <div id="statusText"></div>
+    <div id="activeFilters" aria-live="polite" style="margin-top:6px;"></div>
+  </div>
+  <div id="resultArea"></div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    let filterState = {}; // current filters from panel
+
+    // خريطة أسماء الفروع بالعربي
+    const branchNames = {
+      korba: "فرع الكوربة",
+      dokki: "فرع الدقي",
+      tagamo3: "فرع التجمع",
+      obour: "فرع العبور",
+      best_sweet_1: "اول اجمال",
+      best_sweet_abbassia: "العباسيه",
+      best_sweet_helw_zaytoun: "حلو منه فيه الزيتون",
+      best_sweet_market_zaytoun: "الزيتون ماركت",
+      best_sweet_helwan: "حلوان"
+    };
+
+    function toggleActionButtons(hasData) {
+      document.getElementById("actionButtons").style.display = hasData ? "block" : "none";
+    }
+
+    function selectAllUploads() {
+      document.querySelectorAll(".select-upload").forEach(checkbox => checkbox.checked = true);
+    }
+
+    // --- Filter panel controls ---
+    function openFilterPanel() {
+      document.getElementById('filterPanel').classList.add('open');
+      document.getElementById('filterPanel').setAttribute('aria-hidden', 'false');
+    }
+    function closeFilterPanel() {
+      document.getElementById('filterPanel').classList.remove('open');
+      document.getElementById('filterPanel').setAttribute('aria-hidden', 'true');
+    }
+    function toggleFilterPanel() {
+      document.getElementById('filterPanel').classList.toggle('open');
+      const isOpen = document.getElementById('filterPanel').classList.contains('open');
+      document.getElementById('filterPanel').setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    }
+
+    function applyFilters() {
+      // apply without closing panel (auto-filtering will also update on change)
+      const b = document.getElementById('filterBranch').value || '';
+      const d1 = document.getElementById('filterDateFrom').value || '';
+      const d2 = document.getElementById('filterDateTo').value || '';
+      filterState = {};
+      if (b) filterState.branch = b;
+      if (d1) filterState.dateFrom = d1;
+      if (d2) filterState.dateTo = d2;
+      renderActiveFilters(filterState);
+      loadUploads(filterState);
+    }
+
+    function resetFilters() {
+      document.getElementById('filterBranch').value = '';
+      document.getElementById('filterDateFrom').value = '';
+      document.getElementById('filterDateTo').value = '';
+      filterState = {};
+      renderActiveFilters(filterState);
+      loadUploads();
+    }
+
+    // --- Auto-filter logic (debounced) ---
+    let autoFilterTimeout = null;
+    function autoApplyFilters() {
+      if (autoFilterTimeout) clearTimeout(autoFilterTimeout);
+      autoFilterTimeout = setTimeout(() => {
+        const b = document.getElementById('filterBranch').value || '';
+        const d1 = document.getElementById('filterDateFrom').value || '';
+        const d2 = document.getElementById('filterDateTo').value || '';
+        filterState = {};
+        if (b) filterState.branch = b;
+        if (d1) filterState.dateFrom = d1;
+        if (d2) filterState.dateTo = d2;
+        renderActiveFilters(filterState);
+        loadUploads(filterState);
+      }, 300);
+    }
+
+    // Attach listeners (safe if DOM already exists)
+    ['filterBranch', 'filterDateFrom', 'filterDateTo'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', autoApplyFilters);
+    });
+
+    // Render active filter badges in the UI
+    function renderActiveFilters(f) {
+      const container = document.getElementById('activeFilters');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!f || Object.keys(f).length === 0) return;
+      if (f.branch) {
+        const el = document.createElement('span');
+        el.className = 'filter-badge';
+        el.textContent = `فرع: ${branchNames[f.branch] || f.branch}`;
+        container.appendChild(el);
+      }
+      if (f.dateFrom || f.dateTo) {
+        const el = document.createElement('span');
+        el.className = 'filter-badge';
+        const from = f.dateFrom || '—';
+        const to = f.dateTo || '—';
+        el.textContent = `التاريخ: ${from} → ${to}`;
+        container.appendChild(el);
+      }
+
+    }
+
+    async function loadUploads(filters = {}) {
+      // جلب البيانات من كلا المجموعتين
+      const [ordersSnap, reservationsSnap] = await Promise.all([
+        db.collection("orders").get(),
+        db.collection("reservations").get()
+      ]);
+
+      const allData = [];
+      
+      // إضافة البيانات من الطلبات المرفوعة
+      ordersSnap.forEach(doc => {
+        const d = doc.data();
+        if ((d.name && d.branch) && (d.orderDate || d.deliveryDate)) {
+          allData.push({ 
+            ...d, 
+            id: doc.id,
+            source: 'orders',
+            uploadType: 'رفع ملف'
+          });
+        }
+      });
+
+      // إضافة البيانات من الطلبيات المحجوزة
+      reservationsSnap.forEach(doc => {
+        const d = doc.data();
+        if (d.branch && (d.orderDate || d.deliveryDate)) {
+          // نضيف كل صنف كسجل منفصل
+          if (d.items && Array.isArray(d.items)) {
+            d.items.forEach(item => {
+              allData.push({
+                id: doc.id,
+                branch: d.branch,
+                orderDate: d.orderDate || d.deliveryDate,
+                name: item.name,
+                qty: item.qty,
+                code: item.code,
+                sheet: item.sheet,
+                source: 'reservations',
+                uploadType: 'حجز يدوي',
+                invoiceNumber: d.invoiceNumber || 'غير محدد'
+              });
+            });
+          }
+        }
+      });
+
+      // apply filters if provided (filterState or passed filters)
+      const f = filters || filterState || {};
+      let sourceAll = allData;
+      if (f.branch || f.dateFrom || f.dateTo || f.uploadType || f.invoiceNumber) {
+        sourceAll = allData.filter(d => {
+          if (f.branch && d.branch !== f.branch) return false;
+          const dDate = d.orderDate || d.deliveryDate;
+          // if dates are stored as ISO (YYYY-MM-DD) string, direct string compare works
+          if (f.dateFrom && dDate < f.dateFrom) return false;
+          if (f.dateTo && dDate > f.dateTo) return false;
+          if (f.uploadType && d.uploadType !== f.uploadType) return false;
+          if (f.invoiceNumber && String(d.invoiceNumber || '').indexOf(f.invoiceNumber) === -1) return false;
+          return true;
+        });
+      }
+
+      // تجميع حسب الفرع والتاريخ ونوع الرفع (نطبق الفلاتر أولاً)
+      const map = {};
+      sourceAll.forEach(d => {
+        const key = `${d.branch}___${d.orderDate || d.deliveryDate}___${d.uploadType}___${d.invoiceNumber || ''}`;
+        if (!map[key]) map[key] = [];
+        map[key].push(d);
+      });
+
+      let hasData = Object.keys(map).length > 0;
+      toggleActionButtons(hasData);
+
+      if (!hasData) {
+        toggleActionButtons(false);
+        if (f && (f.branch || f.dateFrom || f.dateTo)) {
+          document.getElementById("resultArea").innerHTML = "🚫 لا توجد نتائج للفلتر الحالي.";
+          document.getElementById("statusText").textContent = `📁 عدد الملفات: 0 — فلتر مفعل`;
+          renderActiveFilters(f);
+        } else {
+          document.getElementById("resultArea").innerHTML = "🚫 لا توجد ملفات حالياً.";
+          document.getElementById("statusText").textContent = "";
+          renderActiveFilters({});
+        }
+        return;
+      }
+
+      let html = `<h3 style="text-align:center; color:#ffd166; margin-bottom:18px;">📋 قائمة الملفات:</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>🏬 الفرع</th>
+            <th>📅 التاريخ</th>
+            <th>📝 نوع الرفع</th>
+            <th>🧾 رقم الفاتورة</th>
+            <th>🔢 عدد الأصناف</th>
+            <th>🗑️ حذف</th>
+            <th>✅ اختيار</th>
+          </tr>
+        </thead>
+        <tbody id="uploadTableBody">`;
+
+      for (const key in map) {
+        const [branch, date, uploadType, invoiceNumber] = key.split("___");
+        const count = map[key].length;
+        const source = map[key][0].source;
+        
+        html += `<tr>
+          <td>${branchNames[branch] || branch}</td>
+          <td>${date}</td>
+          <td>${uploadType}</td>
+          <td>${invoiceNumber || '—'}</td>
+          <td>${count}</td>
+          <td><button class="btn-delete" onclick="deleteUpload('${branch}','${date}','${source}','${invoiceNumber}')">🗑️ حذف</button></td>
+          <td><input type="checkbox" class="select-upload" data-branch="${branch}" data-date="${date}" data-source="${source}" data-invoice="${invoiceNumber}" /></td>
+        </tr>`;
+      }
+
+      html += "</tbody></table>";
+      document.getElementById("resultArea").innerHTML = html;
+
+      let statusText = `📁 عدد الملفات: ${Object.keys(map).length}`;
+      if (f && (f.branch || f.dateFrom || f.dateTo)) {
+        const parts = [];
+        if (f.branch) parts.push(`الفرع: ${branchNames[f.branch] || f.branch}`);
+        if (f.dateFrom || f.dateTo) parts.push(`التاريخ: ${f.dateFrom || '—'} → ${f.dateTo || '—'}`);
+        statusText += ' — فلتر: ' + parts.join(' | ');
+      }
+      document.getElementById("statusText").textContent = statusText;
+      renderActiveFilters(f);
+    }
+
+    // تحديث دالة حذف الطلبية لتعمل مع كلا المجموعتين
+    async function deleteUpload(branch, date, source, invoiceNumber) {
+      const title = source === 'reservations' ? 'طلبية محجوزة' : 'ملف مرفوع';
+      
+      Swal.fire({
+        title: '🗑️ تأكيد الحذف',
+        html: `هل تريد حذف ${title}:<br>
+              <strong>الفرع:</strong> ${branchNames[branch] || branch}<br>
+              <strong>التاريخ:</strong> ${date}<br>
+              ${invoiceNumber ? `<strong>رقم الفاتورة:</strong> ${invoiceNumber}` : ''}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'نعم، احذف',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+      }).then(async (result) => {
+        if (!result.isConfirmed) return;
+
+        try {
+          if (source === 'reservations') {
+            // حذف من مجموعة reservations
+            const query = db.collection("reservations")
+              .where("branch", "==", branch)
+              .where("orderDate", "==", date);
+            
+            if (invoiceNumber) {
+              query = query.where("invoiceNumber", "==", invoiceNumber);
+            }
+            
+            const snapshot = await query.get();
+            const batch = db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+          } else {
+            // حذف من مجموعة orders
+            const snapshot = await db.collection("orders")
+              .where("branch", "==", branch)
+              .where("orderDate", "==", date)
+              .get();
+
+            const batch = db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+          }
+
+          Swal.fire({
+            icon: 'success',
+            title: '✅ تم الحذف',
+            text: 'تم حذف البيانات بنجاح',
+            timer: 3000,
+            showConfirmButton: false
+          });
+
+          loadUploads();
+        } catch (err) {
+          console.error(err);
+          Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: 'حدث خطأ أثناء الحذف'
+          });
+        }
+      });
+    }
+
+    // تحديث دالة حذف المحدد لتعمل مع كلا المجموعتين
+    async function deleteSelectedUploads() {
+      const selected = document.querySelectorAll(".select-upload:checked");
+      if (selected.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: '🚫 لا توجد ملفات محددة',
+          text: 'يرجى اختيار الملفات التي تريد حذفها.',
+          confirmButtonText: 'موافق'
+        });
+        return;
+      }
+
+      const total = selected.length;
+      const modalHtml = `
+        <div style="direction:rtl; text-align:right; font-family:inherit;">
+          <div id="progressText">جاري الحذف 0/${total}</div>
+          <div style="background:#eee; border-radius:6px; margin-top:8px;">
+            <div id="progressBar" style="width:0%; height:18px; background:#ffd166; border-radius:6px;"></div>
+          </div>
+          <div id="currentFile" style="margin-top:8px; font-weight:600;"></div>
+          <div id="deletedList" style="margin-top:8px; max-height:150px; overflow:auto; font-size:0.95em;"></div>
+        </div>
+      `;
+
+      Swal.fire({
+        title: '🗑️ جاري الحذف',
+        html: modalHtml,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          (async () => {
+            const htmlContainer = Swal.getHtmlContainer();
+            const progressText = htmlContainer.querySelector('#progressText');
+            const progressBar = htmlContainer.querySelector('#progressBar');
+            const currentFile = htmlContainer.querySelector('#currentFile');
+            const deletedList = htmlContainer.querySelector('#deletedList');
+
+            try {
+              let deletedTotal = 0;
+              for (let i = 0; i < selected.length; i++) {
+                const input = selected[i];
+                const branch = input.dataset.branch;
+                const date = input.dataset.date;
+                const source = input.dataset.source;
+                const invoiceNumber = input.dataset.invoice;
+
+                progressText.textContent = `جاري الحذف ${i + 1}/${total}`;
+                currentFile.textContent = `الفرع: ${branchNames[branch] || branch} | التاريخ: ${date}`;
+                progressBar.style.width = `${Math.round((i / total) * 100)}%`;
+
+                if (source === 'reservations') {
+                  // حذف من مجموعة reservations
+                  let query = db.collection("reservations")
+                    .where("branch", "==", branch)
+                    .where("orderDate", "==", date);
+                
+                  if (invoiceNumber) {
+                    query = query.where("invoiceNumber", "==", invoiceNumber);
+                  }
+                  
+                  const snapshot = await query.get();
+                  if (snapshot.empty) {
+                    const note = document.createElement('div');
+                    note.textContent = `⚠️ لم يُعثر على بيانات لـ ${branchNames[branch] || branch} / ${date}`;
+                    deletedList.prepend(note);
+                  } else {
+                    const batch = db.batch();
+                    snapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    deletedTotal += snapshot.size;
+
+                    const note = document.createElement('div');
+                    note.textContent = `✅ تم حذف ${snapshot.size} صف من ${branchNames[branch] || branch} / ${date}`;
+                    deletedList.prepend(note);
+                  }
+                } else {
+                  // حذف من مجموعة orders
+                  const snapshot = await db.collection("orders")
+                    .where("branch", "==", branch)
+                    .where("orderDate", "==", date)
+                    .get();
+
+                  if (snapshot.empty) {
+                    const note = document.createElement('div');
+                    note.textContent = `⚠️ لم يُعثر على بيانات لـ ${branchNames[branch] || branch} / ${date}`;
+                    deletedList.prepend(note);
+                  } else {
+                    const batch = db.batch();
+                    snapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    deletedTotal += snapshot.size;
+
+                    const note = document.createElement('div');
+                    note.textContent = `✅ تم حذف ${snapshot.size} صف من ${branchNames[branch] || branch} / ${date}`;
+                    deletedList.prepend(note);
+                  }
+                }
+
+                await new Promise(res => setTimeout(res, 250));
+                progressBar.style.width = `${Math.round(((i + 1) / total) * 100)}%`;
+              }
+
+              Swal.close();
+
+              Swal.fire({
+                icon: 'success',
+                title: '✅ تم الحذف',
+                text: `تم حذف الملفات المحددة بنجاح.`,
+                timer: 3000,
+                showConfirmButton: false
+              });
+
+              loadUploads();
+            } catch (err) {
+              Swal.close();
+              console.error(err);
+              Swal.fire({
+                icon: 'error',
+                title: 'حدث خطأ',
+                text: 'حدث خطأ أثناء عملية الحذف. يرجى المحاولة مرة أخرى.',
+                confirmButtonText: 'موافق'
+              });
+            }
+          })();
+        }
+      });
+    }
+
+    window.deleteUpload = deleteUpload;
+    window.onload = loadUploads;
+  </script>
+</body>
+</html>

@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>📋 جميع فواتير الحجوزات</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="notifications.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* إعدادات عامة - الثيم الداكن */
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background-color: #1a1a1a;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 10px;
+      line-height: 1.6;
+      min-height: 100vh;
+      animation: fadeIn 0.8s ease-in-out;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    h2 {
+      color: #f0f0f0;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 700;
+      text-shadow: 0 0 15px rgba(139, 0, 0, 0.5);
+      border-bottom: 2px solid #8b0000;
+      padding-bottom: 10px;
+      animation: slideDown 0.6s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from { 
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      to { 
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    .invoiceBox {
+      background-color: #2c2c2c;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border-left: 5px solid #8b0000;
+      position: relative;
+      overflow: hidden;
+      animation: slideUp 0.6s ease-out forwards;
+      opacity: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      flex-grow: 1;
+    }
+    
+    @keyframes slideUp {
+      from { 
+        transform: translateY(30px);
+        opacity: 0;
+      }
+      to { 
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    /* توسيع الجداول لاستخدام مساحة الصناديق بالكامل */
+    .invoiceBox .info-table,
+    .invoiceBox .items-table {
+      width: 100%;
+      table-layout: fixed;
+      min-width: 100%;
+      max-width: 100%;
+    }
+    
+    .invoiceBox .info-table th,
+    .invoiceBox .info-table td {
+      width: 25%;
+      padding: 12px 10px;
+      word-wrap: break-word;
+      box-sizing: border-box;
+    }
+    
+    .invoiceBox .items-table th:nth-child(1),
+    .invoiceBox .items-table td:nth-child(1) {
+      width: 60%;
+      word-wrap: break-word;
+      max-width: none;
+      padding-right: 15px;
+    }
+    
+    .invoiceBox .items-table th:nth-child(2),
+    .invoiceBox .items-table td:nth-child(2) {
+      width: 13%;
+    }
+    
+    .invoiceBox .items-table th:nth-child(3),
+    .invoiceBox .items-table td:nth-child(3),
+    .invoiceBox .items-table th:nth-child(4),
+    .invoiceBox .items-table td:nth-child(4) {
+      width: 13.5%;
+    }
+    
+    .invoiceBox:nth-child(1) { animation-delay: 0.1s; }
+    .invoiceBox:nth-child(2) { animation-delay: 0.2s; }
+    .invoiceBox:nth-child(3) { animation-delay: 0.3s; }
+    .invoiceBox:nth-child(4) { animation-delay: 0.4s; }
+    .invoiceBox:nth-child(5) { animation-delay: 0.5s; }
+    
+    .invoiceBox::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(to right, #8b0000, #ff4444);
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 0.5s ease;
+    }
+    
+    .invoiceBox:hover::before {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+    .invoiceBox table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      animation: tableFadeIn 0.8s ease-out;
+      table-layout: fixed;
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+    }
+    
+    .invoiceBox .info-table {
+      width: 100%;
+      table-layout: auto;
+    }
+    
+    .invoiceBox .info-table th {
+      width: 15%;
+    }
+    
+    .invoiceBox .info-table td {
+      width: 35%;
+      word-wrap: break-word;
+      max-width: 200px;
+    }
+    
+    .invoiceBox .items-table {
+      width: 100%;
+      table-layout: auto;
+    }
+    
+    .invoiceBox .items-table th:nth-child(1) {
+      width: 45%;
+    }
+    
+    .invoiceBox .items-table th:nth-child(2) {
+      width: 15%;
+    }
+    
+    .invoiceBox .items-table th:nth-child(3),
+    .invoiceBox .items-table th:nth-child(4) {
+      width: 20%;
+    }
+    
+    .invoiceBox .items-table td:nth-child(1) {
+      width: 45%;
+      word-wrap: break-word;
+      max-width: 250px;
+      text-align: right;
+    }
+    
+    .invoiceBox .items-table td:nth-child(2) {
+      width: 15%;
+      text-align: center;
+    }
+    
+    .invoiceBox .items-table td:nth-child(3),
+    .invoiceBox .items-table td:nth-child(4) {
+      width: 20%;
+      text-align: center;
+    }
+    
+    .invoiceBox .info-table {
+      width: 100%;
+      table-layout: auto;
+    }
+    
+    .invoiceBox .info-table th {
+      width: 15%;
+    }
+    
+    .invoiceBox .info-table td {
+      width: 35%;
+      word-wrap: break-word;
+      max-width: 200px;
+    }
+    
+    @keyframes tableFadeIn {
+      from { 
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .invoiceBox th {
+      background: linear-gradient(to right, #3a3a3a, #4a4a4a);
+      padding: 15px 10px;
+      border: 1px solid #444;
+      font-weight: 700;
+      color: #f0f0f0;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .invoiceBox th::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: 3px;
+      background: #8b0000;
+    }
+    .invoiceBox td {
+      padding: 12px 10px;
+      border: 1px solid #444;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .invoiceBox tr:hover td {
+      background-color: rgba(139, 0, 0, 0.1);
+      transform: scale(1.01);
+    }
+    
+    .invoiceBox tr {
+      transition: background-color 0.2s ease;
+    }
+    .invoiceBox button {
+      margin-top: 15px;
+      margin-left: 10px;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: none;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+      font-size: 15px;
+    }
+    
+    .invoiceBox button::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .invoiceBox button:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    .invoiceBox button:nth-child(1) {
+      background: linear-gradient(to right, #8b0000, #a00000);
+      color: white;
+    }
+    
+    .invoiceBox button:nth-child(1):hover {
+      background: linear-gradient(to right, #a00000, #b00000);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(139, 0, 0, 0.4);
+    }
+    
+    .invoiceBox button:nth-child(2) {
+      background: linear-gradient(to right, #555, #666);
+      color: white;
+    }
+    
+    .invoiceBox button:nth-child(2):hover {
+      background: linear-gradient(to right, #666, #777);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+    #tools, #reportTools {
+      background: linear-gradient(135deg, #2c2c2c, #333333);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #444;
+      position: relative;
+      overflow: hidden;
+      animation: toolFadeIn 1s ease-out;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    @keyframes toolFadeIn {
+      from { 
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #tools::before, #reportTools::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(to right, #8b0000, #ff4444);
+    }
+    #reportTools {
+      margin-top: 30px;
+    }
+    #reportResult {
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 15px;
+      color: #f0f0f0;
+      text-align: center;
+      padding: 10px;
+      background-color: #333;
+      border-radius: 5px;
+      border: 1px solid #8b0000;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    #status {
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #333;
+      color: #f0f0f0;
+      border: 1px solid #8b0000;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    /* تحسين حقول الإدخال والأزرار */
+    select, input[type="month"], button {
+      padding: 8px 15px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+      width: auto;
+      max-width: 200px;
+      flex-grow: 1;
+      box-sizing: border-box;
+    }
+    
+    input[type="text"] {
+      padding: 8px 15px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      font-size: 14px;
+      background-color: #333;
+      color: #e0e0e0;
+      width: auto;
+      max-width: 300px;
+      flex-grow: 2;
+      box-sizing: border-box;
+    }
+    
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printSection, #printSection * {
+        visibility: visible;
+      }
+      #printSection {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 0;
+      }
+      .invoiceBox {
+        background: white !important;
+        color: black !important;
+        border: none !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: 25px;
+        padding: 15px 25px;
+        border-radius: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      .invoiceBox h3 {
+        border-bottom: 2px solid #8b0000;
+        padding-bottom: 10px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #222;
+      }
+      .invoiceBox th {
+        background-color: #f8f9fa !important;
+        color: #222 !important;
+        font-weight: 700;
+        border: 1px solid #ddd;
+        padding: 12px 8px;
+      }
+      .invoiceBox td {
+        border: 1px solid #ddd;
+        padding: 10px 8px;
+      }
+      .invoiceBox table {
+        margin: 10px 0;
+        border: 1px solid #ddd;
+      }
+      .invoiceBox button {
+        display: none;
+      }
+      .invoiceBox .totals {
+        margin-top: 15px;
+        font-weight: 700;
+        border-top: 1px dashed #ddd;
+        padding-top: 10px;
+      }
+      @page {
+        margin: 1cm;
+        size: A4;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>📋 جميع فواتير الحجوزات</h2>
+
+  <div id="tools">
+    <select id="branchFilter" onchange="renderReservations()">
+      <option value="">كل الفروع</option>
+      <option value="korba">كوربة</option>
+      <option value="doki">دقي</option>
+      <option value="tagamo3">تجمع</option>
+    </select>
+    
+    <input type="text" id="searchInput" placeholder="🔍 بحث في الفواتير" onkeyup="searchInvoices()" style="background-color: #333; color: #e0e0e0; border: 1px solid #555; padding: 8px 15px; border-radius: 5px; margin-right: 10px;">
+
+    <button onclick="downloadPDF()">💾 حفظ PDF</button>
+    <button onclick="window.print()">🖨️ طباعة الكل</button>
+    <button onclick="deleteAll()">🧹 حذف جميع الفواتير</button>
+  </div>
+
+  <div id="reportTools">
+    <label>📅 اختر شهر:</label>
+    <input type="month" id="monthInput" />
+    <button onclick="calculateMonthlySales()">📈 تحقيق مبيعات الشهر</button>
+    <button onclick="calculateTotalSales()">📊 تحقيق المبيعات الكلية</button>
+    <div id="reportResult"></div>
+  </div>
+
+  <div id="status" style="margin-bottom: 15px; font-weight: bold;"></div>
+  <div id="printSection">
+    <div id="allReservations"></div>
+  </div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+  authDomain: "ledoux-80b46.firebaseapp.com",
+  projectId: "ledoux-80b46",
+  storageBucket: "ledoux-80b46.appspot.com",
+  messagingSenderId: "1020769543389",
+  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+  measurementId: "G-VJTW1W3D8D"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// متغيرات عامة
+let allData = [], docRefs = [];
+
+// دالة لتنسيق التواريخ باللغة العربية
+function formatDateArabic(dateStr) {
+  if (!dateStr) return "غير محددة";
+  const date = new Date(dateStr);
+  const options = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    weekday: 'long'
+  };
+  return date.toLocaleDateString('ar-SA', options);
+}
+
+// دالة لتنسيق التواريخ بالميلادي
+function formatDateMiladi(dateStr) {
+  if (!dateStr) return "غير محددة";
+  const date = new Date(dateStr);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+// دالة لتنسيق الأرقام مع فواصل
+function formatNumber(num) {
+  return Number(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// دالة للبحث الفوري في الفواتير
+function searchInvoices() {
+  const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+  const filteredData = allData.filter(d => {
+    return (
+      (d.createdBy && d.createdBy.toLowerCase().includes(searchTerm)) ||
+      (d.clientPhone && d.clientPhone.includes(searchTerm)) ||
+      (d.branch && d.branch.toLowerCase().includes(searchTerm)) ||
+      (d.notes && d.notes.toLowerCase().includes(searchTerm)) ||
+      (d.invoiceNumber && d.invoiceNumber.includes(searchTerm))
+    );
+  });
+  
+  renderFilteredData(filteredData);
+}
+
+// دالة لعرض البيانات المفلترة
+function renderFilteredData(data) {
+  const area = document.getElementById("allReservations");
+  area.innerHTML = "";
+  
+  if (data.length === 0) {
+    area.innerHTML = "<p>🚫 لا توجد فواتير تطابق البحث.</p>";
+    return;
+  }
+  
+  // نسخ محتوى دالة renderReservations مع تعديل بسيط
+  renderReservations();
+  const allBoxes = document.querySelectorAll(".invoiceBox");
+  
+  // إخفاء الصناديق التي لا تطابق البحث
+  allBoxes.forEach(box => {
+    const invoiceData = allData.find(d => {
+      return (
+        (d.createdBy && box.innerHTML.includes(d.createdBy)) ||
+        (d.clientPhone && box.innerHTML.includes(d.clientPhone)) ||
+        (d.branch && box.innerHTML.includes(d.branch)) ||
+        (d.notes && box.innerHTML.includes(d.notes)) ||
+        (d.invoiceNumber && box.innerHTML.includes(d.invoiceNumber))
+      );
+    });
+    
+    if (!invoiceData || !data.includes(invoiceData)) {
+      box.style.display = "none";
+    }
+  });
+}
+
+// دالة لتحميل الفواتير (قراءة كل المستندات كما كانت)
+async function fetchReservations() {
+  document.getElementById("status").textContent = "⏳ جاري تحميل الفواتير...";
+  try {
+    const snap = await db.collection("reservations").orderBy("timestamp").get();
+    allData = [], docRefs = [];
+    
+    snap.forEach(doc => {
+      allData.push(doc.data());
+      docRefs.push(doc.id);
+    });
+    
+    document.getElementById("status").textContent = `✅ تم تحميل ${allData.length} فاتورة`;
+    renderReservations();
+  } catch (error) {
+    console.error("خطأ في تحميل الفواتير:", error);
+    document.getElementById("status").textContent = "❌ فشل تحميل الفواتير";
+  }
+}
+
+  function renderReservations() {
+    const area = document.getElementById("allReservations");
+    const filter = document.getElementById("branchFilter").value;
+    area.innerHTML = "";
+
+    let count = 0;
+
+    allData.forEach((d, i) => {
+      // جدول تحويل أسماء الفروع
+      const branchMap = {
+        "korba": ["korba", "كوربة"],
+        "doki": ["dokki", "دقي"],
+        "tagamo3": ["tagamo3", "تجمع"],
+        "obour": ["obour", "عبور"]
+      };
+
+      if (filter) {
+        const validNames = branchMap[filter] || [filter];
+        if (!validNames.map(n => n.trim().toLowerCase()).includes((d.branch || "").trim().toLowerCase())) return;
+      }
+
+      // استخدم رقم الفاتورة من السجل إن وجد، وإلا عرض عداد متزايد
+      const invoiceTitle = d.invoiceNumber ? `فاتورة رقم ${d.invoiceNumber}` : `فاتورة رقم ${++count}`;
+
+  const infoRow = `
+    <tr>
+      <th>رقم الفاتورة</th><th>الفرع</th><th>العميل</th><th>الموبايل</th><th>التسليم</th>
+      <th>الحجز</th><th>التسليم</th><th>الساعة</th><th>ملاحظات</th>
+    </tr>
+    <tr>
+      <td>${d.invoiceNumber || ''}</td>
+      <td>${d.branch}</td>
+      <td>${d.createdBy}</td>
+      <td>${d.clientPhone}</td>
+      <td>${d.deliveryType === "branch" ? "فرع " + d.deliveryPlace : d.deliveryPlace}</td>
+      <td>${formatDateMiladi(d.orderDate)}</td>
+      <td>${formatDateMiladi(d.deliveryDate)}</td>
+      <td>${d.deliveryTime || "غير محددة"}</td>
+      <td>${d.notes || "لا يوجد"}</td>
+    </tr>`;
+
+  const items = (d.items || []).map(i => `
+    <tr>
+      <td>${i.name}</td>
+      <td>${i.qty}</td>
+      <td>${(i.price!=null) ? formatNumber(i.price) : '0.00'}</td>
+      <td>${(i.subtotal!=null) ? formatNumber(i.subtotal) : formatNumber((Number(i.qty)||0)*(Number(i.price)||0))}</td>
+    </tr>
+  `).join("");
+
+  // حساب المدفوع والمتبقي بعرض احتياطي إذا لم تكن القيم موجودة
+  const paid = (d.paid != null) ? Number(d.paid).toFixed(2) : '0.00';
+  const remaining = (d.remaining != null)
+    ? Number(d.remaining).toFixed(2)
+    : ((d.total != null) ? (Number(d.total) - (Number(d.paid)||0)).toFixed(2) : '0.00');
+
+  area.innerHTML += `
+    <div class="invoiceBox">
+      <h3>🧾 ${invoiceTitle}</h3>
+      <table>${infoRow}</table>
+      <table style="margin-top:15px;">
+        <thead><tr>
+          <th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th>
+        </tr></thead>
+        <tbody>${items}</tbody>
+      </table>
+      <div style="margin-top:10px;"><strong>💰 الإجمالي:</strong> ${(d.total!=null)?formatNumber(d.total):'0.00'} جنيه</div>
+      <div style="margin-top:6px;"><strong>💵 المدفوع:</strong> ${formatNumber(paid)} جنيه &nbsp;&nbsp; <strong>🔁 المتبقي:</strong> ${formatNumber(remaining)} جنيه</div>
+      <div style="margin-top:6px;"><strong>🆔 مستند:</strong> ${d.walletId || d.invoiceNumber || ''}</div>
+      <button onclick="printInvoice(this)">🖨️ طباعة</button>
+      <button onclick="deleteOne('${docRefs[i]}')" style="background-color: darkred; color: white;">🗑️ حذف</button>
+    </div>
+  `;
+    });
+
+    if (count === 0 && area.innerHTML.trim() === "") {
+      area.innerHTML = "<p>🚫 لا توجد فواتير بهذا الفرع.</p>";
+    }
+  }
+
+  function printInvoice(btn) {
+    const invoice = btn.closest(".invoiceBox");
+    const head = `
+      <head>
+        <meta charset="utf-8">
+        <title>فاتورة</title>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+        <style>
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
+          
+          body {
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+            color: #333;
+            background: #fff;
+            line-height: 1.6;
+          }
+          
+          .invoiceBox {
+            background: #fff;
+            border-radius: 0;
+            margin-bottom: 25px;
+            padding: 25px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          
+          .invoiceBox h3 {
+            margin-top: 0;
+            color: #8b0000;
+            border-bottom: 2px solid #8b0000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 700;
+          }
+          
+          .invoiceBox table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+          }
+          
+          .invoiceBox th {
+            background-color: #f8f9fa;
+            color: #222;
+            font-weight: 700;
+            padding: 12px 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+          }
+          
+          .invoiceBox td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+          }
+          
+          .invoiceBox .totals {
+            margin-top: 20px;
+            font-weight: 700;
+            border-top: 2px dashed #8b0000;
+            padding-top: 15px;
+            text-align: right;
+          }
+          
+          .invoiceBox .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+          }
+          
+          .invoiceBox button {
+            display: none;
+          }
+        </style>
+      </head>
+    `;
+    
+    const footer = `
+      <div class="footer">
+        <p>تم إنشاء هذه الفاتورة بتطبيق نظام الحجوزات</p>
+        <p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      </div>
+    `;
+    
+    const html = `<!doctype html><html lang="ar">
+      ${head}
+      <body>
+        <div style="max-width: 900px; margin: 0 auto;">
+          ${invoice.outerHTML}
+          ${footer}
+        </div>
+      </body>
+    </html>`;
+    
+    const w = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
+    if (!w) {
+      Swal.fire({
+        icon: 'error',
+        title: '❌ فشل فتح نافذة الطباعة',
+        text: 'الرجاء السماح بالمنبثقات ثم حاول مرة أخرى.',
+        confirmButtonText: 'موافق'
+      });
+      return;
+    }
+    
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    
+    setTimeout(() => {
+      try {
+        w.print();
+        setTimeout(() => {
+          w.close();
+        }, 500);
+      } catch (e) {
+        console.error('خطأ في الطباعة:', e);
+        Swal.fire({
+          icon: 'error',
+          title: '❌ خطأ في الطباعة',
+          text: 'حدث خطأ أثناء محاولة الطباعة. يرجى المحاولة مرة أخرى.',
+          confirmButtonText: 'موافق'
+        });
+      }
+    }, 1000);
+  }
+
+// حذف فعلي نهائي لواحد من الفواتير مع حذف الأوامر المرتبطة في مجموعة "orders"
+async function deleteOne(docId) {
+  try {
+    const resRef = db.collection("reservations").doc(docId);
+    const resSnap = await resRef.get();
+    const invoice = resSnap.exists ? resSnap.data() : allData.find((d, i) => docRefs[i] === docId);
+
+    Swal.fire({
+      title: 'هل أنت متأكد؟',
+      text: `⚠️ سيتم حذف الفاتورة للعميل "${invoice?.createdBy || ''}" نهائيًا من قاعدة البيانات، وسيتم حذف الأوامر المرتبطة أيضًا.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: '🗑️ نعم، احذف نهائيًا',
+      cancelButtonText: '❌ إلغاء',
+      reverseButtons: true
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
+
+      const batch = db.batch();
+      // حذف السجل نفسه
+      batch.delete(resRef);
+
+      // اجمع مراجع أوامر للحذف في Set لتجنب التكرار
+      const orderRefsToDelete = new Map();
+
+      // 1) احذف orders التي تشير مباشرة reservationId === docId
+      const q1 = await db.collection("orders").where("reservationId", "==", docId).get();
+      q1.forEach(d => orderRefsToDelete.set(d.id, d.ref));
+
+      // 2) احذف orders التي تحتوي نفس walletId (إن وجد)
+      if (invoice && invoice.walletId) {
+        const q2 = await db.collection("orders").where("walletId", "==", invoice.walletId).get();
+        q2.forEach(d => orderRefsToDelete.set(d.id, d.ref));
+      }
+
+      // 3) احذف orders التي تحتوي نفس invoiceNumber (إن وجد)
+      if (invoice && invoice.invoiceNumber) {
+        const q3 = await db.collection("orders").where("invoiceNumber", "==", invoice.invoiceNumber).get();
+        q3.forEach(d => orderRefsToDelete.set(d.id, d.ref));
+      }
+
+      // أضف جميع الحذف إلى الباتش
+      let countOrders = 0;
+      orderRefsToDelete.forEach(ref => {
+        batch.delete(ref);
+        countOrders++;
+      });
+
+      // نفذ الباتش
+      await batch.commit();
+
+      Swal.fire('✅ تم الحذف', `تم حذف الفاتورة نهائيًا${countOrders ? ` وتم حذف ${countOrders} طلب مرتبط` : ''}`, 'success');
+      fetchReservations();
+    });
+  } catch (err) {
+    console.error(err);
+    Swal.fire('❌ خطأ', 'فشل حذف الفاتورة أو الأوامر المرتبطة', 'error');
+  }
+}
+
+// حذف نهائي لجميع الفواتير مع حذف الأوامر المرتبطة
+async function deleteAll() {
+  Swal.fire({
+    title: 'هل أنت متأكد؟',
+    text: '⚠️ سيتم حذف جميع الفواتير نهائيًا من قاعدة البيانات وسيتم حذف الأوامر المرتبطة أيضًا.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '🗑️ نعم، احذف الكل نهائيًا',
+    cancelButtonText: '❌ إلغاء',
+    reverseButtons: true
+  }).then(async (result) => {
+    if (!result.isConfirmed) return;
+
+    try {
+      const resSnap = await db.collection("reservations").get();
+      const orderIdsDeleted = new Set();
+      let ops = 0;
+      let batch = db.batch();
+
+      // لحذف طوابير كبيرة نرسل الدفعات كل 400 عملية
+      const flushBatch = async () => {
+        if (ops > 0) {
+          await batch.commit();
+          batch = db.batch();
+          ops = 0;
+        }
+      };
+
+      for (const doc of resSnap.docs) {
+        const resRef = doc.ref;
+        const data = doc.data();
+
+        // جد وحذف أوامر مرتبطة (3 استعلامات منفصلة)
+        const q1 = await db.collection("orders").where("reservationId", "==", doc.id).get();
+        q1.forEach(d => { if (!orderIdsDeleted.has(d.id)) { batch.delete(d.ref); orderIdsDeleted.add(d.id); ops++; } });
+
+        if (data && data.walletId) {
+          const q2 = await db.collection("orders").where("walletId", "==", data.walletId).get();
+          q2.forEach(d => { if (!orderIdsDeleted.has(d.id)) { batch.delete(d.ref); orderIdsDeleted.add(d.id); ops++; } });
+        }
+
+        if (data && data.invoiceNumber) {
+          const q3 = await db.collection("orders").where("invoiceNumber", "==", data.invoiceNumber).get();
+          q3.forEach(d => { if (!orderIdsDeleted.has(d.id)) { batch.delete(d.ref); orderIdsDeleted.add(d.id); ops++; } });
+        }
+
+        // احذف الـ reservation نفسه
+        batch.delete(resRef);
+        ops++;
+
+        // إذا اقتربنا من حد 500 عملية في الباتش ن Commit ثم نبدأ باتش جديد
+        if (ops >= 400) await flushBatch();
+      }
+
+      // نفذ الباتش المتبقي
+      await flushBatch();
+
+      Swal.fire('✅ تم الحذف', `تم حذف جميع الفواتير وتم حذف ${orderIdsDeleted.size} أمر مرتبط.`, 'success');
+      fetchReservations();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('❌ خطأ', 'فشل حذف جميع الفواتير أو الأوامر المرتبطة', 'error');
+    }
+  });
+}
+  function downloadPDF() {
+    const el = document.getElementById("printSection");
+    if (!el) {
+      Swal.fire({
+        icon: 'error',
+        title: '❌ خطأ',
+        text: 'لم يتم العثور على محتوى للتحميل'
+      });
+      return;
+    }
+    
+    const statusDiv = document.getElementById('status');
+    if (statusDiv) statusDiv.textContent = "⏳ جاري تحضير ملف PDF...";
+    
+    try {
+      html2pdf().set({
+        margin: 10,
+        filename: `فواتير-الحجوزات_${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      }).from(el).save().then(() => {
+        if (statusDiv) statusDiv.textContent = "✅ تم حفظ ملف PDF بنجاح";
+        setTimeout(() => {
+          if (statusDiv) statusDiv.textContent = `✅ تم تحميل ${allData.length} فاتورة`;
+        }, 3000);
+      });
+    } catch (error) {
+      console.error('خطأ في إنشاء ملف PDF:', error);
+      if (statusDiv) statusDiv.textContent = "❌ فشل حفظ ملف PDF";
+      Swal.fire({
+        icon: 'error',
+        title: '❌ خطأ',
+        text: 'فشل حفظ ملف PDF. يرجى المحاولة مرة أخرى'
+      });
+    }
+  }
+
+  function calculateMonthlySales() {
+    const month = document.getElementById("monthInput").value;
+    if (!month) {
+      document.getElementById("reportResult").textContent = "⚠️ يرجى اختيار شهر أولاً";
+      return;
+    }
+
+    const [year, monthNumber] = month.split("-");
+    const monthName = new Date(year, monthNumber - 1).toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+    
+    const filteredData = allData.filter(d => {
+      const date = new Date(d.deliveryDate || d.orderDate || "");
+      return (
+        date.getFullYear().toString() === year &&
+        (date.getMonth() + 1).toString().padStart(2, "0") === monthNumber
+      );
+    });
+    
+    const total = filteredData.reduce((sum, d) => sum + (d.total || 0), 0);
+    const paid = filteredData.reduce((sum, d) => sum + (d.paid || 0), 0);
+    const remaining = total - paid;
+    const invoiceCount = filteredData.length;
+    
+    const reportResult = document.getElementById("reportResult");
+    reportResult.innerHTML = `
+      <div style="margin-bottom: 10px;"><strong>📅 شهر:</strong> ${monthName}</div>
+      <div style="margin-bottom: 10px;"><strong>📊 عدد الفواتير:</strong> ${invoiceCount}</div>
+      <div style="margin-bottom: 10px;"><strong>💰 الإجمالي:</strong> ${formatNumber(total)} جنيه</div>
+      <div style="margin-bottom: 10px;"><strong>💵 المدفوع:</strong> ${formatNumber(paid)} جنيه</div>
+      <div><strong>🔁 المتبقي:</strong> ${formatNumber(remaining)} جنيه</div>
+    `;
+  }
+
+  function calculateTotalSales() {
+    const total = allData.reduce((sum, d) => sum + (d.total || 0), 0);
+    document.getElementById("reportResult").textContent = `📊 إجمالي المبيعات الكلية: ${total.toFixed(2)} جنيه`;
+  }
+
+  fetchReservations();
+</script>
+</body>
+</html>

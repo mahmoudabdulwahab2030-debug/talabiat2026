@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>استعلام عن التقارير</title>
+    <link href="style.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Cairo:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+    body {
+        background: #18191a;
+        color: #f1f1f1;
+        font-family: 'Cairo', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        transition: background 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    .container {
+        background: #242526;
+        margin: 0 auto;
+        padding: 30px 18px;
+        border-radius: 18px;
+        max-width: 100vw;
+        width: 100vw;
+        box-shadow: 0 2px 24px 0 #000a, 0 0px 0px 0 #0000;
+        transition: box-shadow 0.4s cubic-bezier(.4,0,.2,1), background 0.4s;
+        animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(40px);}
+        to { opacity: 1; transform: translateY(0);}
+    }
+    .main-menu {
+        text-align: center;
+        margin-top: 120px;
+    }
+    button {
+        background: linear-gradient(90deg, #3a3b3c 60%, #23232a 100%);
+        color: #fff;
+        border: none;
+        padding: 12px 32px;
+        margin: 10px;
+        border-radius: 10px;
+        font-size: 1.2em;
+        cursor: pointer;
+        box-shadow: 0 2px 12px #0004;
+        transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(.4,0,.2,1);
+        will-change: background, color, box-shadow, transform;
+        outline: none;
+    }
+    button:hover, button:focus {
+        background: linear-gradient(90deg, #ffb300 60%, #ff1744 100%);
+        color: #18191a;
+        box-shadow: 0 8px 32px #ffb30044, 0 2px 12px #0004;
+        transform: translateY(-2px) scale(1.04) rotate(-1deg);
+    }
+    input, select {
+        background: #18191a;
+        color: #fff;
+        border: 1px solid #888;
+        border-radius: 6px;
+        padding: 6px 10px;
+        margin: 4px;
+        transition: border 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus {
+        outline: 2px solid #ffb300;
+        border-color: #ffb300;
+        box-shadow: 0 0 8px #ffb30044;
+    }
+    input[type="date"], input[type="number"] {
+        background: #2d2d2d;
+        color: #fff700;
+    }
+    input[type="text"] {
+        background: #23272b;
+        color: #fff;
+    }
+    input[type="checkbox"] {
+        accent-color: #ff1744;
+    }
+    table {
+        width: 98vw;
+        min-width: 900px;
+        max-width: 99vw;
+        margin: 20px auto;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #23232a;
+        border-radius: 16px;
+        overflow: auto;
+        box-shadow: 0 4px 32px #0008;
+        table-layout: auto;
+        animation: fadeInTable 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInTable {
+        from { opacity: 0; transform: scale(0.98);}
+        to { opacity: 1; transform: scale(1);}
+    }
+    th, td {
+        border: 1px solid #444;
+        padding: 14px 12px;
+        text-align: center;
+        vertical-align: middle;
+        white-space: pre-line;
+        word-break: break-word;
+        font-size: 1.08em;
+        transition: background 0.25s, color 0.25s;
+        min-width: 120px;
+        max-width: 600px;
+    }
+    th {
+        background: linear-gradient(90deg, #333 60%, #23232a 100%);
+        color: #ffb300;
+        font-weight: bold;
+        font-size: 1.1em;
+        border-bottom: 2.5px solid #ffb300;
+        letter-spacing: 0.5px;
+        transition: background 0.25s, color 0.25s;
+    }
+    tr {
+        transition: background 0.25s;
+    }
+    tr:nth-child(even) {
+        background: #292929;
+    }
+    tr:nth-child(odd) {
+        background: #23272b;
+    }
+    tr:hover td {
+        background: #18191a;
+        color: #ffb300;
+        transition: background 0.25s, color 0.25s;
+    }
+    .form-row {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .actions {
+        margin-top: 20px;
+        text-align: left;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .alert {
+        background: #ff1744;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        display: none;
+        animation: fadeInUp 0.5s;
+    }
+    ::-webkit-input-placeholder { color: #bdbdbd; }
+    ::-moz-placeholder { color: #bdbdbd; }
+    :-ms-input-placeholder { color: #bdbdbd; }
+    ::placeholder { color: #bdbdbd; }
+
+    @media (max-width: 1200px) {
+        .container {
+            max-width: 100vw;
+            padding: 8px;
+        }
+        table {
+            min-width: 700px;
+            font-size: 0.98em;
+        }
+        th, td {
+            min-width: 80px;
+            font-size: 0.98em;
+        }
+    }
+    @media (max-width: 900px) {
+        .container {
+            padding: 4px;
+        }
+        table {
+            min-width: 500px;
+            font-size: 0.92em;
+        }
+        th, td {
+            min-width: 60px;
+            font-size: 0.92em;
+            padding: 8px 4px;
+        }
+    }
+    @media (max-width: 700px) {
+        .container {
+            padding: 2px;
+            margin: 0;
+            max-width: 100vw;
+        }
+        table, th, td {
+            font-size: 12px;
+        }
+        table {
+            min-width: 320px;
+            width: 99vw;
+        }
+        .form-row {
+            flex-direction: column;
+            gap: 12px;
+            align-items: stretch;
+        }
+        button {
+            width: 100%;
+            font-size: 1em;
+        }
+        .actions {
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+        }
+    }
+    @media print {
+        body, .container {
+            background: #fff !important;
+            color: #000 !important;
+        }
+        .container {
+            box-shadow: none !important;
+        }
+        table, th, td {
+            background: #fff !important;
+            color: #000 !important;
+            border-color: #000 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        button, .actions, .alert, input, select {
+            display: none !important;
+        }
+        a, h2, h1 {
+            color: #000 !important;
+        }
+    }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>استعلام عن التقارير</h2>
+        <div class="form-row">
+            <label>التاريخ: <input type="date" id="query-date" required></label>
+            <button id="show-reports">عرض التقارير</button>
+        </div>
+        <div id="reports-container"></div>
+        <div class="actions" style="display:none;" id="actions-bar">
+            <button type="button" onclick="window.print()">طباعة</button>
+            <button type="button" id="share-image-btn">مشاركة كصورة</button>
+            <button type="button" id="download-pdf-btn">تحميل PDF</button>
+        </div>
+    </div>
+    <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    document.getElementById("show-reports").onclick = async function() {
+        const date = document.getElementById("query-date").value;
+        if (!date) return;
+        const container = document.getElementById("reports-container");
+        container.innerHTML = "جاري التحميل...";
+        const snapshot = await db.collection("reports").where("report_date", "==", date).orderBy("report_number").get();
+        if (snapshot.empty) {
+            container.innerHTML = "<div>لا توجد تقارير لهذا التاريخ.</div>";
+            document.getElementById("actions-bar").style.display = "none";
+            return;
+        }
+        let html = `<table id="reports-table">
+            <thead>
+                <tr>
+                    <th>رقم التقرير</th>
+                    <th>التاريخ</th>
+                    <th>الملاحظة</th>
+                    <th>القسم</th>
+                    <th>القسم (أخرى)</th>
+                    <th>الإجراء المتخذ</th>
+                    <th>تم التصحيح</th>
+                    <th>لم يتم التصحيح</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        snapshot.forEach(doc => {
+            const r = doc.data();
+            html += `<tr>
+                <td>${r.report_number}</td>
+                <td>${r.report_date}</td>
+                <td>${r.note}</td>
+                <td>${r.department}</td>
+                <td>${r.department_other}</td>
+                <td>${r.action}</td>
+                <td>${r.corrected ? "✔" : "✖"}</td>
+                <td>${r.not_corrected ? "✔" : "✖"}</td>
+            </tr>`;
+        });
+        html += "</tbody></table>";
+        container.innerHTML = html;
+        document.getElementById("actions-bar").style.display = "block";
+    };
+
+    // مشاركة كصورة
+    document.getElementById("share-image-btn").onclick = async function() {
+        const table = document.getElementById("reports-table");
+        if (!table) return Swal.fire('لا يوجد جدول للمشاركة');
+        html2canvas(table).then(canvas => {
+            canvas.toBlob(blob => {
+                if (navigator.canShare && navigator.canShare({ files: [new File([blob], "table.png", {type: blob.type})] })) {
+                    const file = new File([blob], "table.png", {type: blob.type});
+                    navigator.share({
+                        files: [file],
+                        title: 'تقرير يومي',
+                        text: 'تقرير يومي من النظام'
+                    });
+                } else {
+                    // fallback: download image
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "table.png";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    Swal.fire('تم تحميل الصورة، يمكنك مشاركتها يدوياً.');
+                }
+            });
+        });
+    };
+
+    // تحميل PDF
+    document.getElementById("download-pdf-btn").onclick = async function() {
+        const table = document.getElementById("reports-table");
+        if (!table) return Swal.fire('لا يوجد جدول للتحميل');
+        html2canvas(table).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new window.jspdf.jsPDF({
+                orientation: 'landscape',
+                unit: 'pt',
+                format: 'a4'
+            });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = pageWidth - 40;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight > pageHeight-40 ? pageHeight-40 : imgHeight);
+            pdf.save("report.pdf");
+        });
+    };
+    </script>
+</body>
+</html>

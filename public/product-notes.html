@@ -1,0 +1,351 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>ملاحظات الأصناف - LE DOUX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+  <style>
+    :root{
+      --bg: #0f0f10;
+      --panel: #121212;
+      --muted: #a8b0b6;
+      --text: #e6e6e6;
+      --accent: #ffd166;
+      --accent-2: #f0ad4e;
+      --primary: #ffd166;
+      --secondary: #28343a;
+      --danger: #ef476f;
+      --ghost-border: rgba(255,255,255,0.06);
+      --radius: 10px;
+      --glass: rgba(255,255,255,0.03);
+    }
+
+    html,body{height:100%}
+    body {
+      background: linear-gradient(180deg,#0b0b0b 0%, #121212 60%);
+      color: var(--text);
+      font-family: "Cairo", sans-serif;
+      margin: 12px;
+      direction: rtl;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.45;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    h2{
+      color:var(--accent);
+      margin:0 0 14px 0;
+      text-align:center;
+      font-size:22px;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+    }
+
+    .container{
+      max-width:1280px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    .controls{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+    .controls .row{ display:flex; gap:12px; align-items:center; width:100%; }
+    .controls .row .field{ display:flex; gap:8px; align-items:center; flex:1; min-width:150px; }
+    .controls label{ min-width:120px; color:var(--muted); font-weight:700; font-size:14px; }
+    input[type="text"], select{
+      background: linear-gradient(180deg,var(--panel), #101010);
+      color:var(--text);
+      border:1px solid var(--ghost-border);
+      padding:8px 10px;
+      border-radius:8px;
+      width:100%;
+      box-sizing:border-box;
+      outline: none;
+      transition: box-shadow .12s, transform .08s;
+    }
+    input[type="text"]:focus, select:focus{
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08);
+      transform: translateY(-1px);
+    }
+
+    .btn{
+      background:var(--secondary);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,0.04);
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:0.6px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .btn:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+    .btn:active{ transform: translateY(0); box-shadow:none; }
+    .btn.primary{ background: linear-gradient(180deg,var(--primary), var(--accent-2)); color:#000; border-color: rgba(0,0,0,0.25); }
+
+    .table-wrap{ overflow:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.18)); padding:10px; }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      color:var(--text);
+      font-size:14px;
+      min-width:700px;
+      table-layout: auto;
+    }
+
+    thead th{
+      background: linear-gradient(180deg,#151515,#0f0f0f);
+      color:var(--accent);
+      padding:12px 10px;
+      text-align:center;
+      border:1px solid rgba(255,255,255,0.06);
+      position:sticky;
+      top:0;
+      z-index:3;
+    }
+    tbody td{
+      padding:10px 8px;
+      border:1px solid rgba(255,255,255,0.04);
+      text-align:center;
+      vertical-align:middle;
+      background: transparent;
+      word-break:break-word;
+    }
+    tbody tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }
+    tbody tr:hover td{ background: rgba(240,173,78,0.06); }
+
+    #status{ margin-top:6px; color:var(--muted); font-weight:700; text-align:center; }
+    #resultArea{ margin-top:16px; }
+
+    .note-cell {
+      max-width: 300px;
+      text-align: right;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .empty-note {
+      color: var(--muted);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h2>📝 ملاحظات الأصناف - LE DOUX</h2>
+  <div class="container">
+    <div class="controls">
+      <div class="row">
+        <div class="field">
+          <label for="sheetSelector">🧾 القسم:</label>
+          <select id="sheetSelector">
+            <option value="">— اختر القسم —</option>
+          </select>
+        </div>
+        <div class="field">
+          <button class="btn primary" onclick="loadNotes()">🔍 عرض الملاحظات</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="status"></div>
+    <div id="resultArea"></div>
+  </div>
+
+  <script>
+    // إعداد Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZbKjJ9hF0vQ8l5K3pJ8nM1oP2qR4sT5u",
+      authDomain: "ledoux-orders.firebaseapp.com",
+      projectId: "ledoux-orders",
+      storageBucket: "ledoux-orders.appspot.com",
+      messagingSenderId: "123456789012",
+      appId: "1:123456789012:web:abcdef123456"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // إعداد Toastr
+    if (typeof toastr !== 'undefined') {
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": false,
+        "positionClass": "toast-bottom-left",
+        "preventDuplicates": true,
+        "onclick": null,
+        "showDuration": "200",
+        "hideDuration": "300",
+        "timeOut": "4000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      };
+    }
+
+    let allData = [];
+
+    async function fetchData() {
+      const selector = document.getElementById("sheetSelector");
+      try {
+        if (selector) {
+          selector.disabled = true;
+          selector.innerHTML = '<option value="">— جاري التحميل —</option>';
+        }
+      } catch(e) {}
+
+      try {
+        const snap = await db.collection("orders").get();
+        allData = [];
+        snap.forEach(doc => {
+          const d = doc.data();
+          // تجاهل السجلات الموسومة كمحذوفة
+          if (d && d.isDeleted) return;
+          if ((d.name && d.sheet) && (d.orderDate || d.deliveryDate)) {
+            allData.push({ ...d, id: doc.id });
+          }
+        });
+
+        const sheets = [...new Set(allData.map(d => d.sheet).filter(s => s && s !== "main"))].sort();
+        selector.innerHTML = '<option value="ALL">— كل الأقسام —</option><option disabled selected>— اختر القسم —</option>';
+        sheets.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s;
+          opt.textContent = s;
+          selector.appendChild(opt);
+        });
+
+        try {
+          if (selector) {
+            selector.disabled = false;
+          }
+          document.getElementById("status").textContent = "✅ تم التحميل بنجاح";
+        } catch(e) {}
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        document.getElementById("status").textContent = "❌ حدث خطأ أثناء تحميل البيانات";
+        if (typeof toastr !== 'undefined') {
+          toastr.error('حدث خطأ أثناء تحميل البيانات');
+        }
+      }
+    }
+
+    function escapeHtml(text){
+      if (!text) return '';
+      return String(text).replace(/[&<>"']/g, function(c){ 
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; 
+      });
+    }
+
+    function loadNotes() {
+      const sheet = document.getElementById("sheetSelector").value;
+      if (!sheet) {
+        document.getElementById("status").textContent = "⚠️ يرجى اختيار القسم أولاً.";
+        return;
+      }
+
+      // تصفية البيانات حسب القسم المحدد
+      const filtered = allData.filter(d => sheet === 'ALL' || d.sheet === sheet);
+
+      if (filtered.length === 0) {
+        document.getElementById("resultArea").innerHTML = "";
+        document.getElementById("status").textContent = "⚠️ لا توجد بيانات لهذا القسم.";
+        return;
+      }
+
+      // تجميع الملاحظات حسب الصنف
+      const notesMap = {};
+      filtered.forEach(d => {
+        const key = String(d.code || d.name || '').trim().toLowerCase();
+        if (!notesMap[key]) {
+          notesMap[key] = {
+            code: d.code || '',
+            name: d.name || '',
+            notes: []
+          };
+        }
+
+        // إضافة الملاحظات إذا وجدت
+        if (d.note && d.note.trim()) {
+          notesMap[key].notes.push({
+            note: d.note.trim(),
+            date: d.orderDate || d.deliveryDate || '',
+            branch: d.branch || ''
+          });
+        }
+      });
+
+      // تحويل الخريطة إلى مصفوفة
+      const notesArray = Object.values(notesMap).filter(item => item.notes.length > 0);
+
+      if (notesArray.length === 0) {
+        document.getElementById("resultArea").innerHTML = "";
+        document.getElementById("status").textContent = "⚠️ لا توجد ملاحظات لهذا القسم.";
+        return;
+      }
+
+      // إنشاء الجدول
+      let html = `<div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>🔢 الكود</th>
+              <th>📦 الصنف</th>
+              <th>📝 الملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      notesArray.forEach(item => {
+        // ترتيب الملاحظات حسب التاريخ (الأحدث أولاً)
+        item.notes.sort((a, b) => {
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(b.date) - new Date(a.date);
+        });
+
+        // إنشاء HTML للملاحظات
+        const notesHtml = item.notes.map(n => {
+          const dateStr = n.date ? `<span style="color:var(--accent);font-size:12px;">(${n.date})</span>` : '';
+          const branchStr = n.branch ? `<span style="color:#ff6b6b;font-size:12px;">[${n.branch}]</span>` : '';
+          return `<div style="margin-bottom:6px;padding:6px;background:rgba(255,255,255,0.03);border-radius:4px;">
+            ${escapeHtml(n.note)} ${dateStr} ${branchStr}
+          </div>`;
+        }).join('');
+
+        html += `<tr>
+          <td>${escapeHtml(item.code)}</td>
+          <td>${escapeHtml(item.name)}</td>
+          <td class="note-cell">${notesHtml}</td>
+        </tr>`;
+      });
+
+      html += `</tbody></table></div>`;
+
+      document.getElementById("resultArea").innerHTML = html;
+      document.getElementById("status").textContent = `✅ تم عرض ${notesArray.length} صنف بملاحظات`;
+    }
+
+    // تحميل البيانات عند تشغيل الصفحة
+    fetchData();
+  </script>
+</body>
+</html>

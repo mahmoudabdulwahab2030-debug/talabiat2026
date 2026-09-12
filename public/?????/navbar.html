@@ -1,0 +1,82 @@
+<nav class="navbar navbar-expand-lg navbar-white bg-white border-bottom mb-4">
+    <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="home.html">نظام المخازن</a>
+            <button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-expanded="false">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse" id="mainNav">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="LO7ETTA7KOM.html">لوحة التحكم</a></li>
+                    <li class="nav-item"><a class="nav-link" href="products.html">الأصناف</a></li>
+                    <li class="nav-item"><a class="nav-link" href="add-product.html">إضافة صنف</a></li>
+                    <li class="nav-item"><a class="nav-link" href="stock-in.html">وارد</a></li>
+                    <li class="nav-item"><a class="nav-link" href="issue-note.html">أذن صرف</a></li>
+                    <li class="nav-item"><a class="nav-link" href="requisition-requests.html">طلب صرف</a></li>
+                    <li class="nav-item"><a class="nav-link" href="purchase-requests.html">طلب شراء</a></li>
+                    <li class="nav-item"><a class="nav-link" href="purchase-requests-list.html">طلبات الشراء</a></li>
+                    <li class="nav-item"><a class="nav-link" href="suppliers.html">الموردين</a></li>
+                    <li class="nav-item"><a class="nav-link" href="reports.html">التقارير</a></li>
+                    <li class="nav-item"><a class="nav-link" href="inventory-audit.html">جرد</a></li>
+                    <li class="nav-item"><a class="nav-link" href="inventory-reconcile.html">تسوية جردية</a></li>
+                    <li class="nav-item"><a class="nav-link" href="transfers.html">تحويلات</a></li>
+                    <li class="nav-item"><a class="nav-link" href="admin.html">الأدمن</a></li>
+
+                    <li class="nav-item d-flex align-items-center">
+            <button id="themeToggle" class="btn btn-sm btn-outline-light ms-2" title="تبديل الثيم"><i class="bi bi-sun-fill"></i></button>
+          </li>
+                                        <li class="nav-item position-relative d-flex align-items-center">
+                                            <button id="navUserBtn" class="btn btn-sm btn-outline-secondary ms-2" title="المستخدم" aria-haspopup="true" aria-expanded="false"><i class="bi bi-person-circle"></i></button>
+                                            <div id="navUserMenu" style="display:none;position:absolute;right:8px;top:48px;min-width:200px;background:#fff;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 12px 30px rgba(15,23,42,0.06);z-index:1050" role="menu" aria-hidden="true">
+                                                <button type="button" id="navUserNameBtn" data-menu-first class="btn btn-sm btn-light w-100 text-end" role="menuitem">المستخدم: <strong id="navUserName">-</strong></button>
+                                                <div class="mt-2 text-end"><button id="navLogoutBtn" class="btn btn-sm btn-outline-danger" role="menuitem">تسجيل خروج</button></div>
+                                            </div>
+                                        </li>
+        </ul>
+            </div>
+        </div>
+</nav>
+<script>
+    (function(){
+        function setupNavUser(){
+            const navUserBtn = document.getElementById('navUserBtn');
+            const navUserMenu = document.getElementById('navUserMenu');
+            const navLogout = document.getElementById('navLogoutBtn');
+            const navUserName = document.getElementById('navUserName');
+            const navUserNameBtn = document.getElementById('navUserNameBtn');
+            const stored = localStorage.getItem('stock_loggedUser');
+            if(navUserName) navUserName.textContent = stored ? stored.split(/\s+/)[0] : '-';
+            if(!navUserBtn || !navUserMenu) return;
+
+            function isOpen(){ return navUserMenu.style.display === 'block'; }
+            function openMenu(open){
+                const will = typeof open === 'boolean' ? open : !isOpen();
+                navUserMenu.style.display = will ? 'block' : 'none';
+                navUserMenu.setAttribute('aria-hidden', will ? 'false' : 'true');
+                navUserBtn.setAttribute('aria-expanded', will ? 'true' : 'false');
+                if(will){
+                    // focus first item for keyboard
+                    if(navUserNameBtn) navUserNameBtn.focus();
+                }
+            }
+
+            navUserBtn.addEventListener('click', function(e){ e.stopPropagation(); openMenu(); });
+            // close when clicking outside
+            document.addEventListener('click', function(){ openMenu(false); });
+            // keyboard support
+            document.addEventListener('keydown', function(e){ if(e.key === 'Escape') openMenu(false); });
+
+            // clicking username just closes menu (acts as first option)
+            if(navUserNameBtn) navUserNameBtn.addEventListener('click', function(e){ e.stopPropagation(); openMenu(false); });
+
+            if(navLogout) navLogout.addEventListener('click', function(){
+                try{ if (window.activityLogger) activityLogger.logActivity('logout', location.pathname, {}); } catch(e){}
+                localStorage.removeItem('stock_loggedUser');
+                if(navUserName) navUserName.textContent = '-';
+                if(navUserMenu) navUserMenu.style.display = 'none';
+            });
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupNavUser);
+        else setupNavUser();
+    })();
+</script>

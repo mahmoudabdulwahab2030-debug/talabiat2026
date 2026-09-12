@@ -1,0 +1,19 @@
+// Example Firestore rules for the stock app. Review and adapt before deployment.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read for authenticated users, restrict writes to admins
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        // example check: user doc has role == 'admin'
+        exists(/databases/$(database)/documents/stock_users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/stock_users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Example: enforce quantity non-negative for movements collection
+    match /stock_movements/{mov} {
+      allow create: if request.auth != null && request.resource.data.quantity is number && request.resource.data.quantity >= 0;
+    }
+  }
+}

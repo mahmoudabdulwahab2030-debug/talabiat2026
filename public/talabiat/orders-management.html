@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الطلبيات</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      --bg: #111421;
+      --panel: rgba(20, 26, 46, 0.92);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f3f4f8;
+      --muted: #9aa3bf;
+      --accent: #ffd166;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      --radius: 24px;
+      --transition: 260ms ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top left, rgba(255, 209, 102, 0.08), transparent 18%),
+                  radial-gradient(circle at bottom right, rgba(102, 187, 255, 0.06), transparent 20%),
+                  linear-gradient(180deg, #0d1020 0%, #13182e 55%, #0b0f1f 100%);
+      color: var(--text);
+      direction: rtl;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 8px 4px 16px;
+    }
+
+    .page-shell {
+      width: 100%;
+      padding: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+      overflow: hidden;
+      padding: 16px 12px;
+    }
+
+    h2 {
+      font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+      margin: 0 0 16px;
+      text-align: center;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(255, 209, 102, 0.22);
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+
+    .form-group select,
+    .form-group input {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .form-group select:hover,
+    .form-group input:hover {
+      border-color: rgba(255, 209, 102, 0.22);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.1);
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.24), rgba(255, 255, 255, 0.06));
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: all var(--transition);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.35), rgba(255, 255, 255, 0.12));
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      max-height: 600px;
+      overflow-y: auto;
+      display: block;
+    }
+
+    .orders-table thead {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 1;
+    }
+
+    .orders-table tbody {
+      display: block;
+    }
+
+    .orders-table tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .orders-table th {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 12px 8px;
+      text-align: right;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 2px solid rgba(255, 209, 102, 0.2);
+      font-size: 0.9rem;
+    }
+
+    .orders-table td {
+      padding: 12px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 0.9rem;
+    }
+
+    .orders-table tr:hover td {
+      background: rgba(255, 209, 102, 0.05);
+    }
+
+    .action-btn {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all var(--transition);
+      margin-left: 4px;
+    }
+
+    .view-btn {
+      background: rgba(102, 187, 255, 0.18);
+      color: #66bbff;
+    }
+
+    .view-btn:hover {
+      background: rgba(102, 187, 255, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .delete-btn {
+      background: rgba(255, 92, 92, 0.18);
+      color: #ff5c5c;
+    }
+
+    .delete-btn:hover {
+      background: rgba(255, 92, 92, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .empty-message {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .status-message {
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .status-message.visible {
+      display: block;
+    }
+
+    .status-message.success {
+      background: rgba(76, 185, 120, 0.15);
+      color: #4cb978;
+      border: 1px solid rgba(76, 185, 120, 0.3);
+    }
+
+    .status-message.error {
+      background: rgba(255, 92, 92, 0.15);
+      color: #ff5c5c;
+      border: 1px solid rgba(255, 92, 92, 0.3);
+    }
+
+    .status-message.loading {
+      background: rgba(255, 209, 102, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(255, 209, 102, 0.3);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-spinner::before {
+      content: '⏳';
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 8px;
+    }
+
+    .order-details-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all var(--transition);
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .order-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .items-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .items-list table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .items-list th,
+    .items-list td {
+      padding: 8px 6px;
+      text-align: right;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .items-list th {
+      background: rgba(255, 209, 102, 0.1);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(255, 209, 102, 0.05);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 209, 102, 0.15);
+    }
+
+    @media (max-width: 768px) {
+      .page-shell {
+        width: 100%;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .orders-table {
+        font-size: 0.8rem;
+      }
+
+      .orders-table th,
+      .orders-table td {
+        padding: 8px 6px;
+      }
+
+      .modal-content {
+        width: 95%;
+        padding: 16px;
+      }
+
+      .order-info {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="panel">
+      <h2>📋 إدارة الطلبيات</h2>
+
+      <div class="filters-grid">
+        <div class="form-group">
+          <label for="branchFilter">🏢 الفرع</label>
+          <select id="branchFilter">
+            <option value="">جميع الفروع</option>
+            <option value="dokki">فرع الدقي</option>
+            <option value="obour">فرع العبور</option>
+            <option value="tagamo3">فرع التجمع</option>
+            <option value="korba">فرع القربة</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="dateFilter">📅 التاريخ</label>
+          <input type="date" id="dateFilter">
+        </div>
+
+        <div class="form-group">
+          <label for="sectionFilter">📂 القسم</label>
+          <select id="sectionFilter">
+            <option value="">جميع الأقسام</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="searchFilter">🔍 البحث</label>
+          <input type="text" id="searchFilter" placeholder="ابحث في الطلبيات...">
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button onclick="loadOrders()">🔄 تحديث</button>
+        <button onclick="clearFilters()">🗑️ مسح الفلاتر</button>
+        <button onclick="exportOrders()">📊 تصدير</button>
+      </div>
+
+      <div id="statusMessage" class="status-message"></div>
+
+      <div id="ordersContainer">
+        <table class="orders-table" id="ordersTable" style="display: none;">
+          <thead>
+            <tr>
+              <th>الإجراءات</th>
+              <th>الإجمالي</th>
+              <th>القطع</th>
+              <th>الأصناف</th>
+              <th>القسم</th>
+              <th>التاريخ</th>
+              <th>الفرع</th>
+              <th>الرقم</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+        <div id="emptyMessage" class="empty-message">
+          جاري تحميل الطلبيات...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Details Modal -->
+  <div id="orderDetailsModal" class="order-details-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">تفاصيل الطلبية</h3>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+
+      <div id="orderDetailsContent">
+        <!-- Order details will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Global state
+    let allOrders = [];
+    let filteredOrders = [];
+    let sections = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSections();
+      loadOrders();
+
+      // Add event listeners for filters
+      document.getElementById('branchFilter').addEventListener('change', applyFilters);
+      document.getElementById('dateFilter').addEventListener('change', applyFilters);
+      document.getElementById('sectionFilter').addEventListener('change', applyFilters);
+      document.getElementById('searchFilter').addEventListener('input', applyFilters);
+    });
+
+    // Load sections for filter
+    async function loadSections() {
+      try {
+        const snap = await db.collection("catalog").get();
+        const sectionSelect = document.getElementById('sectionFilter');
+        sections = [];
+
+        snap.forEach(doc => {
+          sections.push(doc.id);
+          const option = document.createElement('option');
+          option.value = doc.id;
+          option.textContent = doc.id;
+          sectionSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading sections:', error);
+      }
+    }
+
+    // Load orders from Firestore
+    async function loadOrders() {
+      showStatus('جاري تحميل الطلبيات...', 'loading');
+      try {
+        const snap = await db.collection('orders').orderBy('createdAt', 'desc').get();
+        allOrders = [];
+
+        snap.forEach(doc => {
+          const data = doc.data();
+          allOrders.push({
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt)
+          });
+        });
+
+        showStatus('تم تحميل الطلبيات بنجاح ✅', 'success');
+        applyFilters();
+      } catch (error) {
+        showStatus('خطأ في تحميل الطلبيات: ' + error.message, 'error');
+      }
+    }
+
+    // Apply filters
+    function applyFilters() {
+      const branchFilter = document.getElementById('branchFilter').value;
+      const dateFilter = document.getElementById('dateFilter').value;
+      const sectionFilter = document.getElementById('sectionFilter').value;
+      const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+
+      filteredOrders = allOrders.filter(order => {
+        if (branchFilter && order.branch !== branchFilter) return false;
+        if (dateFilter && order.date !== dateFilter) return false;
+        if (sectionFilter && order.section !== sectionFilter) return false;
+        if (searchFilter) {
+          const searchText = `${order.id} ${order.branch} ${order.section} ${order.items.map(i => i.name).join(' ')}`.toLowerCase();
+          if (!searchText.includes(searchFilter)) return false;
+        }
+        return true;
+      });
+
+      displayOrders();
+    }
+
+    // Display orders
+    function displayOrders() {
+      const table = document.getElementById('ordersTable');
+      const tbody = document.getElementById('ordersBody');
+      const container = document.getElementById('ordersContainer');
+      const emptyMessage = document.getElementById('emptyMessage');
+
+      if (filteredOrders.length === 0) {
+        table.style.display = 'none';
+        emptyMessage.style.display = 'block';
+        emptyMessage.textContent = 'لا توجد طلبيات مطابقة للفلاتر المحددة';
+        return;
+      }
+
+      table.style.display = 'block';
+      emptyMessage.style.display = 'none';
+
+      tbody.innerHTML = '';
+
+      filteredOrders.forEach(order => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>
+            <button class="action-btn view-btn" onclick="viewOrder('${order.id}')">👁️ عرض</button>
+            <button class="action-btn delete-btn" onclick="deleteOrder('${order.id}')">🗑️ حذف</button>
+          </td>
+          <td>${order.totalPrice?.toFixed(2) || '0.00'}</td>
+          <td>${order.totalQty || 0}</td>
+          <td>${order.totalItems || 0}</td>
+          <td>${order.section}</td>
+          <td>${order.date}</td>
+          <td>${getBranchName(order.branch)}</td>
+          <td>${order.id.split('_')[2] || order.id}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Get branch display name
+    function getBranchName(branch) {
+      const branchNames = {
+        'dokki': 'الدقي',
+        'obour': 'العبور',
+        'tagamo3': 'التجمع',
+        'korba': 'القربة'
+      };
+      return branchNames[branch] || branch;
+    }
+
+    // View order details
+    function viewOrder(orderId) {
+      const order = allOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const modal = document.getElementById('orderDetailsModal');
+      const content = document.getElementById('orderDetailsContent');
+
+      content.innerHTML = `
+        <div class="order-info">
+          <div class="info-item">
+            <div class="info-label">رقم الطلبية</div>
+            <div class="info-value">${order.id.split('_')[2] || order.id}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">الفرع</div>
+            <div class="info-value">${getBranchName(order.branch)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">التاريخ</div>
+            <div class="info-value">${order.date}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">القسم</div>
+            <div class="info-value">${order.section}</div>
+          </div>
+        </div>
+
+        <div class="items-list">
+          <h4 style="color: var(--accent); margin-bottom: 12px;">الأصناف المطلوبة</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>الإجمالي</th>
+                <th>السعر</th>
+                <th>الكمية</th>
+                <th>الصنف</th>
+                <th>الرمز</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.items.map(item => `
+                <tr>
+                  <td>${(item.price * item.qty).toFixed(2)}</td>
+                  <td>${item.price.toFixed(2)}</td>
+                  <td>${item.qty}</td>
+                  <td>${item.name}</td>
+                  <td>${item.code}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="summary-grid">
+          <div class="info-item">
+            <div class="info-label">عدد الأصناف</div>
+            <div class="info-value">${order.totalItems || order.items.length}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">إجمالي القطع</div>
+            <div class="info-value">${order.totalQty || order.items.reduce((sum, i) => sum + i.qty, 0)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">الإجمالي</div>
+            <div class="info-value">${order.totalPrice?.toFixed(2) || order.items.reduce((sum, i) => sum + (i.price * i.qty), 0).toFixed(2)}</div>
+          </div>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('orderDetailsModal').style.display = 'none';
+    }
+
+    // Delete order
+    async function deleteOrder(orderId) {
+      const result = await Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: 'سيتم حذف هذه الطلبية نهائياً',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff5c5c',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'نعم، احذف',
+        cancelButtonText: 'إلغاء'
+      });
+
+      if (!result.isConfirmed) return;
+
+      showStatus('جاري حذف الطلبية...', 'loading');
+
+      try {
+        await db.collection('orders').doc(orderId).delete();
+
+        // Remove from local arrays
+        allOrders = allOrders.filter(o => o.id !== orderId);
+        filteredOrders = filteredOrders.filter(o => o.id !== orderId);
+
+        displayOrders();
+        showStatus('تم حذف الطلبية بنجاح ✅', 'success');
+      } catch (error) {
+        showStatus('خطأ في حذف الطلبية: ' + error.message, 'error');
+      }
+    }
+
+    // Clear filters
+    function clearFilters() {
+      document.getElementById('branchFilter').value = '';
+      document.getElementById('dateFilter').value = '';
+      document.getElementById('sectionFilter').value = '';
+      document.getElementById('searchFilter').value = '';
+      applyFilters();
+      showStatus('تم مسح الفلاتر', 'success');
+    }
+
+    // Export orders
+    function exportOrders() {
+      if (filteredOrders.length === 0) {
+        showStatus('لا توجد طلبيات للتصدير', 'error');
+        return;
+      }
+
+      let csv = 'رقم الطلبية,الفرع,التاريخ,القسم,عدد الأصناف,إجمالي القطع,الإجمالي\n';
+
+      filteredOrders.forEach(order => {
+        csv += `${order.id.split('_')[2] || order.id},${getBranchName(order.branch)},${order.date},${order.section},${order.totalItems || order.items.length},${order.totalQty || order.items.reduce((sum, i) => sum + i.qty, 0)},${order.totalPrice?.toFixed(2) || order.items.reduce((sum, i) => sum + (i.price * i.qty), 0).toFixed(2)}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+
+      showStatus('تم تصدير الطلبيات بنجاح ✅', 'success');
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('statusMessage');
+      statusDiv.textContent = message;
+      statusDiv.className = 'status-message visible ' + type;
+
+      if (type !== 'loading') {
+        setTimeout(() => {
+          statusDiv.classList.remove('visible');
+        }, 3000);
+      }
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('orderDetailsModal').addEventListener('click', (e) => {
+      if (e.target.id === 'orderDetailsModal') {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلبات الشراء - قائمة</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+  <script src="include-navbar.js"></script>
+
+  <div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="mb-0">قائمة طلبات الشراء</h2>
+      <a class="btn btn-outline-primary" href="purchase-requests.html">إنشاء طلب شراء جديد</a>
+    </div>
+
+    <!-- Filters & Bulk Actions -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-2"><label class="form-label">من تاريخ</label><input id="filterFrom" type="date" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">إلى تاريخ</label><input id="filterTo" type="date" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">الحالة</label><select id="filterStatus" class="form-select"><option value="">الكل</option><option value="pending">قيد الانتظار</option><option value="scheduled">سيتم التوفير</option><option value="purchasing">قيد الشراء</option><option value="purchased">تم الشراء</option><option value="rejected">مرفوض</option></select></div>
+          <div class="col-md-3"><label class="form-label">المورد</label><select id="filterSupplier" class="form-select"><option value="">الكل</option></select></div>
+          <div class="col-md-3 d-flex align-items-end"><button id="filterBtn" class="btn btn-outline-primary me-2">تطبيق</button><button id="clearFilters" class="btn btn-outline-secondary">مسح</button></div>
+        </div>
+
+        <hr>
+
+        <div class="row g-2 align-items-center">
+          <div class="col-md-3">
+            <div class="input-group">
+              <label class="input-group-text">إجراء مجمّع</label>
+              <select id="bulkAction" class="form-select">
+                <option value="">اختر إجراء</option>
+                <option value="scheduled">جدولة (تحديد تاريخ)</option>
+                <option value="purchasing">قيد الشراء</option>
+                <option value="purchased">تم الشراء</option>
+                <option value="rejected">رفض</option>
+              </select>
+              <input id="bulkExpectedDate" type="date" class="form-control" title="تاريخ التوفير (اختياري)" />
+              <button id="bulkApply" class="btn btn-outline-success">تطبيق على المحدد</button>
+            </div>
+          </div>
+          <div class="col-md-9 text-end text-muted small">حدد الطلبات عبر الصندوق قبل تنفيذ الإجراء المجمّع.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle exportable-table">
+            <thead class="table-light">
+              <tr>
+                <th style="width:40px"><input type="checkbox" id="selectAll"></th>
+                <th>رقم الطلب</th>
+                <th>التاريخ</th>
+                <th>المورد</th>
+                <th>العناصر / تاريخ التوفير</th>
+                <th>الحالة</th>
+                <th style="width:260px">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="prListBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal: تفاصيل طلب الشراء (عرض مفصل ومنسق) -->
+  <div class="modal fade" id="prDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">تفاصيل طلب الشراء</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <dl class="row detail-dl">
+                <dt class="col-sm-4">رقم الطلب</dt><dd class="col-sm-8" id="detailNumber"></dd>
+                <dt class="col-sm-4">التاريخ</dt><dd class="col-sm-8" id="detailDate"></dd>
+                <dt class="col-sm-4">المورد</dt><dd class="col-sm-8" id="detailSupplier"></dd>
+                <dt class="col-sm-4">مقدم الطلب</dt><dd class="col-sm-8" id="detailCreator"></dd>
+              </dl>
+            </div>
+            <div class="col-md-6 text-end">
+              <div><strong>الحالة:</strong> <span id="detailStatus" class="badge bg-secondary"></span></div>
+              <div class="mt-2"><strong>تاريخ التوقع:</strong> <span id="detailExpected"></span></div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle detail-table exportable-table">
+              <thead class="table-light"><tr><th style="width:120px">الكود</th><th>اسم الصنف</th><th style="width:100px">الكمية</th><th style="width:250px">ملاحظات</th></tr></thead>
+              <tbody id="detailItemsBody"></tbody>
+            </table>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col text-end text-muted small">العرض فقط — غير قابل للتعديل</div>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm reject modal -->
+  <div class="modal fade" id="confirmRejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">تأكيد رفض الطلب</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>هل أنت متأكد من رفض هذا الطلب؟ بعد التأكيد، سيصبح الرفض نهائياً ولا يمكن تعديله.</p>
+          <div class="mb-3"><label class="form-label">سبب الرفض (اختياري)</label><textarea id="confirmRejectReason" class="form-control" rows="3"></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" id="confirmRejectBtn" class="btn btn-danger">تأكيد الرفض</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="app.js"></script>
+  <script src="purchase-requests-list.js"></script>
+</body>
+</html>

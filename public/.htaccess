@@ -1,0 +1,16 @@
+# Allow serving HTML files broadly (Apache)
+<IfModule mod_authz_core.c>
+  Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Allow from all
+</IfModule>
+
+# Don't allow directory listings unless explicitly enabled
+Options -Indexes
+
+# Prevent accidental exposure of .env-like files
+<FilesMatch "^\..*">
+  Require all denied
+</FilesMatch>
