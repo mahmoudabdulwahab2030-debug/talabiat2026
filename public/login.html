@@ -3,54 +3,518 @@
 <head>
   <meta charset="UTF-8" />
   <title>تسجيل الدخول</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
-    body { font-family: 'Cairo', sans-serif; text-align: center; padding: 100px 20px; background: #1b1b1b; color: white; }
-    input, button { padding: 10px; margin: 10px; border-radius: 5px; }
-    button { background-color: #8B0000; color: #FFD700; font-weight: bold; }
+    body {
+      background-color: #1a1c20;
+      color: #f1f1f1;
+      font-family: 'Cairo', sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      margin: 0;
+    }
+    h2 {
+      color: #FFD700;
+      margin-bottom: 30px;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      font-weight: 700;
+      text-shadow: 0 1px 8px #222;
+    }
+    .slider-container {
+      max-width: 320px;
+      margin: 30px auto 0 auto;
+      position: relative;
+      background: linear-gradient(120deg, #23232a 60%, #2c2c2c 100%);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(30,64,175,0.08), 0 1.5px 6px rgba(0,0,0,0.13);
+      padding: 10px 6px 18px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .slider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      background: #23232a;
+      min-height: 80px;
+      min-width: 80px;
+    }
+    .slide {
+      display: none;
+      max-width: 100%;
+      max-height: 350px;
+      border-radius: 10px;
+      opacity: 0;
+      transition: opacity 0.7s cubic-bezier(.4,0,.2,1);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+      border: 2px solid #444;
+      background: #23232a;
+    }
+    .slide.active {
+      display: block;
+      opacity: 1;
+      animation: fadeIn 0.7s;
+    }
+    .slide img {
+      display: block;
+      max-width: 100%;
+      max-height: 350px;
+      height: auto;
+      width: auto;
+      margin: auto;
+      border-radius: 10px;
+      background: #23232a;
+    }
+    .slider-dots {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .slider-dot {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin: 0 3px;
+      background: linear-gradient(135deg, #444 60%, #23232a 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+      border: 2px solid #444;
+      transition: background 0.2s, border 0.2s;
+      vertical-align: middle;
+    }
+    .slider-dot.active {
+      background: linear-gradient(135deg, #ff2a4d 60%, #b71c3b 100%);
+      border: 2px solid #ff2a4d;
+      box-shadow: 0 2px 8px rgba(255,42,77,0.18);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98);}
+      to { opacity: 1; transform: scale(1);}
+    }
+    .form-wrapper {
+      max-width: 350px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .input-container {
+      display: flex;
+      background: linear-gradient(173deg, #23272f 0%, #14161a 100%);
+      border-radius: 1rem;
+      box-shadow:
+        10px 10px 20px #0e1013,
+        -10px -10px 40px #383e4b;
+      padding: 0.3rem;
+      gap: 0.3rem;
+    }
+    .input-container input {
+      border-radius: 0.8rem;
+      background: #23272f;
+      box-shadow:
+        inset 5px 5px 10px #0e1013,
+        inset -5px -5px 10px #383e4b,
+        0px 0px 100px rgba(255, 212, 59, 0),
+        0px 0px 100px rgba(255, 102, 0, 0);
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border: 1px solid transparent;
+      color: white;
+      font-size: 16px;
+      transition: all 0.2s ease-in-out;
+    }
+    .input-container input:focus {
+      border: 1px solid #ffd43b;
+      outline: none;
+      box-shadow:
+        inset 0px 0px 10px rgba(255, 102, 0, 0.5),
+        inset 0px 0px 10px rgba(255, 212, 59, 0.5),
+        0px 0px 100px rgba(255, 212, 59, 0.5),
+        0px 0px 100px rgba(255, 102, 0, 0.5);
+    }
+    button {
+      background-color: #8B0000;
+      color: #fff;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background-color: #a30000;
+    }
+
+    /* ===== Message / Notification — animated, infographic-like badge ===== */
+    #message {
+      margin-top: 20px;
+      min-height: 44px;
+      display: inline-block;
+      padding: 10px 18px 14px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+      position: relative;
+      -webkit-text-fill-color: transparent !important; /* keep gradient text even if inline color is set */
+      color: #fff !important;
+      background: linear-gradient(90deg, #ffd86b 0%, #ff6b6b 50%, #7f5af0 100%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.02);
+      transition: transform 420ms cubic-bezier(.16,1,.3,1), opacity 260ms linear, filter 260ms;
+      opacity: 0;
+      transform: translateY(8px) scale(.98);
+      pointer-events: none; /* decorative only */
+      text-align: center;
+      letter-spacing: 0.2px;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* show and pop-in when content exists */
+    #message:not(:empty) {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      animation: popIn 640ms cubic-bezier(.16,1,.3,1);
+    }
+
+    /* decorative rotating ring (left) */
+    #message::before {
+      content: "";
+      position: absolute;
+      left: -54px;
+      top: 50%;
+      transform: translateY(-50%) rotate(0deg);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: conic-gradient(from 150deg, rgba(255,255,255,0.08), rgba(255,255,255,0));
+      box-shadow: 0 8px 20px rgba(0,0,0,0.45), 0 0 20px rgba(127,90,240,0.08) inset;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
+      animation: ring 3.6s linear infinite;
+      opacity: 0.98;
+    }
+
+    /* floating spark / particle (top-right) */
+    #message::after {
+      content: "";
+      position: absolute;
+      right: -10px;
+      top: -10px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff 0%, #ffd86b 18%, #ff7eb3 45%, transparent 55%);
+      box-shadow: 0 8px 20px rgba(255,110,110,0.12), -6px 8px 12px rgba(127,90,240,0.06);
+      animation: floaty 1800ms ease-in-out infinite;
+      opacity: 0;
+      transform-origin: center;
+    }
+
+    /* show the top-right sparkle only when there's content */
+    #message:not(:empty)::after { opacity: 1; }
+
+    /* tiny infographic bar under the message */
+    #message .infobar {
+      display: block; /* won't exist in DOM, but we keep this for future enhancement */
+    }
+
+    /* instead: animated pseudo progress bar under the badge */
+    #message[data-has-progress]::after { /* if JS later adds attribute, we can leverage it */ }
+
+    /* animated underline / progress strip (a subtle infographic) */
+    #message[data-animate-strip="true"]::after { }
+
+    /* KEYFRAMES */
+    @keyframes popIn {
+      0% { transform: translateY(8px) scale(.96); opacity: 0 }
+      60% { transform: translateY(-6px) scale(1.02); opacity: 1 }
+      100% { transform: translateY(0) scale(1) }
+    }
+    @keyframes ring {
+      0% { transform: translateY(-50%) rotate(0deg) }
+      100% { transform: translateY(-50%) rotate(360deg) }
+    }
+    @keyframes floaty {
+      0% { transform: translateY(0) scale(1) }
+      50% { transform: translateY(-6px) scale(1.08) }
+      100% { transform: translateY(0) scale(1) }
+    }
+
+    /* small responsive tweaks so the badge doesn't overflow on tiny screens */
+    @media (max-width: 600px) {
+      .slider-container {
+        max-width: 98vw;
+        margin-top: 18px;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px rgba(255,42,77,0.10);
+      }
+      .slider {
+        min-height: 60px;
+      }
+      .slide img {
+        max-height: 120px;
+      }
+      .form-wrapper {
+        max-width: 98vw;
+        gap: 14px;
+      }
+      .input-container input {
+        font-size: 15px;
+        padding: 0.7rem;
+      }
+      button {
+        font-size: 14px;
+        padding: 10px 0;
+      }
+    }
+
+    /* إزالة قواعد الزر: حذف .mobile-toggle و input الخاص بها */
+    /* الاحتفاظ بقواعد mobile-nozoom لأنها لازمة لتقليل تأثير اللمس عند التفعيل */
+    .mobile-nozoom, .mobile-nozoom body {
+      touch-action: manipulation;
+      -ms-touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+    }
   </style>
+
+  <!-- اضبط الميتا بشكل افتراضي؛ الجافاسكربت سيعدلها تلقائياً حسب حجم الشاشة -->
+  <meta name="viewport" id="mobileViewportMeta" content="width=device-width, initial-scale=1" />
 </head>
 <body>
   <h2>🔐 تسجيل الدخول</h2>
-  <input type="text" id="username" placeholder="اسم المستخدم" /><br />
-  <input type="password" id="password" placeholder="كلمة المرور" /><br />
-  <button onclick="login()">دخول</button>
+  <div class="form-wrapper">
+    <div class="input-container">
+      <input type="text" id="userCode" placeholder="كود المستخدم" />
+    </div>
+    <div class="input-container">
+      <input type="password" id="password" placeholder="كلمة المرور" />
+    </div>
+    <button onclick="login()">دخول</button>
+    <div id="message"></div>
+  </div>
+
+  <div class="slider-container">
+    <div class="slider">
+      <div class="slide active"><img src="images/logo1.jpg" alt="شعار 1" /></div>
+      <div class="slide"><img src="images/logo2.jpg" alt="شعار 2" /></div>
+      <div class="slide"><img src="images/logo3.jpg" alt="شعار 3" /></div>
+    </div>
+    <div class="slider-dots" id="sliderDots"></div>
+  </div>
 
   <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
-  authDomain: "ledoux-80b46.firebaseapp.com",
-  projectId: "ledoux-80b46",
-  storageBucket: "ledoux-80b46.appspot.com",
-  messagingSenderId: "1020769543389",
-  appId: "1:1020769543389:web:fc083525fd9675d9f86734",
-  measurementId: "G-VJTW1W3D8D"
-};
+    // سلايدر الصور
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const dotsContainer = document.getElementById('sliderDots');
+
+    function showSlide(idx) {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === idx);
+      });
+      Array.from(dotsContainer.children).forEach((dot, i) => {
+        dot.classList.toggle('active', i === idx);
+      });
+      currentSlide = idx;
+    }
+
+    function nextSlide() {
+      showSlide((currentSlide + 1) % slides.length);
+    }
+
+    // إنشاء النقاط
+    slides.forEach((_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
+      dot.onclick = () => showSlide(i);
+      dotsContainer.appendChild(dot);
+    });
+
+    // عرض أول صورة
+    showSlide(0);
+
+    // انتقال تلقائي كل 4 ثواني
+    setInterval(nextSlide, 4000);
+
+    // تسجيل الدخول
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     async function login() {
-      const username = document.getElementById("username").value.trim();
+      const code = document.getElementById("userCode").value.trim();
       const password = document.getElementById("password").value.trim();
+      const msg = document.getElementById("message");
 
-      const userRef = db.collection("users").doc(username);
-      const userSnap = await userRef.get();
-
-      if (!userSnap.exists) {
-        alert("❌ اسم المستخدم غير موجود");
+      if (!code || !password) {
+        msg.textContent = "⚠️ الرجاء إدخال كود المستخدم وكلمة المرور";
+        msg.style.color = "orange";
         return;
       }
 
-      const data = userSnap.data();
-      if (data.password !== password) {
-        alert("❌ كلمة المرور غير صحيحة");
+      if (code === "admin" && password === "admin123") {
+        window.location.href = "admin-dashboard.html";
         return;
       }
 
-      const roles = data.roles.join(",");
-      window.location.href = `main.html?roles=${encodeURIComponent(roles)}`;
+      try {
+        const q = await db.collection("users").where('code', '==', code).get();
+        if (q.empty) {
+          msg.textContent = "❌ كود المستخدم غير موجود";
+          msg.style.color = "orange";
+          return;
+        }
+
+        const doc = q.docs[0];
+        const data = doc.data();
+        if (data.password !== password) {
+          msg.textContent = "❌ كلمة المرور غير صحيحة";
+          msg.style.color = "red";
+          return;
+        }
+
+        const roles = Array.isArray(data.roles) ? data.roles : [];
+        const encodedRoles = encodeURIComponent(roles.join(","));
+
+        if (data.forceLogoutAt) {
+          try { await db.collection('users').doc(doc.id).update({ forceLogoutAt: firebase.firestore.FieldValue.delete() }); } catch (err) { console.warn('clear forceLogoutAt failed', err); }
+        }
+
+        msg.textContent = "✅ تم تسجيل الدخول، جاري التوجيه...";
+        msg.style.color = "lightgreen";
+
+        // حفظ بيانات المستخدم في localStorage (نستخدم الكود كمفتاح تسجيل)
+        try {
+          localStorage.setItem('userCode', code);
+          localStorage.setItem('username', data.name || code);
+          localStorage.setItem('userUid', doc.id);
+          localStorage.setItem('userRoles', JSON.stringify(roles));
+        } catch (err) {
+          console.warn('localStorage not available', err);
+        }
+
+        try{ if (window.activityLogger) activityLogger.logActivity('login', '/index.html', { code }); } catch(e){}
+
+        setTimeout(() => {
+          const redirect = new URLSearchParams(location.search).get("redirect");
+          window.location.href = redirect 
+            ? `${redirect}?user=${code}&roles=${encodedRoles}` 
+            : `main.html?user=${code}&roles=${encodedRoles}`;
+        }, 800);
+      } catch (err) {
+        console.error(err);
+        msg.textContent = "⚠️ حدث خطأ أثناء الاتصال بـ Firebase";
+        msg.style.color = "gray";
+      }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('loginForm');
+      if (!form) return; // إن لم يكن النموذج بنفس الاسم تجاهل الإضافة
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = (document.getElementById('userCode')?.value || '').trim();
+        const password = (document.getElementById('password')?.value || '').trim();
+
+        if (!code || !password) {
+          alert('يرجى إدخال كود المستخدم وكلمة المرور');
+          return;
+        }
+
+        // تحقق من مجموعة users عن طريق حقل code
+        try {
+          const q = await db.collection('users').where('code', '==', code).get();
+          if (q.empty) {
+            alert('كود المستخدم أو كلمة المرور غير صحيحة');
+            return;
+          }
+
+          const doc = q.docs[0];
+          if (!doc.exists || doc.data().password !== password) {
+            alert('كود المستخدم أو كلمة المرور غير صحيحة');
+            return;
+          }
+
+          if (doc.data().forceLogoutAt) {
+            try { await db.collection('users').doc(doc.id).update({ forceLogoutAt: firebase.firestore.FieldValue.delete() }); } catch (err) { console.warn('clear forceLogoutAt failed', err); }
+          }
+
+          // نجاح المصادقة — خزّن البيانات في localStorage
+          try {
+            localStorage.setItem('userCode', code);
+            localStorage.setItem('username', doc.data().name || code);
+          } catch (err) { console.warn('localStorage not available', err); }
+
+          try {
+            const roles = doc.data().roles || [];
+            localStorage.setItem('userRoles', JSON.stringify(roles));
+          } catch(e){ /* ignore */ }
+
+          window.location.href = 'index.html';
+        } catch (err) {
+          console.error('Login error', err);
+          alert('حدث خطأ أثناء محاولة تسجيل الدخول');
+        }
+      });
+    });
+
+    // إذا كنتم تستخدمون Firebase Authentication بدلاً من قاعدة users، ضع هذا داخل onAuthStateChanged:
+    /*
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        try { localStorage.setItem('username', user.displayName || user.email || user.uid); localStorage.setItem('userUid', user.uid); } catch(e){}
+      } else {
+        // تسجيل خروج
+        try { localStorage.removeItem('username'); localStorage.removeItem('userUid'); } catch(e){}
+      }
+    });
+    */
+
+    // تنفيذ تلقائي لمنع التكبير على الشاشات الصغيرة
+    (function () {
+      const meta = document.getElementById('mobileViewportMeta');
+
+      function applyAutoViewport() {
+        if (!meta) return;
+        const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 768;
+        if (isSmall) {
+          meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no');
+          document.documentElement.classList.add('mobile-nozoom');
+        } else {
+          meta.setAttribute('content', 'width=device-width, initial-scale=1');
+          document.documentElement.classList.remove('mobile-nozoom');
+        }
+      }
+
+      // طبق عند التحميل وعند تغيير حجم النافذة
+      document.addEventListener('DOMContentLoaded', applyAutoViewport);
+      window.addEventListener('resize', () => {
+        // تأخير بسيط لتجنب تحديثات زائدة أثناء تغيير الحجم
+        clearTimeout(window.__vpResizeTimer);
+        window.__vpResizeTimer = setTimeout(applyAutoViewport, 120);
+      });
+    })();
   </script>
+  <script src="activity-logger.js"></script>
 </body>
 </html>
