@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <!-- ADD: Cairo font (used in page and in print window) -->
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <link href="/fonts/fonts.css" rel="stylesheet">
 
   <style>
   :root{
@@ -584,7 +584,7 @@ const db = firebase.firestore();
     function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
     // Compose HTML with nicer CSS
-    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;800&display=swap" rel="stylesheet">`;
+    const fontLink = `<link href="/fonts/fonts.css" rel="stylesheet">`;
     const css = `
       <style>
         @page { margin: 12mm; }
