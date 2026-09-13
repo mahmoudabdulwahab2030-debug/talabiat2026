@@ -707,8 +707,9 @@
   <!-- Upload news bar (bottom center) -->
   <div id="uploadNewsBar" aria-live="polite" role="status" style="position:fixed; left:50%; transform:translateX(-50%) translateY(30px); bottom:18px; z-index:2200; pointer-events:none"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- طبقة بيانات Lovable (بديل Firestore) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
