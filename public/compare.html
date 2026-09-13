@@ -40,8 +40,9 @@
     @media (max-width:900px){ .infographic{ flex-direction:column } .charts{ min-width:320px } .kpis{ flex:1 1 100% } .controls{ justify-content:center } }
   </style>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- طبقة بيانات Lovable (بديل Firestore) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>

@@ -614,8 +614,9 @@
     <h3 style="text-align:center;color:#ff2a4d;margin-top:4px">عرض موبايل - ملخص الأصناف</h3>
     <div id="mobileViewContent" style="max-height:60vh;overflow:auto;margin-top:8px;"></div>
   </div>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- طبقة بيانات Lovable (بديل Firestore) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
   <script>
 /* Interactive script: mirrors send-to-branches behavior but uses orders_best_sweet */
 const firebaseConfig = {

@@ -1032,8 +1032,9 @@
   </div>
   <div id="uploadNewsBar" class="upload-news-bar" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- طبقة بيانات Lovable (بديل Firestore) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
