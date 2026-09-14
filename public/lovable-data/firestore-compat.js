@@ -272,9 +272,12 @@
     return ref;
   }
 
+  // قيم خاصة تحتاج قراءة السجل الحالي أولًا (زيادة/إضافة لمصفوفة/حذف حقل)
+  // serverTimestamp لا يحتاج قراءة، لذلك لا نضيّع طلبًا لكل صف
+  var NEEDS_EXISTING = { increment: 1, arrayUnion: 1, arrayRemove: 1, delete: 1 };
   function hasSentinels(data) {
     return Object.keys(data || {}).some(function (k) {
-      return isSentinel(data[k]);
+      return isSentinel(data[k]) && NEEDS_EXISTING[data[k][SENTINEL]];
     });
   }
 
