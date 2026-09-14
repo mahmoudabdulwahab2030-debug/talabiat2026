@@ -461,29 +461,90 @@
   }
 
   /* ---------------- Batch & transactions ---------------- */
+  // حجم الدفعة الواحدة عند الرفع/الحذف الجماعي
+  var BULK_CHUNK = 500;
+
+  function chunk(arr, size) {
+    var out = [];
+    for (var i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
   function writeBatch() {
     var ops = [];
     return {
       set: function (ref, data, options) {
-        ops.push(function () {
-          return ref.set(data, options);
-        });
+        var simple = !(options && options.merge) && !hasSentinels(data);
+        if (simple) {
+          ops.push({
+            kind: "upsert",
+            table: ref._table,
+            row: { id: ref.id, data: mergeData({}, resolveSentinels(data, {})) },
+          });
+        } else {
+          ops.push({
+            kind: "single",
+            run: function () {
+              return ref.set(data, options);
+            },
+          });
+        }
         return this;
       },
       update: function (ref, data) {
-        ops.push(function () {
-          return ref.update(data);
+        ops.push({
+          kind: "single",
+          run: function () {
+            return ref.update(data);
+          },
         });
         return this;
       },
       delete: function (ref) {
-        ops.push(function () {
-          return ref.delete();
-        });
+        ops.push({ kind: "delete", table: ref._table, id: ref.id });
         return this;
       },
       commit: async function () {
-        for (var i = 0; i < ops.length; i++) await ops[i]();
+        // تجميع العمليات المتشابهة المتتالية في طلب واحد لتسريع الرفع
+        var i = 0;
+        while (i < ops.length) {
+          var op = ops[i];
+          if (op.kind === "single") {
+            await op.run();
+            i++;
+            continue;
+          }
+          var group = [op];
+          var j = i + 1;
+          while (j < ops.length && ops[j].kind === op.kind && ops[j].table === op.table) {
+            group.push(ops[j]);
+            j++;
+          }
+          if (op.kind === "upsert") {
+            var rows = group.map(function (o) {
+              return o.row;
+            });
+            var parts = chunk(rows, BULK_CHUNK);
+            await Promise.all(
+              parts.map(async function (part) {
+                var res = await sb.from(op.table).upsert(part, { onConflict: "id" });
+                if (res.error) throw res.error;
+              })
+            );
+          } else {
+            var ids = group.map(function (o) {
+              return o.id;
+            });
+            var idParts = chunk(ids, BULK_CHUNK);
+            await Promise.all(
+              idParts.map(async function (part) {
+                var res = await sb.from(op.table).delete().in("id", part);
+                if (res.error) throw res.error;
+              })
+            );
+          }
+          i = j;
+        }
       },
     };
   }
