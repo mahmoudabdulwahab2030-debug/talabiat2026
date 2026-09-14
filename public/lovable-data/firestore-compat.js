@@ -521,8 +521,15 @@
             j++;
           }
           if (op.kind === "upsert") {
-            var rows = group.map(function (o) {
-              return o.row;
+            // إزالة التكرار داخل نفس الدفعة (آخر قيمة تفوز)
+            var seen = {};
+            var rows = [];
+            group.forEach(function (o) {
+              if (seen[o.row.id] !== undefined) rows[seen[o.row.id]] = o.row;
+              else {
+                seen[o.row.id] = rows.length;
+                rows.push(o.row);
+              }
             });
             var parts = chunk(rows, BULK_CHUNK);
             await Promise.all(
