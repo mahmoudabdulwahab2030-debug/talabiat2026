@@ -206,7 +206,47 @@
   }
 
   .m-totop.show { display: flex; }
+
+  /* ---------- عناوين لا تُقطع ---------- */
+  h1, h2, h3, h4, .title, .page-title, .brand-title, label, th, td, p, span, a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  h1, h2, h3 {
+    white-space: normal !important;
+    padding-inline: 6px;
+  }
+
+  th, td { overflow-wrap: normal; }
+
+  /* ---------- الأزرار العائمة بحجم مناسب للأصابع ---------- */
+  #fabToggle,
+  .fab-btn,
+  .floating-btn {
+    width: 46px !important;
+    height: 46px !important;
+    font-size: 18px !important;
+  }
+
+  #fabActions,
+  .fab-actions {
+    gap: 10px !important;
+  }
+
+  .top-right-widgets {
+    gap: 6px !important;
+  }
+
+  /* حقول التاريخ والوقت تظهر كاملة */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    width: 100% !important;
+    padding-inline: 10px !important;
+  }
 }
+
 
 @media print {
   .m-totop { display: none !important; }
