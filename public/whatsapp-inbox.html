@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>استلام ملفات الفروع من واتساب</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    body{font-family:'Cairo',sans-serif;background:#1c1c1c;color:#fff;margin:0}
+    .wrap{max-width:1150px;margin:auto;padding:20px}
+    h2{color:#ffd166;text-align:center}
+    .card{background:linear-gradient(135deg,#2c2c2c,#3a2f1d);border-radius:15px;padding:20px;margin-bottom:20px;box-shadow:0 5px 15px #0003}
+    .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end}
+    .group{flex:1;min-width:200px}
+    label{display:block;margin-bottom:8px;color:#ffd166;font-weight:bold}
+    input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #ffffff1a;background:#0003;color:#fff;font-family:inherit}
+    .btn{padding:11px 20px;border:0;border-radius:8px;cursor:pointer;font-weight:bold;font-family:inherit}
+    .primary{background:linear-gradient(135deg,#ffd166,#f0ad4e);color:#000}
+    .secondary{background:#ffffff1a;color:#fff}
+    .danger{background:#7a2b2b;color:#fff}
+    table{width:100%;border-collapse:collapse}
+    th{background:#2c2c2c;color:#ffd166;padding:12px}
+    td{padding:10px;text-align:center;border:1px solid #ffffff1a;vertical-align:middle}
+    .qr-box{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+    #qrcode{background:#fff;padding:10px;border-radius:10px}
+    .muted{color:#bbb;font-size:.9em}
+    .badge{padding:4px 10px;border-radius:20px;font-size:.85em}
+    .badge.pending{background:#5a4a1f;color:#ffd166}
+    .badge.done{background:#1f5a35;color:#b8f5cd}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h2>📲 استلام ملفات الفروع من واتساب</h2>
+
+    <section class="card qr-box">
+      <div id="qrcode"></div>
+      <div style="flex:1;min-width:240px">
+        <p>امسح الكود بموبايلك لفتح هذه الصفحة، ثم افتح واتساب لمتابعة المجموعة.</p>
+        <p class="muted">أي ملف إكسيل يُرسل إلى رقم واتساب الأعمال المرتبط يظهر تلقائيًا في الجدول أدناه.</p>
+        <a class="btn primary" href="https://wa.me/" target="_blank" rel="noopener">💬 فتح واتساب</a>
+        <button class="btn secondary" onclick="loadFiles()">🔄 تحديث</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div class="group">
+          <label for="globalDate">🗓️ تاريخ الطلبية (لكل الملفات)</label>
+          <input type="date" id="globalDate">
+        </div>
+        <div class="group">
+          <label for="showDone">العرض</label>
+          <select id="showDone" onchange="loadFiles()">
+            <option value="pending">الملفات التي لم تُرفع</option>
+            <option value="all">كل الملفات</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div id="filesTable"><p class="muted">جارٍ التحميل…</p></div>
+    </section>
+  </main>
+
+  <script>
+    const BRANCH_PAGES = [
+      { name: 'كوربة', page: 'korba.html' },
+      { name: 'دقي', page: 'dokki.html' },
+      { name: 'التجمع', page: 'tagamo3.html' },
+      { name: 'العبور', page: 'obour.html' },
+      { name: 'بيست سويت - فرع 1', page: 'best-sweet-branch1.html' },
+      { name: 'بيست سويت - العباسية', page: 'best-sweet-abbassia.html' },
+      { name: 'بيست سويت - حلو الزيتون', page: 'best-sweet-helw-zaytoun.html' },
+      { name: 'بيست سويت - ماركت الزيتون', page: 'best-sweet-market-zaytoun.html' },
+      { name: 'بيست سويت - حلوان', page: 'best-sweet-helwan.html' },
+      { name: 'بيست سويت - العبور ماركت', page: 'best-sweet-obour-market.html' }
+    ];
+
+    const $ = id => document.getElementById(id);
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    let rows = [];
+
+    $('globalDate').value = new Date().toISOString().slice(0, 10);
+    new QRCode($('qrcode'), { text: location.origin + '/whatsapp-inbox.html', width: 140, height: 140 });
+
+    async function loadFiles() {
+      const { data, error } = await window.lovableDb
+        .from('whatsapp_files').select('*').order('created_at', { ascending: false }).limit(200);
+      if (error) { $('filesTable').innerHTML = '<p class="muted">تعذر تحميل الملفات.</p>'; return; }
+      rows = (data || []).map(r => ({ id: r.id, ...(r.data || {}) }));
+      if ($('showDone').value === 'pending') rows = rows.filter(r => r.status !== 'uploaded');
+      render();
+    }
+
+    function render() {
+      if (!rows.length) {
+        $('filesTable').innerHTML = '<p class="muted">لا توجد ملفات واردة حتى الآن.</p>';
+        return;
+      }
+      $('filesTable').innerHTML = `<table>
+        <thead><tr><th>📄 الملف</th><th>👤 المرسل</th><th>🕒 وقت الوصول</th><th>🏬 الفرع</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+        <tbody>${rows.map((r, i) => `<tr>
+          <td>${esc(r.filename)}<div class="muted">${esc(r.caption || '')}</div></td>
+          <td>${esc(r.senderName || r.from || '-')}</td>
+          <td>${r.receivedAt ? new Date(r.receivedAt).toLocaleString('ar-EG') : '-'}</td>
+          <td><select onchange="rows[${i}].branch=this.value">
+            <option value="">— اختر الفرع —</option>
+            ${BRANCH_PAGES.map(b => `<option value="${b.page}" ${r.branch === b.page ? 'selected' : ''}>${b.name}</option>`).join('')}
+          </select></td>
+          <td><span class="badge ${r.status === 'uploaded' ? 'done' : 'pending'}">${r.status === 'uploaded' ? 'تم الرفع' : 'في الانتظار'}</span></td>
+          <td>
+            <button class="btn primary" onclick="openBranch(${i})">⬆️ رفع في صفحة الفرع</button>
+            <button class="btn danger" onclick="removeFile(${i})">🗑️</button>
+          </td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+
+    function openBranch(i) {
+      const row = rows[i], date = $('globalDate').value;
+      if (!row.branch) return Swal.fire('تنبيه', 'اختر الفرع أولاً', 'warning');
+      if (!date) return Swal.fire('تنبيه', 'حدد تاريخ الطلبية', 'warning');
+      window.lovableDb.from('whatsapp_files')
+        .update({ data: { ...row, id: undefined, branch: row.branch, orderDate: date } })
+        .eq('id', row.id).then(() => {});
+      window.open(`/${row.branch}?wa=${encodeURIComponent(row.id)}&date=${encodeURIComponent(date)}`, '_blank');
+    }
+
+    async function removeFile(i) {
+      const row = rows[i];
+      const ok = await Swal.fire({ title: 'حذف الملف من القائمة؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+      if (!ok.isConfirmed) return;
+      await window.lovableDb.from('whatsapp_files').delete().eq('id', row.id);
+      loadFiles();
+    }
+
+    loadFiles();
+    setInterval(loadFiles, 20000);
+  </script>
+</body>
+</html>
