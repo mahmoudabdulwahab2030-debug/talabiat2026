@@ -1,1 +1,0 @@
-CREATE POLICY "whatsapp_inbox_read" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'whatsapp-inbox');
