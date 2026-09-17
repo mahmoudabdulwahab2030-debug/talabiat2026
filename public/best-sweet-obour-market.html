@@ -45,5 +45,6 @@
     async function addNewItem(){const snap=await db.collection('catalog').get();if(snap.empty)return Swal.fire('تنبيه','لا يوجد كتالوج','info');const modal=document.createElement('div');modal.className='modal-overlay';modal.innerHTML='<div class="catalog-modal"><h3>📋 اختر صنفًا</h3><div id="catalogItems"></div><button class="action-button secondary" onclick="this.closest(\'.modal-overlay\').remove()">إغلاق</button></div>';document.body.appendChild(modal);const container=modal.querySelector('#catalogItems');snap.forEach(section=>{(section.data().items||[]).forEach(item=>{const button=document.createElement('button');button.className='add-item-btn';button.textContent=`➕ ${item.name}`;button.onclick=()=>{editingData.push({code:item.code||'',name:item.name,qty:1,notes:'',sheet:section.id});modal.remove();renderEditTable();};container.appendChild(button);});});}
   </script>
   <script src="activity-logger.js"></script>
+  <script src="/back-button.js" defer></script>
 </body>
 </html>
