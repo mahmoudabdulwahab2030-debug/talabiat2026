@@ -409,6 +409,7 @@
             const name = item.name || '';
             const qty = Number(item.qty) || 0;
             const sheet = item.sheet || (currentSheetName || '');
+            const notes = item.notes || '';
             if (!name || qty <= 0) return;
             insertOps.push(batch => {
               const ref = db.collection(ORDERS_COLLECTION).doc();
