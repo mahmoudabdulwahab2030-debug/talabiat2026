@@ -456,10 +456,10 @@
       body { background: white !important; color: black !important; }
       .controls, .btn-row, .btn, input, select { display:none !important; }
       body * { visibility: hidden; }
-      #printSection, #printSection *, #notesArea, #notesArea * { visibility: visible; }
-      #printSection, #notesArea { position: absolute; left:0; top:0; width:100%; padding:0; margin:0; background:white; color:black; }
-      #printSection table, #notesArea table{ border-collapse:collapse; width:100%; background:white; color:black; }
-      #printSection table th, #printSection table td, #notesArea table th, #notesArea table td{
+      #printSection, #printSection * { visibility: visible; }
+      #printSection { position: absolute; left:0; top:0; width:100%; padding:0; margin:0; background:white; color:black; }
+      #printSection table{ border-collapse:collapse; width:100%; background:white; color:black; }
+      #printSection table th, #printSection table td{
         border:1px solid #000;
         background:white;
         color:black;
@@ -496,7 +496,6 @@
         <button class="icon-btn summary-btn" onclick="printSummaryOnly()" title="طباعة ملخص">📋</button>
         <button class="icon-btn ghost" onclick="saveDataToLocalStorage()" title="حفظ البيانات محلياً">💾</button>
         <button class="icon-btn ghost" onclick="refreshFromServer()" title="تحديث البيانات من الخادم">🔄</button>
-        <button class="btn primary" onclick="renderNotesSection()"><span class="icon">📝</span>عرض الملاحظات</button>
       </div>
     </div>
     <div id="status"></div>
@@ -506,7 +505,6 @@
       </div>
     </div>
     <div id="resultArea"></div>
-    <div id="notesArea" style="display:none; margin-top:16px;"></div>
   </div>
   <script>
 const firebaseConfig = {
@@ -703,8 +701,6 @@ async function renderSection() {
     return;
   }
 
-  switchView('orders');
-
   // فلترة فقط على فروع بيست سويت
   const filtered = allData.filter(d =>
     (sheet === 'all' || d.sheet === sheet) &&
@@ -848,95 +844,7 @@ async function renderSection() {
 }
 
 function printTable() {
-  const notesArea = document.getElementById('notesArea');
-  const activeNotes = notesArea && notesArea.style.display !== 'none';
-  const printSection = document.getElementById('printSection');
-  if (activeNotes && !notesArea.innerHTML.trim()) {
-    document.getElementById('status').textContent = '⚠️ لا توجد بيانات للطباعة في عرض الملاحظات.';
-    return;
-  }
-  if (!activeNotes && !printSection) {
-    document.getElementById('status').textContent = '⚠️ لا يوجد جدول للطباعة.';
-    return;
-  }
   window.print();
-}
-
-function escapeHtml(text) {
-  return String(text ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[char]);
-}
-
-function switchView(view) {
-  const resultArea = document.getElementById('resultArea');
-  const notesArea = document.getElementById('notesArea');
-  if (!resultArea || !notesArea) return;
-  resultArea.style.display = view === 'notes' ? 'none' : 'block';
-  notesArea.style.display = view === 'notes' ? 'block' : 'none';
-}
-
-function getBestSweetBranchName(branchKey) {
-  const names = {
-    best_sweet_abbassia: 'فرع العباسية',
-    best_sweet_1: 'جمال',
-    best_sweet_market_zaytoun: 'فيصل',
-    best_sweet_helwan: 'حلوان',
-    best_sweet_obour_market: 'عبور 2',
-    best_sweet_helw_zaytoun: 'حلو الزيتون'
-  };
-  return names[branchKey] || branchKey || 'غير معروف';
-}
-
-function renderNotesSection() {
-  const sheet = document.getElementById('sheetSelector').value;
-  const date = document.getElementById('dateSelector').value;
-  if (!sheet || !date) {
-    document.getElementById('status').textContent = '⚠️ يرجى اختيار القسم والتاريخ.';
-    return;
-  }
-
-  switchView('notes');
-  const notesArea = document.getElementById('notesArea');
-  const filtered = allData.filter(item =>
-    (sheet === 'all' || item.sheet === sheet) &&
-    (item.orderDate === date || item.deliveryDate === date) &&
-    bestSweetBranches.includes(item.branch) &&
-    item.notes && String(item.notes).trim()
-  );
-
-  if (!filtered.length) {
-    notesArea.innerHTML = '<div style="padding:14px; background:rgba(255,255,255,0.04); border-radius:12px;">⚠️ لا توجد ملاحظات لهذا القسم/التاريخ.</div>';
-    document.getElementById('status').textContent = '⚠️ لا توجد سجلات ملاحظات لهذا التاريخ.';
-    return;
-  }
-
-  const sections = {};
-  filtered.forEach(item => {
-    const sectionName = item.sheet || 'غير محدد';
-    const branchKey = String(item.branch || '').trim();
-    if (!sections[sectionName]) sections[sectionName] = {};
-    if (!sections[sectionName][branchKey]) sections[sectionName][branchKey] = [];
-    sections[sectionName][branchKey].push(item);
-  });
-
-  const sheetLabel = sheet === 'all' ? 'كل الأقسام' : escapeHtml(sheet);
-  let html = `<div style="margin-bottom:14px;"><h3 style="margin-bottom:10px;">📝 الملاحظات لطلبات ${sheetLabel} بتاريخ ${escapeHtml(date)}</h3></div>`;
-  Object.keys(sections).sort((a, b) => a.localeCompare(b, 'ar')).forEach(sectionName => {
-    html += `<section style="margin-bottom:22px;"><h4 style="margin-bottom:10px; color:var(--accent);">القسم: ${escapeHtml(sectionName)}</h4>`;
-    Object.keys(sections[sectionName]).sort().forEach(branchKey => {
-      const items = sections[sectionName][branchKey];
-      html += `<div style="margin-bottom:16px;"><strong style="display:block;margin-bottom:8px;">الفرع: ${escapeHtml(getBestSweetBranchName(branchKey))} (${items.length})</strong><div class="table-wrap"><table><thead><tr><th>🔢 الكود</th><th>📦 الصنف</th><th>🔢 الكمية</th><th>📅 التاريخ</th><th>📝 الملاحظات</th></tr></thead><tbody>`;
-      items.forEach(item => {
-        const rowDate = item.orderDate || item.deliveryDate || '';
-        html += `<tr><td>${escapeHtml(item.code || '')}</td><td>${escapeHtml(item.name || '')}</td><td>${escapeHtml(item.qty || '')}</td><td>${escapeHtml(rowDate)}</td><td>${escapeHtml(String(item.notes || ''))}</td></tr>`;
-      });
-      html += '</tbody></table></div></div>';
-    });
-    html += '</section>';
-  });
-  notesArea.innerHTML = html;
-  document.getElementById('status').textContent = `✅ تم عرض ${filtered.length} سجل ملاحظات.`;
 }
 
 function printSummaryOnly() {
@@ -1029,6 +937,5 @@ function exportCurrentTableToExcel() {
 
 initializePage();
   </script>
-  <script src="/back-button.js" defer></script>
 </body>
 </html>

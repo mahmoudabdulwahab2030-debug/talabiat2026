@@ -126,6 +126,5 @@
       if(logoutBtn){ logoutBtn.addEventListener('click', ()=>{ try{ if (window.activityLogger) activityLogger.logActivity('logout', location.pathname, {}); } catch(e){} localStorage.removeItem('stock_loggedUser'); const el = document.getElementById('userNameBadge'); if(el) el.textContent = 'زائر'; openUserMenu(false); }); }
     });
   </script>
-  <script src="/back-button.js" defer></script>
 </body>
 </html>

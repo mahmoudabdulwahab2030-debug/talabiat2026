@@ -189,8 +189,8 @@
         const [headers,...dataRows] = rows;
         const validRows = dataRows.filter(r => (parseFloat(r[2])||0) > 0);
         if(validRows.length===0){ tableContainer.innerHTML="<p>⚠️ لا توجد بيانات بكميات صالحة للعرض.</p>"; return; }
-        let html = "<table class='data-table'><thead><tr><th>📄 الكود</th><th>📦 الصنف</th><th>🔢 الكمية</th><th>📝 ملاحظات</th></tr></thead><tbody>";
-        validRows.forEach((r, rowIdx) => { const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0; const notes=r[3]||''; currentData.push({code,name,qty,notes,sheet:sheetName,rowIdx}); html+=`<tr><td>${escapeHtml(code)}</td><td>${escapeHtml(name)}</td><td>${qty}</td><td>${escapeHtml(notes)}</td></tr>`; });
+        let html = "<table class='data-table'><thead><tr><th>📄 الكود</th><th>📦 الصنف</th><th>🔢 الكمية</th></tr></thead><tbody>";
+        validRows.forEach((r, rowIdx) => { const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0; currentData.push({code,name,qty,sheet:sheetName,rowIdx}); html+=`<tr><td>${escapeHtml(code)}</td><td>${escapeHtml(name)}</td><td>${qty}</td></tr>`; });
         html+="</tbody></table>"; tableContainer.innerHTML=html;
       };
 
@@ -226,8 +226,8 @@
             const [, ...dataRows] = rows;
             const batch = db.batch();
             dataRows.forEach((r, rowIdx) => {
-              const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0; const notes=r[3]||'';
-              if(code && name && qty>0){ const item = {code,name,qty,notes,sheet:sheetName,rowIdx}; const docId = getOrderDocId(item, orderDate); const ref=db.collection(getOrdersCollectionName()).doc(docId); batch.set(ref,{...item,branch:BRANCH,orderDate,timestamp: firebase.firestore.FieldValue.serverTimestamp()}); totalRows++; }
+              const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0;
+              if(code && name && qty>0){ const item = {code,name,qty,sheet:sheetName,rowIdx}; const docId = getOrderDocId(item, orderDate); const ref=db.collection(getOrdersCollectionName()).doc(docId); batch.set(ref,{...item,branch:BRANCH,orderDate,timestamp: firebase.firestore.FieldValue.serverTimestamp()}); totalRows++; }
             });
             await batch.commit();
             const p = document.getElementById('uploadProgress'); if(p) p.value = Math.min(100, Math.round((totalRows/(sheetNames.length*50))*100));
@@ -317,9 +317,9 @@
           const insertOps = [];
           editingData.forEach(item=>{
             const code = item.code || (item.name ? String(item.name).toLowerCase().replace(/\s+/g,'_') : '');
-            const name = item.name || ''; const qty = Number(item.qty)||0; const sheet = item.sheet || currentSheetName || ''; const notes = item.notes || '';
+            const name = item.name || ''; const qty = Number(item.qty)||0; const sheet = item.sheet || currentSheetName || '';
             if(!name || qty<=0) return;
-            insertOps.push(batch => { const ref = db.collection(ORDERS_COLLECTION).doc(); batch.set(ref, { code,name,qty,notes,sheet,branch:BRANCH,orderDate:date,timestamp: firebase.firestore.FieldValue.serverTimestamp() }); });
+            insertOps.push(batch => { const ref = db.collection(ORDERS_COLLECTION).doc(); batch.set(ref, { code,name,qty,sheet,branch:BRANCH,orderDate:date,timestamp: firebase.firestore.FieldValue.serverTimestamp() }); });
           });
           if(deleteOps.length) await commitInBatches(deleteOps);
           if(insertOps.length) await commitInBatches(insertOps);
@@ -367,14 +367,13 @@
       window.renderEditTable = function(){
         const container = document.getElementById('editTable'); if(!container) return;
         if(!editingData || editingData.length===0){ container.innerHTML = '<p style="padding:12px;color:#ffd166;">لا توجد عناصر للتعديل.</p>'; return; }
-        let html = `<table class="data-table"><thead><tr><th>الكود</th><th>الصنف</th><th>الكمية</th><th>📝 ملاحظات</th><th>حذف</th></tr></thead><tbody>`;
-        editingData.forEach((it,idx)=>{ html+=`<tr><td>${escapeHtml(it.code||'')}</td><td style="text-align:right">${escapeHtml(it.name||'')}</td><td><input type="number" class="qty-input" value="${Number(it.qty)||0}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><input type="text" class="qty-input" style="width:100%;min-width:150px;padding:5px;text-align:right;" value="${escapeHtml(it.notes||'')}" placeholder="أضف ملاحظة..." onchange="updateNotes(${idx}, this.value)" /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`; });
+        let html = `<table class="data-table"><thead><tr><th>الكود</th><th>الصنف</th><th>الكمية</th><th>حذف</th></tr></thead><tbody>`;
+        editingData.forEach((it,idx)=>{ html+=`<tr><td>${escapeHtml(it.code||'')}</td><td style="text-align:right">${escapeHtml(it.name||'')}</td><td><input type="number" class="qty-input" value="${Number(it.qty)||0}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`; });
         html += `</tbody></table>`; container.innerHTML = html;
       };
 
     }); // DOMContentLoaded end
   </script>
   <script src="activity-logger.js"></script>
-  <script src="/back-button.js" defer></script>
 </body>
 </html>
