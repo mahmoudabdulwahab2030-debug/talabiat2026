@@ -460,11 +460,12 @@
             const name = item.name || '';
             const qty = Number(item.qty) || 0;
             const sheet = item.sheet || (currentSheetName || '');
+            const notes = item.notes || '';
             if (!name || qty <= 0) return;
             insertOps.push(batch => {
               const ref = db.collection(ORDERS_COLLECTION).doc();
               batch.set(ref, {
-                code, name, qty, sheet,
+                code, name, qty, notes, sheet,
                 branch: BRANCH,
                 orderDate: date,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
