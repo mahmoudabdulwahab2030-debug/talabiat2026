@@ -341,7 +341,7 @@
         q = q.order(col, { ascending: o.dir !== "desc", nullsFirst: false });
       });
       if (!orders.length) q = q.order("created_at", { ascending: false });
-      if (limitCount) q = q.limit(limitCount);
+      q = q.order("id", { ascending: true }); // ترتيب ثابت لصفحات الجلب
       return q;
     }
 
