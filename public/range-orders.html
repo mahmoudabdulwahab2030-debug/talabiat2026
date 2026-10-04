@@ -62,7 +62,12 @@
       transition: box-shadow .12s, transform .08s;
     }
     input[type="date"]::placeholder, select::placeholder{ color:var(--muted); }
-    input[type="date"]:focus, select:focus, input:focus{ box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08); transform: translateY(-1px); }
+    input[type="date"]:focus, select:focus, input[type="text"]:focus{ box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08); transform: translateY(-1px); }
+    .check-group{ display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+    .check-item{ display:inline-flex; align-items:center; gap:7px; background: linear-gradient(180deg,var(--panel), #101010); border:1px solid var(--ghost-border); border-radius:10px; padding:7px 11px; cursor:pointer; font-size:13px; font-weight:700; color:var(--text); transition: box-shadow .12s, border-color .12s, background .12s; user-select:none; }
+    .check-item:hover{ box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
+    .check-item:has(input:checked){ border-color: var(--accent-2); background: rgba(255,209,102,0.14); color: var(--accent); }
+    .check-item input[type="checkbox"]{ accent-color: var(--accent); width:16px; height:16px; margin:0; cursor:pointer; flex-shrink:0; }
     .btn-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .btn{ background:var(--secondary); color:var(--text); border:1px solid rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:800; letter-spacing:0.6px; display:inline-flex; align-items:center; gap:8px; transition: transform .08s ease, box-shadow .12s ease, background .12s ease; }
     .btn:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
@@ -82,6 +87,13 @@
     .loader span:nth-child(2){ animation-delay: 0.2s; }
     .loader span:nth-child(3){ animation-delay: 0.4s; }
     @keyframes blink{ to { opacity:0.2; transform: translateY(-2px); } }
+    @media (max-width:640px){
+      .controls .row{ gap:8px; }
+      .controls .field{ min-width:100%; }
+      .check-group{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:6px; }
+      .check-item{ padding:9px 10px; font-size:12px; justify-content:flex-start; }
+      .container{ padding:10px; }
+    }
     @media print{
       body{ background:#fff; color:#000; }
       .controls, .btn-row, .branch-title, .loader, #status, #actionsRow{ display:none !important; }
@@ -102,16 +114,16 @@
       </div>
       <div class="row">
         <div class="field" style="align-items:flex-start">
-          <label for="sheetSelector">🧾 الأقسام:</label>
-          <select id="sheetSelector" multiple size="5" title="اضغط Ctrl لاختيار أقسام متعددة">
-            <option value="ALL" selected>— كل الأقسام —</option>
-          </select>
+          <label>🧾 الأقسام:</label>
+          <div id="sheetSelector" class="check-group" role="group" aria-label="اختيار الأقسام">
+            <label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الأقسام —</span></label>
+          </div>
         </div>
         <div class="field" style="align-items:flex-start">
-          <label for="branchSelector">🏷️ الفروع:</label>
-          <select id="branchSelector" multiple size="5" title="اضغط Ctrl لاختيار فروع متعددة">
-            <option value="ALL" selected>— كل الفروع —</option>
-          </select>
+          <label>🏷️ الفروع:</label>
+          <div id="branchSelector" class="check-group" role="group" aria-label="اختيار الفروع">
+            <label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الفروع —</span></label>
+          </div>
         </div>
         <div class="field" style="min-width:auto;"><div id="loader" class="loader" aria-live="polite" aria-hidden="true"><span></span><span></span><span></span><strong>جاري التحميل...</strong></div></div>
       </div>
@@ -147,38 +159,48 @@ function showStatus(text){ const el = document.getElementById('status'); if (el)
 function formatNumber(num){ num = Number(num||0); return Number.isInteger(num) ? num.toString() : num.toFixed(2); }
 function escapeHtml(text){ if (!text) return ''; return String(text).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normalizeBranchKey(branch){ const raw = (branch||'').toString().trim(); const map = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }; return map[raw] || raw.toLowerCase() || 'unknown'; }
-function getSelectedValues(select){ return Array.from(select.selectedOptions).map(o=>o.value); }
+function getSelectedValues(group){ return Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(i=>i.value); }
 function isAllSelected(values){ return !values.length || values.includes('ALL'); }
 function initMultiSelectBehavior(){ ['sheetSelector','branchSelector'].forEach(id=>{
-  const sel=document.getElementById(id);
-  if (!sel) return;
-  sel.addEventListener('change', ()=>{
-    const values = getSelectedValues(sel);
-    const allOpt = sel.querySelector('option[value="ALL"]');
-    if (values.includes('ALL') && values.length > 1){
-      Array.from(sel.options).forEach(o=>{ if (o.value !== 'ALL') o.selected = false; });
+  const group=document.getElementById(id);
+  if (!group) return;
+  group.addEventListener('change', (e)=>{
+    const cb=e.target;
+    if (!cb || cb.type !== 'checkbox') return;
+    const allCb = group.querySelector('input[value="ALL"]');
+    const items = Array.from(group.querySelectorAll('input[type="checkbox"]')).filter(i=>i!==allCb);
+    const values = getSelectedValues(group);
+    if (cb.value === 'ALL'){
+      items.forEach(i=>{ i.checked = cb.checked; });
+      if (!cb.checked && allCb) allCb.checked = true;
+    } else if (values.includes('ALL') && values.length > 1){
+      if (allCb) allCb.checked = false;
     } else if (!values.length){
-      if (allOpt) allOpt.selected = true;
+      if (allCb) allCb.checked = true;
     } else {
-      if (allOpt) allOpt.selected = false;
+      if (allCb) allCb.checked = false;
     }
   });
 }); }
 function dateRange(from, to){ const arr=[]; let current=new Date(from); const end=new Date(to); while(current<=end){ const year=current.getFullYear().toString().padStart(4,'0'); const month=(current.getMonth()+1).toString().padStart(2,'0'); const day=current.getDate().toString().padStart(2,'0'); arr.push(`${year}-${month}-${day}`); current.setDate(current.getDate()+1); } return arr; }
 function parseQuery(){ const q=new URLSearchParams(window.location.search); return { sheet:q.get('sheet')||'ALL' }; }
 
+function addCheckOption(group, value, text){
+  const labelEl=document.createElement('label'); labelEl.className='check-item';
+  const input=document.createElement('input'); input.type='checkbox'; input.value=value;
+  const span=document.createElement('span'); span.textContent=text;
+  labelEl.appendChild(input); labelEl.appendChild(span); group.appendChild(labelEl);
+}
 async function fetchData(){ const sheetSelector=document.getElementById('sheetSelector'); const branchSelector=document.getElementById('branchSelector'); const loader=document.getElementById('loader'); if (loader){ loader.style.display='flex'; loader.setAttribute('aria-hidden','false'); }
-  try{
-    if(sheetSelector){ sheetSelector.innerHTML='<option value="ALL">— كل الأقسام —</option>'; sheetSelector.disabled=true; }
-    if(branchSelector){ branchSelector.innerHTML='<option value="ALL">— كل الفروع —</option>'; branchSelector.disabled=true; }
-  } catch(e){}
+  if(sheetSelector){ sheetSelector.innerHTML=''; }
+  if(branchSelector){ branchSelector.innerHTML=''; }
   const snap = await db.collection('orders').get(); allData=[];
   snap.forEach(doc=>{ const d=doc.data(); if (d && d.isDeleted) return; if ((d.name && d.sheet && d.branch) && (d.orderDate || d.deliveryDate)) { allData.push({ ...d, id: doc.id }); }});
   const sheets=[...new Set(allData.map(d=>d.sheet).filter(s=>s && s!=='main'))].sort((a,b)=>a.localeCompare(b,'ar'));
   const branches=[...new Set(allData.map(d=>normalizeBranchKey(d.branch)).filter(b=>b))].sort((a,b)=>{ const order=['dokki','korba','tagamo3','obour']; const ai=order.indexOf(a); const bi=order.indexOf(b); if(ai!==-1&&bi!==-1) return ai-bi; if(ai!==-1) return -1; if(bi!==-1) return 1; return a.localeCompare(b,'ar'); });
-  if(sheetSelector){ sheetSelector.innerHTML='<option value="ALL" selected>— كل الأقسام —</option>'; sheets.forEach(s=>{ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; sheetSelector.appendChild(opt); }); sheetSelector.disabled=false; }
-  if(branchSelector){ branchSelector.innerHTML='<option value="ALL" selected>— كل الفروع —</option>'; branches.forEach(b=>{ const opt=document.createElement('option'); opt.value=b; opt.textContent=branchLabels[b]||b; branchSelector.appendChild(opt); }); branchSelector.disabled=false; }
-  try{ const { sheet } = parseQuery(); if (sheet && sheetSelector){ const values=sheet.split(',').map(v=>v.trim()).filter(Boolean); if(isAllSelected(values)){ sheetSelector.querySelector('option[value="ALL"]').selected=true; } else { Array.from(sheetSelector.options).forEach(opt=>{ if(values.includes(opt.value)) opt.selected=true; }); } }}catch(e){}
+  if(sheetSelector){ addCheckOption(sheetSelector,'ALL','— كل الأقسام —'); sheets.forEach(s=>addCheckOption(sheetSelector,s,s)); }
+  if(branchSelector){ addCheckOption(branchSelector,'ALL','— كل الفروع —'); branches.forEach(b=>addCheckOption(branchSelector,b,branchLabels[b]||b)); }
+  try{ const { sheet } = parseQuery(); if (sheet && sheetSelector){ const values=sheet.split(',').map(v=>v.trim()).filter(Boolean); const allCb=sheetSelector.querySelector('input[value="ALL"]'); if(isAllSelected(values)){ if(allCb) allCb.checked=true; } else { if(allCb) allCb.checked=false; Array.from(sheetSelector.querySelectorAll('input[type="checkbox"]')).forEach(inp=>{ if(values.includes(inp.value)) inp.checked=true; }); } }}catch(e){}
   if (loader){ loader.style.display='none'; loader.setAttribute('aria-hidden','true'); }
   showStatus('✅ تم تحميل البيانات. اختر الفترة ثم اضغط عرض التقرير.');
 }
