@@ -341,7 +341,7 @@
         q = q.order(col, { ascending: o.dir !== "desc", nullsFirst: false });
       });
       if (!orders.length) q = q.order("created_at", { ascending: false });
-      if (limitCount) q = q.limit(limitCount);
+      q = q.order("id", { ascending: true }); // ترتيب ثابت لصفحات الجلب
       return q;
     }
 
@@ -360,9 +360,20 @@
         return clone({ afterValue: v });
       },
       async get() {
-        var res = await build();
-        if (res.error) throw res.error;
-        var rows = res.data || [];
+        // قاعدة البيانات تُرجع 1000 صف كحد أقصى لكل طلب، لذلك نجلب على صفحات
+        var PAGE = 1000;
+        var rows = [];
+        var from = 0;
+        while (true) {
+          var want = limitCount ? Math.min(PAGE, limitCount - rows.length) : PAGE;
+          if (want <= 0) break;
+          var res = await build().range(from, from + want - 1);
+          if (res.error) throw res.error;
+          var chunkRows = res.data || [];
+          rows = rows.concat(chunkRows);
+          if (chunkRows.length < want) break;
+          from += chunkRows.length;
+        }
         if (afterValue !== undefined && afterValue !== null && orders.length) {
           var key = orders[0].field;
           var pivot =
