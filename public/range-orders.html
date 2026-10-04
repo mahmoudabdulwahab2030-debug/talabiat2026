@@ -185,18 +185,22 @@ function initMultiSelectBehavior(){ ['sheetSelector','branchSelector'].forEach(i
 function dateRange(from, to){ const arr=[]; let current=new Date(from); const end=new Date(to); while(current<=end){ const year=current.getFullYear().toString().padStart(4,'0'); const month=(current.getMonth()+1).toString().padStart(2,'0'); const day=current.getDate().toString().padStart(2,'0'); arr.push(`${year}-${month}-${day}`); current.setDate(current.getDate()+1); } return arr; }
 function parseQuery(){ const q=new URLSearchParams(window.location.search); return { sheet:q.get('sheet')||'ALL' }; }
 
+function addCheckOption(group, value, text){
+  const labelEl=document.createElement('label'); labelEl.className='check-item';
+  const input=document.createElement('input'); input.type='checkbox'; input.value=value;
+  const span=document.createElement('span'); span.textContent=text;
+  labelEl.appendChild(input); labelEl.appendChild(span); group.appendChild(labelEl);
+}
 async function fetchData(){ const sheetSelector=document.getElementById('sheetSelector'); const branchSelector=document.getElementById('branchSelector'); const loader=document.getElementById('loader'); if (loader){ loader.style.display='flex'; loader.setAttribute('aria-hidden','false'); }
-  try{
-    if(sheetSelector){ sheetSelector.innerHTML='<option value="ALL">— كل الأقسام —</option>'; sheetSelector.disabled=true; }
-    if(branchSelector){ branchSelector.innerHTML='<option value="ALL">— كل الفروع —</option>'; branchSelector.disabled=true; }
-  } catch(e){}
+  if(sheetSelector){ sheetSelector.innerHTML='<label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الأقسام —</span></label>'; }
+  if(branchSelector){ branchSelector.innerHTML='<label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الفروع —</span></label>'; }
   const snap = await db.collection('orders').get(); allData=[];
   snap.forEach(doc=>{ const d=doc.data(); if (d && d.isDeleted) return; if ((d.name && d.sheet && d.branch) && (d.orderDate || d.deliveryDate)) { allData.push({ ...d, id: doc.id }); }});
   const sheets=[...new Set(allData.map(d=>d.sheet).filter(s=>s && s!=='main'))].sort((a,b)=>a.localeCompare(b,'ar'));
   const branches=[...new Set(allData.map(d=>normalizeBranchKey(d.branch)).filter(b=>b))].sort((a,b)=>{ const order=['dokki','korba','tagamo3','obour']; const ai=order.indexOf(a); const bi=order.indexOf(b); if(ai!==-1&&bi!==-1) return ai-bi; if(ai!==-1) return -1; if(bi!==-1) return 1; return a.localeCompare(b,'ar'); });
-  if(sheetSelector){ sheetSelector.innerHTML='<option value="ALL" selected>— كل الأقسام —</option>'; sheets.forEach(s=>{ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; sheetSelector.appendChild(opt); }); sheetSelector.disabled=false; }
-  if(branchSelector){ branchSelector.innerHTML='<option value="ALL" selected>— كل الفروع —</option>'; branches.forEach(b=>{ const opt=document.createElement('option'); opt.value=b; opt.textContent=branchLabels[b]||b; branchSelector.appendChild(opt); }); branchSelector.disabled=false; }
-  try{ const { sheet } = parseQuery(); if (sheet && sheetSelector){ const values=sheet.split(',').map(v=>v.trim()).filter(Boolean); if(isAllSelected(values)){ sheetSelector.querySelector('option[value="ALL"]').selected=true; } else { Array.from(sheetSelector.options).forEach(opt=>{ if(values.includes(opt.value)) opt.selected=true; }); } }}catch(e){}
+  if(sheetSelector){ addCheckOption(sheetSelector,'ALL','— كل الأقسام —'); sheets.forEach(s=>addCheckOption(sheetSelector,s,s)); }
+  if(branchSelector){ addCheckOption(branchSelector,'ALL','— كل الفروع —'); branches.forEach(b=>addCheckOption(branchSelector,b,branchLabels[b]||b)); }
+  try{ const { sheet } = parseQuery(); if (sheet && sheetSelector){ const values=sheet.split(',').map(v=>v.trim()).filter(Boolean); const allCb=sheetSelector.querySelector('input[value="ALL"]'); if(isAllSelected(values)){ if(allCb) allCb.checked=true; } else { if(allCb) allCb.checked=false; Array.from(sheetSelector.querySelectorAll('input[type="checkbox"]')).forEach(inp=>{ if(values.includes(inp.value)) inp.checked=true; }); } }}catch(e){}
   if (loader){ loader.style.display='none'; loader.setAttribute('aria-hidden','true'); }
   showStatus('✅ تم تحميل البيانات. اختر الفترة ثم اضغط عرض التقرير.');
 }
