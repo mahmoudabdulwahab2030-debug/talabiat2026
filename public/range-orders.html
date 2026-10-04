@@ -192,8 +192,8 @@ function addCheckOption(group, value, text){
   labelEl.appendChild(input); labelEl.appendChild(span); group.appendChild(labelEl);
 }
 async function fetchData(){ const sheetSelector=document.getElementById('sheetSelector'); const branchSelector=document.getElementById('branchSelector'); const loader=document.getElementById('loader'); if (loader){ loader.style.display='flex'; loader.setAttribute('aria-hidden','false'); }
-  if(sheetSelector){ sheetSelector.innerHTML='<label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الأقسام —</span></label>'; }
-  if(branchSelector){ branchSelector.innerHTML='<label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الفروع —</span></label>'; }
+  if(sheetSelector){ sheetSelector.innerHTML=''; }
+  if(branchSelector){ branchSelector.innerHTML=''; }
   const snap = await db.collection('orders').get(); allData=[];
   snap.forEach(doc=>{ const d=doc.data(); if (d && d.isDeleted) return; if ((d.name && d.sheet && d.branch) && (d.orderDate || d.deliveryDate)) { allData.push({ ...d, id: doc.id }); }});
   const sheets=[...new Set(allData.map(d=>d.sheet).filter(s=>s && s!=='main'))].sort((a,b)=>a.localeCompare(b,'ar'));
