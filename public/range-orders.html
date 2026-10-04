@@ -62,7 +62,12 @@
       transition: box-shadow .12s, transform .08s;
     }
     input[type="date"]::placeholder, select::placeholder{ color:var(--muted); }
-    input[type="date"]:focus, select:focus, input:focus{ box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08); transform: translateY(-1px); }
+    input[type="date"]:focus, select:focus, input[type="text"]:focus{ box-shadow: 0 6px 18px rgba(0,0,0,0.6), 0 0 0 3px rgba(240,173,78,0.08); transform: translateY(-1px); }
+    .check-group{ display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+    .check-item{ display:inline-flex; align-items:center; gap:7px; background: linear-gradient(180deg,var(--panel), #101010); border:1px solid var(--ghost-border); border-radius:10px; padding:7px 11px; cursor:pointer; font-size:13px; font-weight:700; color:var(--text); transition: box-shadow .12s, border-color .12s, background .12s; user-select:none; }
+    .check-item:hover{ box-shadow: 0 6px 16px rgba(0,0,0,0.5); }
+    .check-item:has(input:checked){ border-color: var(--accent-2); background: rgba(255,209,102,0.14); color: var(--accent); }
+    .check-item input[type="checkbox"]{ accent-color: var(--accent); width:16px; height:16px; margin:0; cursor:pointer; flex-shrink:0; }
     .btn-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .btn{ background:var(--secondary); color:var(--text); border:1px solid rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:800; letter-spacing:0.6px; display:inline-flex; align-items:center; gap:8px; transition: transform .08s ease, box-shadow .12s ease, background .12s ease; }
     .btn:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
@@ -102,16 +107,16 @@
       </div>
       <div class="row">
         <div class="field" style="align-items:flex-start">
-          <label for="sheetSelector">🧾 الأقسام:</label>
-          <select id="sheetSelector" multiple size="5" title="اضغط Ctrl لاختيار أقسام متعددة">
-            <option value="ALL" selected>— كل الأقسام —</option>
-          </select>
+          <label>🧾 الأقسام:</label>
+          <div id="sheetSelector" class="check-group" role="group" aria-label="اختيار الأقسام">
+            <label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الأقسام —</span></label>
+          </div>
         </div>
         <div class="field" style="align-items:flex-start">
-          <label for="branchSelector">🏷️ الفروع:</label>
-          <select id="branchSelector" multiple size="5" title="اضغط Ctrl لاختيار فروع متعددة">
-            <option value="ALL" selected>— كل الفروع —</option>
-          </select>
+          <label>🏷️ الفروع:</label>
+          <div id="branchSelector" class="check-group" role="group" aria-label="اختيار الفروع">
+            <label class="check-item"><input type="checkbox" value="ALL" checked><span>— كل الفروع —</span></label>
+          </div>
         </div>
         <div class="field" style="min-width:auto;"><div id="loader" class="loader" aria-live="polite" aria-hidden="true"><span></span><span></span><span></span><strong>جاري التحميل...</strong></div></div>
       </div>
@@ -147,20 +152,26 @@ function showStatus(text){ const el = document.getElementById('status'); if (el)
 function formatNumber(num){ num = Number(num||0); return Number.isInteger(num) ? num.toString() : num.toFixed(2); }
 function escapeHtml(text){ if (!text) return ''; return String(text).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normalizeBranchKey(branch){ const raw = (branch||'').toString().trim(); const map = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }; return map[raw] || raw.toLowerCase() || 'unknown'; }
-function getSelectedValues(select){ return Array.from(select.selectedOptions).map(o=>o.value); }
+function getSelectedValues(group){ return Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(i=>i.value); }
 function isAllSelected(values){ return !values.length || values.includes('ALL'); }
 function initMultiSelectBehavior(){ ['sheetSelector','branchSelector'].forEach(id=>{
-  const sel=document.getElementById(id);
-  if (!sel) return;
-  sel.addEventListener('change', ()=>{
-    const values = getSelectedValues(sel);
-    const allOpt = sel.querySelector('option[value="ALL"]');
-    if (values.includes('ALL') && values.length > 1){
-      Array.from(sel.options).forEach(o=>{ if (o.value !== 'ALL') o.selected = false; });
+  const group=document.getElementById(id);
+  if (!group) return;
+  group.addEventListener('change', (e)=>{
+    const cb=e.target;
+    if (!cb || cb.type !== 'checkbox') return;
+    const allCb = group.querySelector('input[value="ALL"]');
+    const items = Array.from(group.querySelectorAll('input[type="checkbox"]')).filter(i=>i!==allCb);
+    const values = getSelectedValues(group);
+    if (cb.value === 'ALL'){
+      items.forEach(i=>{ i.checked = cb.checked; });
+      if (!cb.checked && allCb) allCb.checked = true;
+    } else if (values.includes('ALL') && values.length > 1){
+      if (allCb) allCb.checked = false;
     } else if (!values.length){
-      if (allOpt) allOpt.selected = true;
+      if (allCb) allCb.checked = true;
     } else {
-      if (allOpt) allOpt.selected = false;
+      if (allCb) allCb.checked = false;
     }
   });
 }); }
