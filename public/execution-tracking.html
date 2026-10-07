@@ -115,6 +115,14 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
   .btn{flex:1 1 calc(50% - 8px);justify-content:center}
   .xsearch.open{width:100%}
 }
+.notes-box{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.notes-box label{font-weight:700;color:var(--accent)}
+.notes-box textarea{width:100%;box-sizing:border-box;border-radius:10px;padding:10px;font:inherit;background:rgba(255,255,255,.05);color:inherit;border:1px solid rgba(212,175,55,.35);resize:vertical}
+.badge.extra{background:#7c3aed22;color:#a78bfa;border:1px solid #a78bfa66;font-size:11px;margin-inline-start:4px}
+.btn.row-del{margin-top:4px}
+.paper .notes{border:1px solid #999;border-radius:6px;padding:8px 10px;margin:10px 0;white-space:pre-wrap;background:#fafafa}
+.paper .br-h{background:#222;color:#fff;padding:6px 10px;border-radius:4px;margin:16px 0 6px;font-size:15px}
+.paper .sec-h{margin:8px 0 4px;font-size:13px;border-bottom:1px solid #999;padding-bottom:2px}
 </style>
 </head>
 <body>
@@ -131,6 +139,7 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
     </div>
     <div class="btns">
       <button class="btn primary" id="loadBtn">📊 عرض الأصناف</button>
+      <button class="btn" id="addExtraBtn" disabled>➕ صنف خارج المنظومة</button>
       <button class="btn ok" id="allDoneBtn" disabled>✔️ تنفيذ كل الأصناف</button>
       <button class="btn" id="saveBtn" disabled>💾 حفظ</button>
       <button class="btn" id="printBtn" disabled>🖨️ طباعة</button>
@@ -155,6 +164,7 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
         <span class="saved-info" id="savedInfo"></span>
       </div>
       <div class="table-wrap"><table id="mainTable"><thead></thead><tbody></tbody></table></div>
+      <div class="notes-box"><label for="repNotes">📝 ملاحظات التقرير</label><textarea id="repNotes" rows="3" placeholder="اكتب أي ملاحظات عامة تظهر في التقرير المطبوع…"></textarea></div>
     </div>
   </div>
 </div>
@@ -178,6 +188,19 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
   <div id="sumResult"></div>
 </div></div>
 
+<div class="modal" id="exModal"><div class="inner" style="max-width:560px">
+  <h3 style="margin:0 0 10px">➕ إضافة صنف خارج المنظومة</h3>
+  <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+    <label class="f">الكود<input id="exCode" placeholder="اختياري"></label>
+    <label class="f">اسم الصنف *<input id="exName"></label>
+    <label class="f">كوربة<input type="number" min="0" step="any" id="exQ_korba"></label>
+    <label class="f">دقي<input type="number" min="0" step="any" id="exQ_dokki"></label>
+    <label class="f">التجمع<input type="number" min="0" step="any" id="exQ_tagamo3"></label>
+    <label class="f">العبور<input type="number" min="0" step="any" id="exQ_obour"></label>
+  </div>
+  <div class="btns" style="margin-top:12px"><button class="btn primary" id="exSave">✔️ إضافة</button><button class="btn" id="exClose">✖ إلغاء</button></div>
+  <div class="status" id="exStatus"></div>
+</div></div>
 <div class="sheet" id="sheet"></div>
 
 <script>
@@ -234,11 +257,14 @@ async function load(){
     });
     if(!Object.keys(it.branches).length) delete items[k];
   });
+  if(saved&&saved.items) Object.entries(saved.items).forEach(([k,sv])=>{ if(sv.extra&&!items[k]){ const br={}; Object.entries(sv.branches||{}).forEach(([bk,b])=>br[bk]={qty:Number(b.qty)||0,done:b.done??null,reason:b.reason||'',note:b.note||'',actual:b.actual??''}); items[k]={code:sv.code||'',name:sv.name||'',extra:true,branches:br}; }});
+  $('repNotes').value=saved?.notes||'';
   current={date,sheet,items,savedAt:saved?.savedAt||null,savedBy:saved?.savedBy||''};
   const n=Object.keys(items).length;
-  $('workArea').style.display = n?'block':'none';
-  ['allDoneBtn','saveBtn','printBtn','pdfBtn','xlsBtn'].forEach(id=>$(id).disabled=!n);
-  if(!n) return status('⚠️ لا توجد طلبات لهذا القسم في هذا التاريخ.');
+  $('workArea').style.display = 'block';
+  $('addExtraBtn').disabled=false;
+  ['addExtraBtn','allDoneBtn','saveBtn','printBtn','pdfBtn','xlsBtn'].forEach(id=>$(id).disabled=!n);
+  if(!n){ render(); setDirty(false); return status('⚠️ لا توجد طلبات لهذا القسم في هذا التاريخ. يمكنك إضافة صنف خارج المنظومة.'); }
   render(); setDirty(false);
   status(saved?'✅ تم استرجاع البيانات المحفوظة لهذا اليوم والقسم.':'ℹ️ لم يتم الحفظ لهذا اليوم بعد. اضغط "تنفيذ كل الأصناف" ثم أزل علامة غير المنفذ.');
 }
@@ -254,7 +280,7 @@ function render(){
     if(onlyMiss&&!miss) return;
     if(q&&!(String(it.code).toLowerCase().includes(q)||it.name.toLowerCase().includes(q))) return;
     const total=bs.reduce((s,b)=>s+b.qty,0);
-    html+=`<tr data-k="${esc(k)}" class="${miss?'has-miss':''}"><td>${++i}</td><td>${hl(it.code,q)}</td><td class="name">${hl(it.name,q)}</td>`;
+    html+=`<tr data-k="${esc(k)}" class="${miss?'has-miss':''}"><td>${++i}</td><td>${hl(it.code,q)}</td><td class="name">${hl(it.name,q)}${it.extra?'<span class="badge extra">خارج المنظومة</span>':''}</td>`;
     BRANCHES.forEach(br=>{
       const b=it.branches[br.k];
       if(!b){ html+=`<td><div class="cell empty">—</div></td>`; return; }
@@ -267,7 +293,7 @@ function render(){
           <input class="nt" placeholder="ملاحظة" value="${esc(b.note)}">
         </div></div></td>`;
     });
-    html+=`<td><b>${fmt(total)}</b></td><td>${statusBadge(bs)}</td><td><button class="btn row-all" data-row="${esc(k)}">✔️ الكل</button></td></tr>`;
+    html+=`<td><b>${fmt(total)}</b></td><td>${statusBadge(bs)}</td><td><button class="btn row-all" data-row="${esc(k)}">✔️ الكل</button>${it.extra?`<button class="btn bad row-del" data-del="${esc(k)}">🗑️ حذف</button>`:''}</td></tr>`;
   });
   $('mainTable').querySelector('tbody').innerHTML=html||`<tr><td colspan="10">لا توجد نتائج</td></tr>`;
   $('xsearch').classList.toggle('has',!!q); $('xsCount').textContent=i+' نتيجة';
@@ -296,8 +322,17 @@ $('mainTable').addEventListener('change',e=>{
   else if(e.target.classList.contains('nt')) b.note=e.target.value;
   renderKpis(); setDirty(true);
 });
-$('mainTable').addEventListener('click',e=>{ const k=e.target.closest('[data-row]')?.dataset.row; if(!k) return;
+$('mainTable').addEventListener('click',e=>{ const dk=e.target.closest('[data-del]')?.dataset.del; if(dk){ if(confirm('حذف هذا الصنف الإضافي؟')){ delete current.items[dk]; render(); setDirty(true);} return; } const k=e.target.closest('[data-row]')?.dataset.row; if(!k) return;
   Object.values(current.items[k].branches).forEach(b=>{b.done=true;b.reason='';b.note='';b.actual='';}); render(); setDirty(true); });
+$('repNotes').addEventListener('input',()=>{ if(current) setDirty(true); });
+$('addExtraBtn').onclick=()=>{ ['exCode','exName',...BRANCHES.map(b=>'exQ_'+b.k)].forEach(i=>$(i).value=''); $('exStatus').textContent=''; $('exModal').classList.add('show'); setTimeout(()=>$('exName').focus(),50); };
+$('exClose').onclick=()=>$('exModal').classList.remove('show');
+$('exSave').onclick=()=>{ const name=$('exName').value.trim(); if(!name) return $('exStatus').textContent='⚠️ اكتب اسم الصنف.';
+  const branches={}; BRANCHES.forEach(b=>{ const q=Number($('exQ_'+b.k).value)||0; if(q>0) branches[b.k]={qty:q,done:null,reason:'',note:'',actual:''}; });
+  if(!Object.keys(branches).length) return $('exStatus').textContent='⚠️ أدخل كمية لفرع واحد على الأقل.';
+  const k='x__'+Date.now(); current.items[k]={code:$('exCode').value.trim(),name,extra:true,branches};
+  ['allDoneBtn','saveBtn','printBtn','pdfBtn','xlsBtn'].forEach(id=>$(id).disabled=false);
+  $('exModal').classList.remove('show'); render(); setDirty(true); status('✅ تمت إضافة الصنف «'+name+'». لا تنس الحفظ.'); };
 $('allDoneBtn').onclick=()=>{ Object.values(current.items).forEach(it=>Object.values(it.branches).forEach(b=>{ if(b.done!==false) b.done=true; })); render(); setDirty(true); status('✔️ تم تعليم كل الأصناف كمنفذة (ما عدا المعلم كغير منفذ). أزل العلامة عن غير المنفذ واكتب السبب ثم احفظ.'); };
 function hl(t,q){ const s=esc(t); if(!q) return s; const i=String(t).toLowerCase().indexOf(q); if(i<0) return s; const x=String(t); return esc(x.slice(0,i))+'<mark class="hl">'+esc(x.slice(i,i+q.length))+'</mark>'+esc(x.slice(i+q.length)); }
 let xsT; $('search').oninput=()=>{ clearTimeout(xsT); xsT=setTimeout(render,150); }; $('onlyMiss').onchange=render;
@@ -312,10 +347,10 @@ document.addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement.
 async function save(){
   const s=stats();
   if(s.noReason && !confirm(`يوجد ${s.noReason} بند غير منفذ بدون سبب. حفظ على أي حال؟`)) return;
-  const items={}; Object.entries(current.items).forEach(([k,it])=>{ items[k]={code:it.code,name:it.name,branches:{}}; Object.entries(it.branches).forEach(([bk,b])=>items[k].branches[bk]={qty:b.qty,done:b.done,reason:b.reason,note:b.note,actual:b.actual===''?'':Number(b.actual)}); });
+  const items={}; Object.entries(current.items).forEach(([k,it])=>{ items[k]={code:it.code,name:it.name,extra:!!it.extra,branches:{}}; Object.entries(it.branches).forEach(([bk,b])=>items[k].branches[bk]={qty:b.qty,done:b.done,reason:b.reason,note:b.note,actual:b.actual===''?'':Number(b.actual)}); });
   const savedAt=new Date().toISOString();
   $('saveBtn').disabled=true; status('⏳ جاري الحفظ…');
-  try{ await db.collection('reports').doc(docId(current.date,current.sheet)).set({type:'execution',date:current.date,sheet:current.sheet,items,stats:{lines:s.lines,done:s.done,miss:s.miss,pending:s.pend},savedAt,savedBy:user()});
+  try{ await db.collection('reports').doc(docId(current.date,current.sheet)).set({type:'execution',date:current.date,sheet:current.sheet,items,stats:{lines:s.lines,done:s.done,miss:s.miss,pending:s.pend},notes:$('repNotes').value.trim(),savedAt,savedBy:user()});
     current.savedAt=savedAt; current.savedBy=user(); setDirty(false); status('✅ تم الحفظ بنجاح. يمكنك العودة لهذه البيانات بنفس التاريخ والقسم.'); }
   catch(e){ console.error(e); status('❌ فشل الحفظ، حاول مرة أخرى.'); }
   $('saveBtn').disabled=false;
@@ -331,13 +366,16 @@ function paperFoot(){ return `<div class="sign"><div>مسؤول الإنتاج</
 function dayPaper(){
   const s=stats(), pct=s.lines?Math.round(s.done/s.lines*100):0;
   let h=paperHead('تقرير متابعة التنفيذ',`القسم: ${esc(current.sheet)} — تاريخ التسليم: ${current.date}`,[['عدد الأصناف',Object.keys(current.items).length],['نسبة التنفيذ',pct+'%'],['بنود غير منفذة',s.miss],['كمية ناقصة',fmt(s.missQty)]]);
+  { const mm=[]; sortedItems().forEach(([k,it])=>{ const q=Object.values(it.branches).filter(b=>b.done===false).reduce((a,b)=>a+b.qty-(Number(b.actual)||0),0); if(Object.values(it.branches).some(b=>b.done===false)) mm.push([it.name,q]); });
+    if(mm.length) h+=`<h4>الأصناف غير المنفذة</h4><table><thead><tr><th>#</th><th>الصنف</th><th>الكمية الناقصة</th></tr></thead><tbody>${mm.map((m,i)=>`<tr><td>${i+1}</td><td class="name">${esc(m[0])}</td><td class="x">${fmt(m[1])}</td></tr>`).join('')}</tbody></table>`; }
   h+=`<table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th>${BRANCHES.map(b=>`<th>${b.l}</th>`).join('')}<th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>`;
   sortedItems().forEach(([k,it],i)=>{ const bs=Object.values(it.branches);
-    h+=`<tr><td>${i+1}</td><td>${esc(it.code)}</td><td class="name">${esc(it.name)}</td>${BRANCHES.map(br=>{const b=it.branches[br.k]; if(!b) return '<td></td>'; return `<td>${fmt(b.qty)} ${b.done===true?'<span class="v">✓</span>':b.done===false?'<span class="x">✗</span>':''}</td>`;}).join('')}<td><b>${fmt(bs.reduce((a,b)=>a+b.qty,0))}</b></td><td>${statusBadge(bs).replace(/<[^>]+>/g,'')}</td></tr>`; });
+    h+=`<tr><td>${i+1}</td><td>${esc(it.code)}</td><td class="name">${esc(it.name)}${it.extra?' <small>(خارج المنظومة)</small>':''}</td>${BRANCHES.map(br=>{const b=it.branches[br.k]; if(!b) return '<td></td>'; return `<td>${fmt(b.qty)} ${b.done===true?'<span class="v">✓</span>':b.done===false?'<span class="x">✗</span>':''}</td>`;}).join('')}<td><b>${fmt(bs.reduce((a,b)=>a+b.qty,0))}</b></td><td>${statusBadge(bs).replace(/<[^>]+>/g,'')}</td></tr>`; });
   h+='</tbody></table>';
   const misses=[]; sortedItems().forEach(([k,it])=>Object.entries(it.branches).forEach(([bk,b])=>{ if(b.done===false) misses.push({it,bk,b}); }));
   if(misses.length){ h+=`<h4>تفاصيل الأصناف غير المنفذة وأسبابها</h4><table><thead><tr><th>الكود</th><th>الصنف</th><th>الفرع</th><th>المطلوب</th><th>المنفذ</th><th>الناقص</th><th>السبب</th><th>ملاحظة</th></tr></thead><tbody>`+
     misses.map(m=>`<tr><td>${esc(m.it.code)}</td><td class="name">${esc(m.it.name)}</td><td>${BL[m.bk]}</td><td>${fmt(m.b.qty)}</td><td>${fmt(m.b.actual||0)}</td><td class="x">${fmt(m.b.qty-(Number(m.b.actual)||0))}</td><td>${esc(m.b.reason||'—')}</td><td>${esc(m.b.note)}</td></tr>`).join('')+'</tbody></table>'; }
+  const nt=$('repNotes').value.trim(); if(nt) h+=`<h4>ملاحظات</h4><div class="notes">${esc(nt)}</div>`;
   return `<div class="paper">${h}${paperFoot()}</div>`;
 }
 function doPrint(html){ $('sheet').innerHTML=html; setTimeout(()=>window.print(),50); }
@@ -359,7 +397,8 @@ $('sumRun').onclick=async()=>{
   $('sumStatus').textContent='⏳ جاري التحميل…';
   const snap=await db.collection('reports').where('type','==','execution').get();
   const docs=[]; snap.forEach(d=>{ const x=d.data(); if(x.date>=from&&x.date<=to&&(sh==='ALL'||x.sheet===sh)) docs.push(x); });
-  const rows=[], reasons={}, bySheet={}; let lines=0,done=0;
+  const rows=[], reasons={}, bySheet={}, notes=[]; let lines=0,done=0;
+  docs.forEach(x=>{ if(x.notes) notes.push(x); });
   docs.forEach(x=>Object.values(x.items||{}).forEach(it=>Object.entries(it.branches||{}).forEach(([bk,b])=>{
     if(br!=='ALL'&&bk!==br) return; lines++; if(b.done===true) done++;
     if(b.done===false){ const r=b.reason||'بدون سبب'; reasons[r]=(reasons[r]||0)+1; rows.push({date:x.date,sheet:x.sheet,bk,code:it.code,name:it.name,qty:b.qty,actual:Number(b.actual)||0,reason:r,note:b.note||''});
@@ -368,11 +407,18 @@ $('sumRun').onclick=async()=>{
   if(!docs.length){ $('sumResult').innerHTML=''; lastSummary=''; return $('sumStatus').textContent='⚠️ لا توجد بيانات محفوظة في هذه الفترة.'; }
   const pct=lines?Math.round(done/lines*100):0;
   let h=paperHead('تقرير ملخص الأصناف غير المنفذة',`الفترة: ${from} إلى ${to} — القسم: ${sh==='ALL'?'كل الأقسام':esc(sh)} — الفرع: ${br==='ALL'?'كل الفروع':BL[br]}`,[['أيام/أقسام محفوظة',docs.length],['نسبة التنفيذ',pct+'%'],['بنود غير منفذة',rows.length],['كمية ناقصة',fmt(rows.reduce((a,r)=>a+r.qty-r.actual,0))]]);
+  { const agg={}; rows.forEach(r=>{ const g=(r.code||'')+'||'+r.name; agg[g]=agg[g]||{code:r.code,name:r.name,q:0,n:0}; agg[g].q+=r.qty-r.actual; agg[g].n++; });
+    const L=Object.values(agg).sort((a,b)=>b.q-a.q);
+    h+=`<h4>أولاً: الأصناف غير المنفذة وكمياتها</h4><table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th><th>الكمية غير المنفذة</th><th>عدد المرات</th></tr></thead><tbody>${L.map((a,i)=>`<tr><td>${i+1}</td><td>${esc(a.code)}</td><td class="name">${esc(a.name)}</td><td class="x"><b>${fmt(a.q)}</b></td><td>${a.n}</td></tr>`).join('')||'<tr><td colspan="5">لا يوجد — تم تنفيذ كل شيء ✓</td></tr>'}</tbody></table>`; }
   h+=`<h4>توزيع الأسباب</h4><table><thead><tr><th>السبب</th><th>عدد البنود</th><th>النسبة</th></tr></thead><tbody>${Object.entries(reasons).sort((a,b)=>b[1]-a[1]).map(([r,c])=>`<tr><td>${esc(r)}</td><td>${c}</td><td>${Math.round(c/rows.length*100)}%</td></tr>`).join('')||'<tr><td colspan="3">لا يوجد — تم تنفيذ كل شيء ✓</td></tr>'}</tbody></table>`;
   h+=`<h4>غير المنفذ لكل قسم وفرع</h4><table><thead><tr><th>القسم</th>${BRANCHES.map(b=>`<th>${b.l}</th>`).join('')}<th>الإجمالي</th></tr></thead><tbody>${Object.entries(bySheet).map(([s,m])=>`<tr><td>${esc(s)}</td>${BRANCHES.map(b=>`<td>${m[b.k]||''}</td>`).join('')}<td><b>${Object.values(m).reduce((a,c)=>a+c,0)}</b></td></tr>`).join('')||'<tr><td colspan="6">—</td></tr>'}</tbody></table>`;
-  const grp={}; rows.forEach(r=>{ const g=`${r.sheet}||${r.bk}`; (grp[g]=grp[g]||[]).push(r); });
-  Object.entries(grp).sort().forEach(([g,list])=>{ const [s,bk]=g.split('||');
-    h+=`<h4>${esc(s)} — فرع ${BL[bk]} (${list.length})</h4><table><thead><tr><th>التاريخ</th><th>الكود</th><th>الصنف</th><th>المطلوب</th><th>المنفذ</th><th>الناقص</th><th>السبب</th><th>ملاحظة</th></tr></thead><tbody>${list.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr><td>${r.date}</td><td>${esc(r.code)}</td><td class="name">${esc(r.name)}</td><td>${fmt(r.qty)}</td><td>${fmt(r.actual)}</td><td class="x">${fmt(r.qty-r.actual)}</td><td>${esc(r.reason)}</td><td>${esc(r.note)}</td></tr>`).join('')}</tbody></table>`; });
+  h+=`<h4>التفاصيل حسب الفرع والقسم</h4>`;
+  BRANCHES.forEach(B=>{ const bl=rows.filter(r=>r.bk===B.k); if(!bl.length) return;
+    h+=`<div class="br-h">🏬 فرع ${B.l} — ${bl.length} بند غير منفذ — ناقص ${fmt(bl.reduce((a,r)=>a+r.qty-r.actual,0))}</div>`;
+    const bs={}; bl.forEach(r=>(bs[r.sheet]=bs[r.sheet]||[]).push(r));
+    Object.keys(bs).sort((a,b)=>a.localeCompare(b,'ar')).forEach(s=>{ const list=bs[s];
+    h+=`<div class="sec-h">📂 قسم ${esc(s)} (${list.length})</div><table><thead><tr><th>التاريخ</th><th>الكود</th><th>الصنف</th><th>المطلوب</th><th>المنفذ</th><th>الناقص</th><th>السبب</th><th>ملاحظة</th></tr></thead><tbody>${list.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr><td>${r.date}</td><td>${esc(r.code)}</td><td class="name">${esc(r.name)}</td><td>${fmt(r.qty)}</td><td>${fmt(r.actual)}</td><td class="x">${fmt(r.qty-r.actual)}</td><td>${esc(r.reason)}</td><td>${esc(r.note)}</td></tr>`).join('')}</tbody></table>`; }); });
+  if(notes.length) h+=`<h4>ملاحظات التقارير</h4>`+notes.map(x=>`<div class="notes"><b>${x.date} — ${esc(x.sheet)}:</b> ${esc(x.notes)}</div>`).join('');
   lastSummary=`<div class="paper">${h}${paperFoot()}</div>`;
   $('sumResult').innerHTML=`<div style="background:#fff;border-radius:10px;padding:14px;overflow:auto">${lastSummary}</div>`;
   $('sumStatus').textContent=`✅ ${rows.length} بند غير منفذ.`;
