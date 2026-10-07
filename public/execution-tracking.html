@@ -254,7 +254,7 @@ function render(){
     if(onlyMiss&&!miss) return;
     if(q&&!(String(it.code).toLowerCase().includes(q)||it.name.toLowerCase().includes(q))) return;
     const total=bs.reduce((s,b)=>s+b.qty,0);
-    html+=`<tr data-k="${esc(k)}" class="${miss?'has-miss':''}"><td>${++i}</td><td>${esc(it.code)}</td><td class="name">${esc(it.name)}</td>`;
+    html+=`<tr data-k="${esc(k)}" class="${miss?'has-miss':''}"><td>${++i}</td><td>${hl(it.code,q)}</td><td class="name">${hl(it.name,q)}</td>`;
     BRANCHES.forEach(br=>{
       const b=it.branches[br.k];
       if(!b){ html+=`<td><div class="cell empty">—</div></td>`; return; }
@@ -270,6 +270,7 @@ function render(){
     html+=`<td><b>${fmt(total)}</b></td><td>${statusBadge(bs)}</td><td><button class="btn row-all" data-row="${esc(k)}">✔️ الكل</button></td></tr>`;
   });
   $('mainTable').querySelector('tbody').innerHTML=html||`<tr><td colspan="10">لا توجد نتائج</td></tr>`;
+  $('xsearch').classList.toggle('has',!!q); $('xsCount').textContent=i+' نتيجة';
   renderKpis();
 }
 function statusBadge(bs){ const m=bs.filter(b=>b.done===false).length, d=bs.filter(b=>b.done===true).length;
@@ -298,7 +299,15 @@ $('mainTable').addEventListener('change',e=>{
 $('mainTable').addEventListener('click',e=>{ const k=e.target.closest('[data-row]')?.dataset.row; if(!k) return;
   Object.values(current.items[k].branches).forEach(b=>{b.done=true;b.reason='';b.note='';b.actual='';}); render(); setDirty(true); });
 $('allDoneBtn').onclick=()=>{ Object.values(current.items).forEach(it=>Object.values(it.branches).forEach(b=>{ if(b.done!==false) b.done=true; })); render(); setDirty(true); status('✔️ تم تعليم كل الأصناف كمنفذة (ما عدا المعلم كغير منفذ). أزل العلامة عن غير المنفذ واكتب السبب ثم احفظ.'); };
-$('search').oninput=render; $('onlyMiss').onchange=render;
+function hl(t,q){ const s=esc(t); if(!q) return s; const i=String(t).toLowerCase().indexOf(q); if(i<0) return s; const x=String(t); return esc(x.slice(0,i))+'<mark class="hl">'+esc(x.slice(i,i+q.length))+'</mark>'+esc(x.slice(i+q.length)); }
+let xsT; $('search').oninput=()=>{ clearTimeout(xsT); xsT=setTimeout(render,150); }; $('onlyMiss').onchange=render;
+const xsOpen=()=>{ $('xsearch').classList.add('open'); setTimeout(()=>$('search').focus(),120); };
+$('xsIcon').onclick=()=>{ const o=$('xsearch').classList.contains('open'); if(o&&!$('search').value) $('xsearch').classList.remove('open'); else xsOpen(); };
+$('xsClear').onclick=()=>{ $('search').value=''; render(); $('search').focus(); };
+$('search').addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('search').value=''; render(); $('xsearch').classList.remove('open'); $('search').blur(); }
+  if(e.key==='Enter'){ const r=document.querySelector('#mainTable tbody tr[data-k]'); if(r){ r.scrollIntoView({behavior:'smooth',block:'center'}); r.style.outline='2px solid var(--accent)'; setTimeout(()=>r.style.outline='',1500);} } });
+$('search').addEventListener('blur',()=>{ if(!$('search').value) setTimeout(()=>$('xsearch').classList.remove('open'),150); });
+document.addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&$('workArea').style.display!=='none'){ e.preventDefault(); xsOpen(); } });
 
 async function save(){
   const s=stats();
