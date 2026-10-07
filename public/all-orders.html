@@ -836,6 +836,7 @@
         <button class="icon-btn share-btn" onclick="shareAsImage()" title="مشاركة كصورة">📸</button>
         <button class="icon-btn summary-btn" onclick="printSummaryOnly()" title="طباعة ملخص">📋</button>
        <button class="btn primary" onclick="renderNotesSection()"><span class="icon">📝</span>عرض الملاحظات</button>
+       <button class="btn primary" onclick="(function(){var d=document.getElementById('dateSelector').value,s=document.getElementById('sheetSelector').value,q=[];if(d)q.push('date='+encodeURIComponent(d));if(s&&s!=='ALL')q.push('sheet='+encodeURIComponent(s));location.href='execution-tracking.html'+(q.length?'?'+q.join('&'):'');})()"><span class="icon">✅</span>متابعة التنفيذ</button>
 
       </div>
     </div>
