@@ -513,9 +513,7 @@
             <th>📅 التاريخ</th>
             <th>🧾 رقم الفاتورة</th>
             <th>⏫ تاريخ ووقت الرفع</th>
-            <th>✏️ تاريخ ووقت التعديل</th>
             <th>👤 القائم بالرفع</th>
-            <th>👤 القائم بالتعديل</th>
             <th>🔢 عدد الأصناف</th>
             <th>🗑️ حذف</th>
             <th>✅ اختيار</th>
@@ -539,9 +537,7 @@
           <td>${date}</td>
           <td>${invoiceNumber || '—'}</td>
           <td>${fmtDT(meta.upAt)}</td>
-          <td>${meta.modAt ? fmtDT(meta.modAt) : '—'}</td>
           <td>${meta.upBy || '—'}</td>
-          <td>${meta.modBy || '—'}</td>
           <td>${count}</td>
           <td><button class="btn-delete" onclick="deleteUpload('${branch}','${date}','${source}','${invoiceNumber}')">🗑️ حذف</button></td>
           <td><input type="checkbox" class="select-upload" data-branch="${branch}" data-date="${date}" data-source="${source}" data-invoice="${invoiceNumber}" /></td>
