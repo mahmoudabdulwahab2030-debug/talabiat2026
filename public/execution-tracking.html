@@ -379,9 +379,9 @@ function dayPaper(){
   return `<div class="paper">${h}${paperFoot()}</div>`;
 }
 function doPrint(html){ $('sheet').innerHTML=html; setTimeout(()=>window.print(),50); }
-function doPdf(html,name){ const el=document.createElement('div'); el.innerHTML=html; el.style.cssText='width:190mm;background:#fff;padding:0';
+function doPdf(html,name){ const el=document.createElement('div'); el.innerHTML=html; el.style.cssText='width:265mm;background:#fff;padding:4mm;box-sizing:border-box';
   status('⏳ جاري إنشاء PDF…');
-  html2pdf().set({margin:[10,10,10,10],filename:name,image:{type:'jpeg',quality:.97},html2canvas:{scale:2,useCORS:true,backgroundColor:'#fff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:'tr'}}).from(el).save().then(()=>status('✅ تم تحميل PDF.')); }
+  html2pdf().set({margin:[8,8,8,8],filename:name,image:{type:'jpeg',quality:.97},html2canvas:{scale:2,useCORS:true,backgroundColor:'#fff'},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},pagebreak:{mode:['css','legacy'],avoid:'tr'}}).from(el).save().then(()=>status('✅ تم تحميل PDF.')); }
 $('printBtn').onclick=()=>doPrint(dayPaper());
 $('pdfBtn').onclick=()=>doPdf(dayPaper(),`execution-${current.sheet}-${current.date}.pdf`);
 $('xlsBtn').onclick=()=>{ const rows=[]; sortedItems().forEach(([k,it])=>Object.entries(it.branches).forEach(([bk,b])=>rows.push({'الكود':it.code,'الصنف':it.name,'الفرع':BL[bk],'المطلوب':b.qty,'الحالة':b.done===true?'منفذ':b.done===false?'غير منفذ':'بانتظار','المنفذ فعلياً':b.actual,'السبب':b.reason,'ملاحظة':b.note})));
@@ -407,11 +407,9 @@ $('sumRun').onclick=async()=>{
   if(!docs.length){ $('sumResult').innerHTML=''; lastSummary=''; return $('sumStatus').textContent='⚠️ لا توجد بيانات محفوظة في هذه الفترة.'; }
   const pct=lines?Math.round(done/lines*100):0;
   let h=paperHead('تقرير ملخص الأصناف غير المنفذة',`الفترة: ${from} إلى ${to} — القسم: ${sh==='ALL'?'كل الأقسام':esc(sh)} — الفرع: ${br==='ALL'?'كل الفروع':BL[br]}`,[['أيام/أقسام محفوظة',docs.length],['نسبة التنفيذ',pct+'%'],['بنود غير منفذة',rows.length],['كمية ناقصة',fmt(rows.reduce((a,r)=>a+r.qty-r.actual,0))]]);
-  { const agg={}; rows.forEach(r=>{ const g=(r.code||'')+'||'+r.name; agg[g]=agg[g]||{code:r.code,name:r.name,q:0,n:0}; agg[g].q+=r.qty-r.actual; agg[g].n++; });
+  { const agg={}; rows.forEach(r=>{ const g=(r.code||'')+'||'+r.name; agg[g]=agg[g]||{code:r.code,name:r.name,q:0,rs:new Set(),ns:new Set()}; agg[g].q+=r.qty-r.actual; if(r.reason) agg[g].rs.add(r.reason); if(r.note) agg[g].ns.add(r.note); });
     const L=Object.values(agg).sort((a,b)=>b.q-a.q);
-    h+=`<h4>أولاً: الأصناف غير المنفذة وكمياتها</h4><table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th><th>الكمية غير المنفذة</th><th>عدد المرات</th></tr></thead><tbody>${L.map((a,i)=>`<tr><td>${i+1}</td><td>${esc(a.code)}</td><td class="name">${esc(a.name)}</td><td class="x"><b>${fmt(a.q)}</b></td><td>${a.n}</td></tr>`).join('')||'<tr><td colspan="5">لا يوجد — تم تنفيذ كل شيء ✓</td></tr>'}</tbody></table>`; }
-  h+=`<h4>توزيع الأسباب</h4><table><thead><tr><th>السبب</th><th>عدد البنود</th><th>النسبة</th></tr></thead><tbody>${Object.entries(reasons).sort((a,b)=>b[1]-a[1]).map(([r,c])=>`<tr><td>${esc(r)}</td><td>${c}</td><td>${Math.round(c/rows.length*100)}%</td></tr>`).join('')||'<tr><td colspan="3">لا يوجد — تم تنفيذ كل شيء ✓</td></tr>'}</tbody></table>`;
-  h+=`<h4>غير المنفذ لكل قسم وفرع</h4><table><thead><tr><th>القسم</th>${BRANCHES.map(b=>`<th>${b.l}</th>`).join('')}<th>الإجمالي</th></tr></thead><tbody>${Object.entries(bySheet).map(([s,m])=>`<tr><td>${esc(s)}</td>${BRANCHES.map(b=>`<td>${m[b.k]||''}</td>`).join('')}<td><b>${Object.values(m).reduce((a,c)=>a+c,0)}</b></td></tr>`).join('')||'<tr><td colspan="6">—</td></tr>'}</tbody></table>`;
+    h+=`<h4>أولاً: الأصناف غير المنفذة وكمياتها</h4><table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th><th>الكمية غير المنفذة</th><th>الأسباب</th><th>الملاحظات</th></tr></thead><tbody>${L.map((a,i)=>`<tr><td>${i+1}</td><td>${esc(a.code)}</td><td class="name">${esc(a.name)}</td><td class="x"><b>${fmt(a.q)}</b></td><td>${esc([...a.rs].join('، ')||'—')}</td><td>${esc([...a.ns].join('، '))}</td></tr>`).join('')||'<tr><td colspan="6">لا يوجد — تم تنفيذ كل شيء ✓</td></tr>'}</tbody></table>`; }
   h+=`<h4>التفاصيل حسب الفرع والقسم</h4>`;
   BRANCHES.forEach(B=>{ const bl=rows.filter(r=>r.bk===B.k); if(!bl.length) return;
     h+=`<div class="br-h">🏬 فرع ${B.l} — ${bl.length} بند غير منفذ — ناقص ${fmt(bl.reduce((a,r)=>a+r.qty-r.actual,0))}</div>`;
