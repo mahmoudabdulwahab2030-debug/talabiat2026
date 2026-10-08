@@ -213,7 +213,7 @@
           currentData.forEach(item => {
             const docId = getOrderDocId(item, orderDate);
             const ref = db.collection(getOrdersCollectionName()).doc(docId);
-            batch.set(ref, {...item, branch:BRANCH, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
+            batch.set(ref, {...item, branch:BRANCH, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp()});
           });
           await batch.commit();
           try { if (window.activityLogger) activityLogger.logActivity('upload_all', window.location.pathname || '/best-sweet-market-zaytoun.html', { branch: BRANCH, orderDate, rows: currentData.length }); } catch (e) { console.warn('activity log failed', e); }
@@ -236,7 +236,7 @@
             const batch = db.batch();
             dataRows.forEach((r, rowIdx) => {
               const code=r[0]||''; const name=r[1]||''; const qty=parseFloat(r[2])||0;
-              if(code && name && qty>0){ const item={code,name,qty,sheet:sheetName,rowIdx}; const docId = getOrderDocId(item, orderDate); const ref=db.collection(getOrdersCollectionName()).doc(docId); batch.set(ref,{...item,branch:BRANCH,orderDate,timestamp: firebase.firestore.FieldValue.serverTimestamp()}); totalRows++; }
+              if(code && name && qty>0){ const item={code,name,qty,sheet:sheetName,rowIdx}; const docId = getOrderDocId(item, orderDate); const ref=db.collection(getOrdersCollectionName()).doc(docId); batch.set(ref,{...item,branch:BRANCH,orderDate,uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp()}); totalRows++; }
             });
             await batch.commit();
             const p = document.getElementById('uploadProgress'); if(p) p.value = Math.min(100, Math.round((totalRows/(sheetNames.length*50))*100));

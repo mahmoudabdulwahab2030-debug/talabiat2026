@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentData.forEach(item => {
         const docId = getOrderDocId(item, orderDate);
         const ref = db.collection(getOrdersCollectionName()).doc(docId);
-        batch.set(ref, { ...item, branch, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        batch.set(ref, { ...item, branch, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
       });
       await batch.commit();
     } finally {
@@ -933,7 +933,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const notes = r[3] || "";
         if (code && name && qty > 0) {
           const ref = db.collection('orders').doc();
-          batch.set(ref, { code, name, qty, notes, sheet: sheetName, branch, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+          batch.set(ref, { code, name, qty, notes, sheet: sheetName, branch, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
           totalRows++;
         }
       });
@@ -1146,7 +1146,7 @@ window.saveChanges = async function() {
 					code, name, qty, notes, sheet,
 					branch: 'dokki',
 					orderDate: date,
-					timestamp: firebase.firestore.FieldValue.serverTimestamp()
+					uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp()
 				});
 			});
 		});

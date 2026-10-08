@@ -903,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentData.forEach(item => {
         const docId = getOrderDocId(item, orderDate);
         const ref = db.collection(getOrdersCollectionName()).doc(docId);
-        batch.set(ref, { ...item, branch, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        batch.set(ref, { ...item, branch, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
       });
       await batch.commit();
     } finally {
@@ -935,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = { code, name, qty, notes, sheet: sheetName, rowIdx };
             const docId = getOrderDocId(item, orderDate);
             const ref = db.collection(getOrdersCollectionName()).doc(docId);
-            batch.set(ref, { ...item, branch, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            batch.set(ref, { ...item, branch, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             totalRows++;
           }
         });
@@ -1151,7 +1151,7 @@ window.saveChanges = async function() {
 					code, name, qty, sheet,
 					branch: 'obour',
 					orderDate: date,
-					timestamp: firebase.firestore.FieldValue.serverTimestamp()
+					uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp()
 				});
 			});
 		});
