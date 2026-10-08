@@ -176,6 +176,9 @@
     if (payload && row.created_at && payload.createdAt === undefined) {
       payload.createdAt = row.created_at;
     }
+    if (payload && row.updated_at && payload.updatedAt === undefined) {
+      payload.updatedAt = row.updated_at;
+    }
     return {
       id: id,
       exists: !!row,

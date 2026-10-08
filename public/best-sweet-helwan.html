@@ -262,7 +262,7 @@
           currentData.forEach(item => {
             const docId = getOrderDocId(item, orderDate);
             const ref = db.collection(getOrdersCollectionName()).doc(docId);
-            batch.set(ref, {...item, branch:BRANCH, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
+            batch.set(ref, {...item, branch:BRANCH, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp()});
           });
           await batch.commit();
           try { if (window.activityLogger) activityLogger.logActivity('upload_all', window.location.pathname || '/best-sweet-helwan.html', { branch: BRANCH, orderDate, rows: currentData.length }); } catch (e) { console.warn('activity log failed', e); }
@@ -292,7 +292,7 @@
                 const item = { code, name, qty, sheet: sheetName, rowIdx };
                 const docId = getOrderDocId(item, orderDate);
                 const ref = db.collection(getOrdersCollectionName()).doc(docId);
-                batch.set(ref, {...item, branch: BRANCH, orderDate, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                batch.set(ref, {...item, branch: BRANCH, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 totalRows++;
               }
             });
@@ -411,7 +411,7 @@
             if (!name || qty <= 0) return;
             insertOps.push(batch => {
               const ref = db.collection(ORDERS_COLLECTION).doc();
-              batch.set(ref, { code, name, qty, sheet, branch: BRANCH, orderDate: date, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+              batch.set(ref, { code, name, qty, sheet, branch: BRANCH, orderDate: date, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             });
           });
           if (deleteOps.length) await commitInBatches(deleteOps);

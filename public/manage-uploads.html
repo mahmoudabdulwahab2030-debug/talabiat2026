@@ -415,6 +415,7 @@
 
     }
 
+    function fmtDT(v){ if(!v) return '—'; const d=new Date(v); return isNaN(d)?'—':d.toLocaleString('ar-EG',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }
     async function loadUploads(filters = {}) {
       // جلب البيانات من كلا المجموعتين
       const [ordersSnap, reservationsSnap] = await Promise.all([
@@ -454,7 +455,9 @@
                 sheet: item.sheet,
                 source: 'reservations',
                 uploadType: 'حجز يدوي',
-                invoiceNumber: d.invoiceNumber || 'غير محدد'
+                invoiceNumber: d.invoiceNumber || 'غير محدد',
+                createdAt: d.createdAt, uploadedBy: d.uploadedBy || d.createdBy || d.username || '',
+                modifiedAt: d.modifiedAt, modifiedBy: d.modifiedBy
               });
             });
           }
@@ -508,8 +511,11 @@
           <tr>
             <th>🏬 الفرع</th>
             <th>📅 التاريخ</th>
-            <th>📝 نوع الرفع</th>
             <th>🧾 رقم الفاتورة</th>
+            <th>⏫ تاريخ ووقت الرفع</th>
+            <th>✏️ تاريخ ووقت التعديل</th>
+            <th>👤 القائم بالرفع</th>
+            <th>👤 القائم بالتعديل</th>
             <th>🔢 عدد الأصناف</th>
             <th>🗑️ حذف</th>
             <th>✅ اختيار</th>
@@ -521,12 +527,21 @@
         const [branch, date, uploadType, invoiceNumber] = key.split("___");
         const count = map[key].length;
         const source = map[key][0].source;
+        const meta = { upAt:null, modAt:null, upBy:'', modBy:'' };
+        map[key].forEach(r => {
+          const u = r.uploadedAt || r.createdAt; if (u && (!meta.upAt || u < meta.upAt)) meta.upAt = u;
+          if (r.uploadedBy && !meta.upBy) meta.upBy = r.uploadedBy;
+          if (r.modifiedAt && (!meta.modAt || r.modifiedAt > meta.modAt)) { meta.modAt = r.modifiedAt; meta.modBy = r.modifiedBy || ''; }
+        });
         
         html += `<tr>
           <td>${branchNames[branch] || branch}</td>
           <td>${date}</td>
-          <td>${uploadType}</td>
           <td>${invoiceNumber || '—'}</td>
+          <td>${fmtDT(meta.upAt)}</td>
+          <td>${meta.modAt ? fmtDT(meta.modAt) : '—'}</td>
+          <td>${meta.upBy || '—'}</td>
+          <td>${meta.modBy || '—'}</td>
           <td>${count}</td>
           <td><button class="btn-delete" onclick="deleteUpload('${branch}','${date}','${source}','${invoiceNumber}')">🗑️ حذف</button></td>
           <td><input type="checkbox" class="select-upload" data-branch="${branch}" data-date="${date}" data-source="${source}" data-invoice="${invoiceNumber}" /></td>
