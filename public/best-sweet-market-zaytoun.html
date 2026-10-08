@@ -313,7 +313,7 @@
           const toDeleteSnap = await db.collection(ORDERS_COLLECTION).where('branch','==',BRANCH).where('orderDate','==',date).get();
           const deleteOps=[]; toDeleteSnap.forEach(doc=>deleteOps.push(batch=>batch.delete(doc.ref)));
           const insertOps=[];
-          editingData.forEach(item=>{ const code=item.code||(item.name?String(item.name).toLowerCase().replace(/\s+/g,'_'):''), name=item.name||'', qty=Number(item.qty)||0, sheet=item.sheet||currentSheetName||''; if(!name||qty<=0)return; insertOps.push(batch=>{ const ref=db.collection(ORDERS_COLLECTION).doc(); batch.set(ref,{code,name,qty,sheet,branch:BRANCH,orderDate:date,timestamp:firebase.firestore.FieldValue.serverTimestamp()}); }); });
+          editingData.forEach(item=>{ const code=item.code||(item.name?String(item.name).toLowerCase().replace(/\s+/g,'_'):''), name=item.name||'', qty=Number(item.qty)||0, sheet=item.sheet||currentSheetName||''; if(!name||qty<=0)return; insertOps.push(batch=>{ const ref=db.collection(ORDERS_COLLECTION).doc(); batch.set(ref,{code,name,qty,sheet,branch:BRANCH,orderDate:date,uploadedBy:(localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'),timestamp:firebase.firestore.FieldValue.serverTimestamp()}); }); });
           if(deleteOps.length) await commitInBatches(deleteOps);
           if(insertOps.length) await commitInBatches(insertOps);
           Swal.close(); Swal.fire('✅ تم الحفظ', `تم حفظ ${insertOps.length} صنف للطّلبية بتاريخ ${date}`, 'success');
