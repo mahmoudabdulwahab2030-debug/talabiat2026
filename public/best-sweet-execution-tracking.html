@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>✅ متابعة التنفيذ - بيست سويت</title>
+<link href="/fonts/fonts.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/lovable-data/firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0f0f10;--panel:#151515;--panel2:#1b1b1d;--muted:#a8b0b6;--text:#e9e9e9;--accent:#ffd166;--accent2:#f0ad4e;--ok:#2ec27e;--bad:#ef476f;--warn:#f5a524;--line:rgba(255,255,255,.08);--r:14px}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,rgba(255,209,102,.08),transparent),linear-gradient(180deg,#0b0b0b,#121212 60%);color:var(--text);font-family:"Cairo",sans-serif;line-height:1.5;min-height:100vh}
+.wrap{max-width:1320px;margin:0 auto;padding:16px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+header.top h1{margin:0;font-size:22px;color:var(--accent);display:flex;gap:10px;align-items:center}
+header.top a{color:var(--muted);text-decoration:none;font-weight:700;font-size:13px;border:1px solid var(--line);padding:8px 12px;border-radius:10px}
+.card{background:linear-gradient(180deg,var(--panel),#111);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:700}
+input,select,textarea{background:#0f0f0f;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:14px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(240,173,78,.12)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{background:#26313a;color:var(--text);border:1px solid rgba(255,255,255,.06);padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:800;font-family:inherit;font-size:13px;display:inline-flex;gap:6px;align-items:center;transition:transform .08s,box-shadow .12s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(0,0,0,.5)}
+.btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent2));color:#111}
+.btn.ok{background:rgba(46,194,126,.18);border-color:rgba(46,194,126,.4);color:#7ff0b8}
+.btn.bad{background:rgba(239,71,111,.15);border-color:rgba(239,71,111,.4);color:#ff9fb5}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.status{margin:10px 2px;color:var(--accent);font-size:14px;min-height:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi b{display:block;font-size:22px;color:var(--accent)}
+.kpi span{font-size:12px;color:var(--muted)}
+.bar{height:8px;background:#222;border-radius:99px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#9be7b9);width:0;transition:width .3s}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+.xsearch{position:relative;display:flex;align-items:center;height:44px;width:44px;border-radius:99px;background:linear-gradient(180deg,#1c1c1e,#121212);border:1px solid rgba(255,209,102,.35);box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04);overflow:hidden;transition:width .45s cubic-bezier(.2,.9,.25,1.1),box-shadow .3s,border-color .3s}
+.xsearch.open{width:min(380px,100%);border-color:var(--accent2);box-shadow:0 10px 28px rgba(0,0,0,.55),0 0 0 4px rgba(255,209,102,.1)}
+.xs-icon{flex:0 0 42px;height:42px;border:0;background:transparent;color:var(--accent);cursor:pointer;display:grid;place-items:center;border-radius:99px;transition:transform .3s,color .2s}
+.xs-icon:hover{transform:scale(1.1) rotate(-8deg)}
+.xsearch:not(.open) .xs-icon{animation:xsPulse 2.6s ease-in-out infinite}
+@keyframes xsPulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,209,102,0))}50%{filter:drop-shadow(0 0 6px rgba(255,209,102,.7))}}
+.xsearch input{flex:1;min-width:0;border:0!important;background:transparent!important;box-shadow:none!important;padding:0 4px;height:42px;opacity:0;transition:opacity .25s .1s;font-weight:700}
+.xsearch.open input{opacity:1}
+.xsearch input::-webkit-search-cancel-button{display:none}
+.xs-count{font-size:11px;color:#111;background:var(--accent);border-radius:99px;padding:1px 8px;font-weight:800;white-space:nowrap;display:none}
+.xsearch.open.has .xs-count{display:inline-block}
+.xs-clear{flex:0 0 32px;height:32px;margin-inline-end:6px;border:0;border-radius:99px;background:rgba(255,255,255,.06);color:var(--muted);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .2s,background .2s}
+.xsearch.open.has .xs-clear{opacity:1;pointer-events:auto}
+.xs-clear:hover{background:rgba(239,71,111,.25);color:#fff}
+mark.hl{background:rgba(255,209,102,.35);color:inherit;border-radius:3px;padding:0 2px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;border:1px solid var(--line);background:#141414;cursor:pointer;font-size:13px;font-weight:700;user-select:none}
+.chip input{width:auto;accent-color:var(--accent)}
+.table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle;font-size:13px}
+thead th{background:rgba(255,209,102,.1);color:var(--accent);position:sticky;top:0;z-index:1;white-space:nowrap}
+td.name{text-align:right;font-weight:700}
+tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+tr.has-miss{background:rgba(239,71,111,.06)!important}
+.cell{display:flex;flex-direction:column;gap:5px;align-items:center;min-width:120px}
+.cell .q{font-weight:800;font-size:15px}
+.cell.empty{color:#555}
+.chk{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px;border:1px solid rgba(46,194,126,.35);background:rgba(46,194,126,.12);color:#8ff0bf}
+.chk input{width:18px;height:18px;accent-color:var(--ok);margin:0}
+.cell.miss .chk{border-color:rgba(239,71,111,.4);background:rgba(239,71,111,.12);color:#ff9fb5}
+.miss-box{display:none;flex-direction:column;gap:4px;width:100%}
+.cell.miss .miss-box{display:flex}
+.miss-box select,.miss-box input{padding:5px 7px;font-size:12px}
+.row-all{font-size:12px}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:800}
+.badge.ok{background:rgba(46,194,126,.15);color:#8ff0bf}.badge.bad{background:rgba(239,71,111,.15);color:#ff9fb5}.badge.part{background:rgba(245,165,36,.15);color:#ffc870}
+.saved-info{font-size:12px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:20px 10px}
+.modal.show{display:flex}
+.modal .inner{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:1100px;width:100%;padding:16px}
+.modal h3{margin:0 0 10px;color:var(--accent)}
+.dirty{color:var(--warn);font-weight:800}
+
+/* ===== Printable sheet (light, professional) ===== */
+.sheet{display:none}
+.paper{background:#fff;color:#111;font-family:"Cairo",sans-serif;direction:rtl;padding:0;width:100%}
+.paper .ph{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #b8860b;padding-bottom:8px;margin-bottom:10px}
+.paper .ph .brand{font-size:22px;font-weight:900;letter-spacing:2px;color:#111}
+.paper .ph .brand small{display:block;font-size:11px;letter-spacing:0;color:#666;font-weight:600}
+.paper .ph .title{text-align:left;font-size:15px;font-weight:800}
+.paper .ph .title small{display:block;font-size:11px;color:#555;font-weight:600}
+.paper .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.paper .meta div{border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:11px}
+.paper .meta b{display:block;font-size:14px}
+.paper h4{margin:12px 0 6px;font-size:13px;background:#f6f1e3;border-right:4px solid #b8860b;padding:5px 8px}
+.paper table{min-width:0;width:100%;border-collapse:collapse;page-break-inside:auto}
+.paper tr{page-break-inside:avoid}
+.paper th,.paper td{border:1px solid #999;padding:4px 5px;font-size:10.5px;color:#111;background:#fff;text-align:center}
+.paper thead th{background:#efe6cc!important;color:#111;position:static}
+.paper td.name{text-align:right}
+.paper .x{color:#c0143c;font-weight:800}.paper .v{color:#147a46;font-weight:800}
+.paper .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:28px;font-size:11px}
+.paper .sign div{border-top:1px solid #333;padding-top:4px;text-align:center}
+.paper .foot{margin-top:10px;font-size:9.5px;color:#666;display:flex;justify-content:space-between}
+@page{size:A4 portrait;margin:10mm}
+@media print{
+  body{background:#fff}
+  .wrap,.modal{display:none!important}
+  .sheet{display:block!important}
+  .paper thead{display:table-header-group}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (max-width:640px){
+  .wrap{padding:10px}
+  header.top h1{font-size:18px}
+  .btn{flex:1 1 calc(50% - 8px);justify-content:center}
+  .xsearch.open{width:100%}
+}
+.notes-box{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.notes-box label{font-weight:700;color:var(--accent)}
+.notes-box textarea{width:100%;box-sizing:border-box;border-radius:10px;padding:10px;font:inherit;background:rgba(255,255,255,.05);color:inherit;border:1px solid rgba(212,175,55,.35);resize:vertical}
+.badge.extra{background:#7c3aed22;color:#a78bfa;border:1px solid #a78bfa66;font-size:11px;margin-inline-start:4px}
+.btn.row-del{margin-top:4px}
+.paper .notes{border:1px solid #999;border-radius:6px;padding:8px 10px;margin:10px 0;white-space:pre-wrap;background:#fafafa}
+.paper .br-h{background:#222;color:#fff;padding:6px 10px;border-radius:4px;margin:16px 0 6px;font-size:15px}
+.paper .sec-h{margin:8px 0 4px;font-size:13px;border-bottom:1px solid #999;padding-bottom:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>✅ متابعة التنفيذ — بيست سويت</h1>
+    <a href="best-sweet-all-orders.html">↩ رجوع لتجميع الطلبات</a>
+  </header>
+
+  <div class="card">
+    <div class="controls">
+      <label class="f">📅 تاريخ التسليم<input type="date" id="dateSel"></label>
+      <label class="f">🧾 القسم<select id="sheetSel" disabled><option value="">— جاري التحميل… —</option></select></label>
+    </div>
+    <div class="btns">
+      <button class="btn primary" id="loadBtn">📊 عرض الأصناف</button>
+      <button class="btn" id="addExtraBtn" disabled>➕ صنف خارج المنظومة</button>
+      <button class="btn ok" id="allDoneBtn" disabled>✔️ تنفيذ كل الأصناف</button>
+      <button class="btn" id="saveBtn" disabled>💾 حفظ</button>
+      <button class="btn" id="printBtn" disabled>🖨️ طباعة</button>
+      <button class="btn" id="pdfBtn" disabled>📄 تحميل PDF</button>
+      <button class="btn" id="xlsBtn" disabled>🧾 Excel</button>
+      <button class="btn bad" id="summaryBtn">📋 تقرير ملخص غير المنفذ</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div id="workArea" style="display:none">
+    <div class="kpis" id="kpis"></div>
+    <div class="card">
+      <div class="toolbar">
+        <div class="xsearch" id="xsearch">
+          <button type="button" class="xs-icon" id="xsIcon" aria-label="بحث"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+          <input type="search" id="search" placeholder="اكتب اسم أو كود الصنف…" autocomplete="off">
+          <span class="xs-count" id="xsCount"></span>
+          <button type="button" class="xs-clear" id="xsClear" aria-label="مسح">✕</button>
+        </div>
+        <label class="chip"><input type="checkbox" id="onlyMiss"> عرض غير المنفذ فقط</label>
+        <span class="saved-info" id="savedInfo"></span>
+      </div>
+      <div class="table-wrap"><table id="mainTable"><thead></thead><tbody></tbody></table></div>
+      <div class="notes-box"><label for="repNotes">📝 ملاحظات التقرير</label><textarea id="repNotes" rows="3" placeholder="اكتب أي ملاحظات عامة تظهر في التقرير المطبوع…"></textarea></div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary modal -->
+<div class="modal" id="sumModal"><div class="inner">
+  <h3>📋 تقرير ملخص الأصناف غير المنفذة</h3>
+  <div class="controls">
+    <label class="f">من<input type="date" id="sumFrom"></label>
+    <label class="f">إلى<input type="date" id="sumTo"></label>
+    <label class="f">القسم<select id="sumSheet"><option value="ALL">— كل الأقسام —</option></select></label>
+    <label class="f">الفرع<select id="sumBranch"><option value="ALL">— كل الفروع —</option></select></label>
+  </div>
+  <div class="btns">
+    <button class="btn primary" id="sumRun">🔎 عرض</button>
+    <button class="btn" id="sumPrint">🖨️ طباعة</button>
+    <button class="btn" id="sumPdf">📄 PDF</button>
+    <button class="btn" id="sumClose">✖ إغلاق</button>
+  </div>
+  <div class="status" id="sumStatus"></div>
+  <div id="sumResult"></div>
+</div></div>
+
+<div class="modal" id="exModal"><div class="inner" style="max-width:560px">
+  <h3 style="margin:0 0 10px">➕ إضافة صنف خارج المنظومة</h3>
+  <div class="row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+    <label class="f">الكود<input id="exCode" placeholder="اختياري"></label>
+    <label class="f">اسم الصنف *<input id="exName"></label>
+    <label class="f">العباسية<input type="number" min="0" step="any" id="exQ_best_sweet_abbassia"></label>
+    <label class="f">جمال<input type="number" min="0" step="any" id="exQ_best_sweet_1"></label>
+    <label class="f">فيصل<input type="number" min="0" step="any" id="exQ_best_sweet_market_zaytoun"></label>
+    <label class="f">حلوان<input type="number" min="0" step="any" id="exQ_best_sweet_helwan"></label>
+    <label class="f">عبور2<input type="number" min="0" step="any" id="exQ_best_sweet_obour_market"></label>
+    <label class="f">حلو الزيتون<input type="number" min="0" step="any" id="exQ_best_sweet_helw_zaytoun"></label>
+  </div>
+  <div class="btns" style="margin-top:12px"><button class="btn primary" id="exSave">✔️ إضافة</button><button class="btn" id="exClose">✖ إلغاء</button></div>
+  <div class="status" id="exStatus"></div>
+</div></div>
+<div class="sheet" id="sheet"></div>
+
+<script>
+const db = firebase.firestore();
+const BRANCHES = [{k:'best_sweet_abbassia',l:'العباسية'},{k:'best_sweet_1',l:'جمال'},{k:'best_sweet_market_zaytoun',l:'فيصل'},{k:'best_sweet_helwan',l:'حلوان'},{k:'best_sweet_obour_market',l:'عبور2'},{k:'best_sweet_helw_zaytoun',l:'حلو الزيتون'}];
+const BL = Object.fromEntries(BRANCHES.map(b=>[b.k,b.l]));
+const REASONS = ['نقص خامات','عطل ماكينة','نقص عمالة','ضيق وقت الإنتاج','مشكلة جودة','نفاد التعبئة/التغليف','تأجيل بطلب الفرع','أخرى'];
+let allOrders = [], current = null, dirty = false;
+
+const $ = id => document.getElementById(id);
+const esc = t => t==null?'':String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => { n=Number(n||0); return Number.isInteger(n)?String(n):n.toFixed(2); };
+const status = t => $('status').textContent = t;
+const user = () => localStorage.getItem('username')||localStorage.getItem('userCode')||'النظام';
+function normBranch(b){ const raw=(b||'').toString().trim(); return raw; }
+const docId = (d,s) => `bsexec__${d}__${s}`;
+function setDirty(v){ dirty=v; $('savedInfo').innerHTML = v ? '<span class="dirty">● تغييرات غير محفوظة</span>' : (current&&current.savedAt?`آخر حفظ: ${new Date(current.savedAt).toLocaleString('ar-EG')} — ${esc(current.savedBy||'')}`:''); }
+window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; }});
+
+async function init(){
+  $('dateSel').value = new Date().toISOString().slice(0,10);
+  status('⏳ جاري تحميل الطلبات…');
+  const snap = await db.collection('orders_best_sweet').get();
+  snap.forEach(doc=>{ const d=doc.data(); if(!d||d.isDeleted) return; if(d.name&&d.sheet&&d.branch&&(d.orderDate||d.deliveryDate)) allOrders.push(d); });
+  const sheets=[...new Set(allOrders.map(d=>d.sheet).filter(s=>s&&s!=='main'))].sort((a,b)=>a.localeCompare(b,'ar'));
+  $('sheetSel').innerHTML='<option value="">— اختر القسم —</option>'+sheets.map(s=>`<option>${esc(s)}</option>`).join('');
+  $('sheetSel').disabled=false;
+  $('sumSheet').innerHTML='<option value="ALL">— كل الأقسام —</option>'+sheets.map(s=>`<option>${esc(s)}</option>`).join('');
+  $('sumBranch').innerHTML='<option value="ALL">— كل الفروع —</option>'+BRANCHES.map(b=>`<option value="${b.k}">${b.l}</option>`).join('');
+  const q=new URLSearchParams(location.search); if(q.get('date')) $('dateSel').value=q.get('date'); if(q.get('sheet')) $('sheetSel').value=q.get('sheet');
+  status('✅ اختر التاريخ والقسم ثم اضغط عرض الأصناف.');
+}
+
+async function load(){
+  const date=$('dateSel').value, sheet=$('sheetSel').value;
+  if(!date||!sheet) return status('⚠️ اختر التاريخ والقسم.');
+  if(dirty && !confirm('هناك تغييرات غير محفوظة، هل تريد المتابعة؟')) return;
+  status('⏳ جاري التحميل…');
+  const items={};
+  allOrders.filter(d=>d.sheet===sheet&&(d.orderDate===date||d.deliveryDate===date)).forEach(d=>{
+    const key=String(d.code||d.name||'').trim().toLowerCase();
+    if(!items[key]) items[key]={code:d.code||'',name:d.name||'',branches:{}};
+    let bk=normBranch(d.branch); if(!BL[bk]) return;
+    const qty=Number(d.qty)||0; if(qty<=0) return;
+    items[key].branches[bk]=items[key].branches[bk]||{qty:0};
+    items[key].branches[bk].qty+=qty;
+  });
+  let saved=null;
+  try{ const s=await db.collection('reports').doc(docId(date,sheet)).get(); if(s.exists) saved=s.data(); }catch(e){ console.error(e); }
+  Object.entries(items).forEach(([k,it])=>{
+    Object.entries(it.branches).forEach(([bk,b])=>{
+      const sv=saved&&saved.items&&saved.items[k]&&saved.items[k].branches&&saved.items[k].branches[bk];
+      b.done = sv ? !!sv.done : null; b.reason=sv?.reason||''; b.note=sv?.note||''; b.actual = sv?.actual ?? '';
+    });
+    if(!Object.keys(it.branches).length) delete items[k];
+  });
+  if(saved&&saved.items) Object.entries(saved.items).forEach(([k,sv])=>{ if(sv.extra&&!items[k]){ const br={}; Object.entries(sv.branches||{}).forEach(([bk,b])=>br[bk]={qty:Number(b.qty)||0,done:b.done??null,reason:b.reason||'',note:b.note||'',actual:b.actual??''}); items[k]={code:sv.code||'',name:sv.name||'',extra:true,branches:br}; }});
+  $('repNotes').value=saved?.notes||'';
+  current={date,sheet,items,savedAt:saved?.savedAt||null,savedBy:saved?.savedBy||''};
+  const n=Object.keys(items).length;
+  $('workArea').style.display = 'block';
+  $('addExtraBtn').disabled=false;
+  ['addExtraBtn','allDoneBtn','saveBtn','printBtn','pdfBtn','xlsBtn'].forEach(id=>$(id).disabled=!n);
+  if(!n){ render(); setDirty(false); return status('⚠️ لا توجد طلبات لهذا القسم في هذا التاريخ. يمكنك إضافة صنف خارج المنظومة.'); }
+  render(); setDirty(false);
+  status(saved?'✅ تم استرجاع البيانات المحفوظة لهذا اليوم والقسم.':'ℹ️ لم يتم الحفظ لهذا اليوم بعد. اضغط "تنفيذ كل الأصناف" ثم أزل علامة غير المنفذ.');
+}
+
+function sortedItems(){ return Object.entries(current.items).sort((a,b)=>String(a[1].code).localeCompare(String(b[1].code),'ar',{numeric:true})||a[1].name.localeCompare(b[1].name,'ar')); }
+
+function render(){
+  const q=$('search').value.trim().toLowerCase(), onlyMiss=$('onlyMiss').checked;
+  $('mainTable').querySelector('thead').innerHTML=`<tr><th>#</th><th>الكود</th><th>الصنف</th>${BRANCHES.map(b=>`<th>${b.l}</th>`).join('')}<th>الإجمالي</th><th>الحالة</th><th>الصف</th></tr>`;
+  let i=0, html='';
+  sortedItems().forEach(([k,it])=>{
+    const bs=Object.values(it.branches), miss=bs.some(b=>b.done===false);
+    if(onlyMiss&&!miss) return;
+    if(q&&!(String(it.code).toLowerCase().includes(q)||it.name.toLowerCase().includes(q))) return;
+    const total=bs.reduce((s,b)=>s+b.qty,0);
+    html+=`<tr data-k="${esc(k)}" class="${miss?'has-miss':''}"><td>${++i}</td><td>${hl(it.code,q)}</td><td class="name">${hl(it.name,q)}${it.extra?'<span class="badge extra">خارج المنظومة</span>':''}</td>`;
+    BRANCHES.forEach(br=>{
+      const b=it.branches[br.k];
+      if(!b){ html+=`<td><div class="cell empty">—</div></td>`; return; }
+      html+=`<td><div class="cell ${b.done===false?'miss':''}" data-b="${br.k}">
+        <span class="q">${fmt(b.qty)}</span>
+        <label class="chk"><input type="checkbox" class="dn" ${b.done===true?'checked':''}> ${b.done===false?'لم يُنفذ':(b.done?'تم':'تنفيذ؟')}</label>
+        <div class="miss-box">
+          <select class="rs"><option value="">— السبب —</option>${REASONS.map(r=>`<option ${r===b.reason?'selected':''}>${r}</option>`).join('')}</select>
+          <input class="ac" type="number" min="0" step="any" placeholder="الكمية المنفذة فعلياً" value="${esc(b.actual)}">
+          <input class="nt" placeholder="ملاحظة" value="${esc(b.note)}">
+        </div></div></td>`;
+    });
+    html+=`<td><b>${fmt(total)}</b></td><td>${statusBadge(bs)}</td><td><button class="btn row-all" data-row="${esc(k)}">✔️ الكل</button>${it.extra?`<button class="btn bad row-del" data-del="${esc(k)}">🗑️ حذف</button>`:''}</td></tr>`;
+  });
+  $('mainTable').querySelector('tbody').innerHTML=html||`<tr><td colspan="${BRANCHES.length+6}">لا توجد نتائج</td></tr>`;
+  $('xsearch').classList.toggle('has',!!q); $('xsCount').textContent=i+' نتيجة';
+  renderKpis();
+}
+function statusBadge(bs){ const m=bs.filter(b=>b.done===false).length, d=bs.filter(b=>b.done===true).length;
+  if(m&&m===bs.length) return '<span class="badge bad">غير منفذ</span>'; if(m) return '<span class="badge part">جزئي</span>';
+  if(d===bs.length) return '<span class="badge ok">منفذ</span>'; return '<span class="badge">بانتظار</span>'; }
+function stats(){ let lines=0,done=0,miss=0,pend=0,qty=0,missQty=0,noReason=0; const per={}; BRANCHES.forEach(b=>per[b.k]={lines:0,miss:0});
+  Object.values(current.items).forEach(it=>Object.entries(it.branches).forEach(([bk,b])=>{ lines++; qty+=b.qty; per[bk].lines++;
+    if(b.done===true) done++; else if(b.done===false){ miss++; per[bk].miss++; missQty+= b.qty-(Number(b.actual)||0); if(!b.reason) noReason++; } else pend++; }));
+  return {lines,done,miss,pend,qty,missQty,noReason,per}; }
+function renderKpis(){ const s=stats(), pct=s.lines?Math.round(s.done/s.lines*100):0;
+  $('kpis').innerHTML=`<div class="kpi"><b>${pct}%</b><span>نسبة التنفيذ</span><div class="bar"><i style="width:${pct}%"></i></div></div>
+  <div class="kpi"><b>${s.done}/${s.lines}</b><span>بنود منفذة (صنف × فرع)</span></div>
+  <div class="kpi"><b style="color:var(--bad)">${s.miss}</b><span>غير منفذ — كمية ناقصة ${fmt(s.missQty)}</span></div>
+  <div class="kpi"><b style="color:var(--warn)">${s.pend}</b><span>بانتظار التأكيد</span></div>
+  ${BRANCHES.map(b=>`<div class="kpi"><b>${s.per[b.k].lines-s.per[b.k].miss}/${s.per[b.k].lines}</b><span>${b.l}</span></div>`).join('')}`; }
+
+$('mainTable').addEventListener('change',e=>{
+  const cell=e.target.closest('.cell'), tr=e.target.closest('tr'); if(!cell||!tr) return;
+  const b=current.items[tr.dataset.k].branches[cell.dataset.b];
+  if(e.target.classList.contains('dn')){ b.done=e.target.checked; if(b.done){b.reason='';b.note='';b.actual='';} render(); }
+  else if(e.target.classList.contains('rs')) b.reason=e.target.value;
+  else if(e.target.classList.contains('ac')) b.actual=e.target.value;
+  else if(e.target.classList.contains('nt')) b.note=e.target.value;
+  renderKpis(); setDirty(true);
+});
+$('mainTable').addEventListener('click',e=>{ const dk=e.target.closest('[data-del]')?.dataset.del; if(dk){ if(confirm('حذف هذا الصنف الإضافي؟')){ delete current.items[dk]; render(); setDirty(true);} return; } const k=e.target.closest('[data-row]')?.dataset.row; if(!k) return;
+  Object.values(current.items[k].branches).forEach(b=>{b.done=true;b.reason='';b.note='';b.actual='';}); render(); setDirty(true); });
+$('repNotes').addEventListener('input',()=>{ if(current) setDirty(true); });
+$('addExtraBtn').onclick=()=>{ ['exCode','exName',...BRANCHES.map(b=>'exQ_'+b.k)].forEach(i=>$(i).value=''); $('exStatus').textContent=''; $('exModal').classList.add('show'); setTimeout(()=>$('exName').focus(),50); };
+$('exClose').onclick=()=>$('exModal').classList.remove('show');
+$('exSave').onclick=()=>{ const name=$('exName').value.trim(); if(!name) return $('exStatus').textContent='⚠️ اكتب اسم الصنف.';
+  const branches={}; BRANCHES.forEach(b=>{ const q=Number($('exQ_'+b.k).value)||0; if(q>0) branches[b.k]={qty:q,done:null,reason:'',note:'',actual:''}; });
+  if(!Object.keys(branches).length) return $('exStatus').textContent='⚠️ أدخل كمية لفرع واحد على الأقل.';
+  const k='x__'+Date.now(); current.items[k]={code:$('exCode').value.trim(),name,extra:true,branches};
+  ['allDoneBtn','saveBtn','printBtn','pdfBtn','xlsBtn'].forEach(id=>$(id).disabled=false);
+  $('exModal').classList.remove('show'); render(); setDirty(true); status('✅ تمت إضافة الصنف «'+name+'». لا تنس الحفظ.'); };
+$('allDoneBtn').onclick=()=>{ Object.values(current.items).forEach(it=>Object.values(it.branches).forEach(b=>{ if(b.done!==false) b.done=true; })); render(); setDirty(true); status('✔️ تم تعليم كل الأصناف كمنفذة (ما عدا المعلم كغير منفذ). أزل العلامة عن غير المنفذ واكتب السبب ثم احفظ.'); };
+function hl(t,q){ const s=esc(t); if(!q) return s; const i=String(t).toLowerCase().indexOf(q); if(i<0) return s; const x=String(t); return esc(x.slice(0,i))+'<mark class="hl">'+esc(x.slice(i,i+q.length))+'</mark>'+esc(x.slice(i+q.length)); }
+let xsT; $('search').oninput=()=>{ clearTimeout(xsT); xsT=setTimeout(render,150); }; $('onlyMiss').onchange=render;
+const xsOpen=()=>{ $('xsearch').classList.add('open'); setTimeout(()=>$('search').focus(),120); };
+$('xsIcon').onclick=()=>{ const o=$('xsearch').classList.contains('open'); if(o&&!$('search').value) $('xsearch').classList.remove('open'); else xsOpen(); };
+$('xsClear').onclick=()=>{ $('search').value=''; render(); $('search').focus(); };
+$('search').addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('search').value=''; render(); $('xsearch').classList.remove('open'); $('search').blur(); }
+  if(e.key==='Enter'){ const r=document.querySelector('#mainTable tbody tr[data-k]'); if(r){ r.scrollIntoView({behavior:'smooth',block:'center'}); r.style.outline='2px solid var(--accent)'; setTimeout(()=>r.style.outline='',1500);} } });
+$('search').addEventListener('blur',()=>{ if(!$('search').value) setTimeout(()=>$('xsearch').classList.remove('open'),150); });
+document.addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&$('workArea').style.display!=='none'){ e.preventDefault(); xsOpen(); } });
+
+async function save(){
+  const s=stats();
+  if(s.noReason && !confirm(`يوجد ${s.noReason} بند غير منفذ بدون سبب. حفظ على أي حال؟`)) return;
+  const items={}; Object.entries(current.items).forEach(([k,it])=>{ items[k]={code:it.code,name:it.name,extra:!!it.extra,branches:{}}; Object.entries(it.branches).forEach(([bk,b])=>items[k].branches[bk]={qty:b.qty,done:b.done,reason:b.reason,note:b.note,actual:b.actual===''?'':Number(b.actual)}); });
+  const savedAt=new Date().toISOString();
+  $('saveBtn').disabled=true; status('⏳ جاري الحفظ…');
+  try{ await db.collection('reports').doc(docId(current.date,current.sheet)).set({type:'execution_bs',date:current.date,sheet:current.sheet,items,stats:{lines:s.lines,done:s.done,miss:s.miss,pending:s.pend},notes:$('repNotes').value.trim(),savedAt,savedBy:user()});
+    current.savedAt=savedAt; current.savedBy=user(); setDirty(false); status('✅ تم الحفظ بنجاح. يمكنك العودة لهذه البيانات بنفس التاريخ والقسم.'); }
+  catch(e){ console.error(e); status('❌ فشل الحفظ، حاول مرة أخرى.'); }
+  $('saveBtn').disabled=false;
+}
+$('saveBtn').onclick=save;
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='s'&&current){ e.preventDefault(); save(); }});
+
+/* ===== Printable sheets ===== */
+function paperHead(title,sub,meta){ return `<div class="ph"><div class="brand">بيست سويت<small>إدارة الإنتاج — متابعة التنفيذ</small></div><div class="title">${title}<small>${sub}</small></div></div>
+  <div class="meta">${meta.map(m=>`<div>${m[0]}<b>${m[1]}</b></div>`).join('')}</div>`; }
+function paperFoot(){ return `<div class="sign"><div>مسؤول الإنتاج</div><div>مراجعة الجودة</div><div>اعتماد المدير</div></div>
+  <div class="foot"><span>أعده: ${esc(user())}</span><span>طُبع في: ${new Date().toLocaleString('ar-EG')}</span></div>`; }
+function dayPaper(){
+  const s=stats(), pct=s.lines?Math.round(s.done/s.lines*100):0;
+  let h=paperHead('تقرير متابعة التنفيذ',`القسم: ${esc(current.sheet)} — تاريخ التسليم: ${current.date}`,[['عدد الأصناف',Object.keys(current.items).length],['نسبة التنفيذ',pct+'%'],['بنود غير منفذة',s.miss],['كمية ناقصة',fmt(s.missQty)]]);
+  { const mm=[]; sortedItems().forEach(([k,it])=>{ const q=Object.values(it.branches).filter(b=>b.done===false).reduce((a,b)=>a+b.qty-(Number(b.actual)||0),0); if(Object.values(it.branches).some(b=>b.done===false)) mm.push([it.name,q]); });
+    if(mm.length) h+=`<h4>الأصناف غير المنفذة</h4><table><thead><tr><th>#</th><th>الصنف</th><th>الكمية الناقصة</th></tr></thead><tbody>${mm.map((m,i)=>`<tr><td>${i+1}</td><td class="name">${esc(m[0])}</td><td class="x">${fmt(m[1])}</td></tr>`).join('')}</tbody></table>`; }
+  h+=`<table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th>${BRANCHES.map(b=>`<th>${b.l}</th>`).join('')}<th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>`;
+  sortedItems().forEach(([k,it],i)=>{ const bs=Object.values(it.branches);
+    h+=`<tr><td>${i+1}</td><td>${esc(it.code)}</td><td class="name">${esc(it.name)}${it.extra?' <small>(خارج المنظومة)</small>':''}</td>${BRANCHES.map(br=>{const b=it.branches[br.k]; if(!b) return '<td></td>'; return `<td>${fmt(b.qty)} ${b.done===true?'<span class="v">✓</span>':b.done===false?'<span class="x">✗</span>':''}</td>`;}).join('')}<td><b>${fmt(bs.reduce((a,b)=>a+b.qty,0))}</b></td><td>${statusBadge(bs).replace(/<[^>]+>/g,'')}</td></tr>`; });
+  h+='</tbody></table>';
+  const misses=[]; sortedItems().forEach(([k,it])=>Object.entries(it.branches).forEach(([bk,b])=>{ if(b.done===false) misses.push({it,bk,b}); }));
+  if(misses.length){ h+=`<h4>تفاصيل الأصناف غير المنفذة وأسبابها</h4><table><thead><tr><th>الكود</th><th>الصنف</th><th>الفرع</th><th>المطلوب</th><th>المنفذ</th><th>الناقص</th><th>السبب</th><th>ملاحظة</th></tr></thead><tbody>`+
+    misses.map(m=>`<tr><td>${esc(m.it.code)}</td><td class="name">${esc(m.it.name)}</td><td>${BL[m.bk]}</td><td>${fmt(m.b.qty)}</td><td>${fmt(m.b.actual||0)}</td><td class="x">${fmt(m.b.qty-(Number(m.b.actual)||0))}</td><td>${esc(m.b.reason||'—')}</td><td>${esc(m.b.note)}</td></tr>`).join('')+'</tbody></table>'; }
+  const nt=$('repNotes').value.trim(); if(nt) h+=`<h4>ملاحظات</h4><div class="notes">${esc(nt)}</div>`;
+  return `<div class="paper">${h}${paperFoot()}</div>`;
+}
+function doPrint(html){ $('sheet').innerHTML=html; setTimeout(()=>window.print(),50); }
+function doPdf(html,name){ const el=document.createElement('div'); el.innerHTML=html; el.style.cssText='width:265mm;background:#fff;padding:4mm;box-sizing:border-box';
+  status('⏳ جاري إنشاء PDF…');
+  html2pdf().set({margin:[8,8,8,8],filename:name,image:{type:'jpeg',quality:.97},html2canvas:{scale:2,useCORS:true,backgroundColor:'#fff'},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},pagebreak:{mode:['css','legacy'],avoid:'tr'}}).from(el).save().then(()=>status('✅ تم تحميل PDF.')); }
+$('printBtn').onclick=()=>doPrint(dayPaper());
+$('pdfBtn').onclick=()=>doPdf(dayPaper(),`execution-${current.sheet}-${current.date}.pdf`);
+$('xlsBtn').onclick=()=>{ const rows=[]; sortedItems().forEach(([k,it])=>Object.entries(it.branches).forEach(([bk,b])=>rows.push({'الكود':it.code,'الصنف':it.name,'الفرع':BL[bk],'المطلوب':b.qty,'الحالة':b.done===true?'منفذ':b.done===false?'غير منفذ':'بانتظار','المنفذ فعلياً':b.actual,'السبب':b.reason,'ملاحظة':b.note})));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'التنفيذ'); XLSX.writeFile(wb,`execution-${current.sheet}-${current.date}.xlsx`); };
+
+/* ===== Summary report ===== */
+let lastSummary='';
+$('summaryBtn').onclick=()=>{ const d=$('dateSel').value||new Date().toISOString().slice(0,10); $('sumFrom').value=$('sumFrom').value||d; $('sumTo').value=$('sumTo').value||d; if($('sheetSel').value) $('sumSheet').value=$('sheetSel').value; $('sumModal').classList.add('show'); };
+$('sumClose').onclick=()=>$('sumModal').classList.remove('show');
+$('sumRun').onclick=async()=>{
+  const from=$('sumFrom').value,to=$('sumTo').value,sh=$('sumSheet').value,br=$('sumBranch').value;
+  if(!from||!to||from>to) return $('sumStatus').textContent='⚠️ تحقق من الفترة.';
+  $('sumStatus').textContent='⏳ جاري التحميل…';
+  const snap=await db.collection('reports').where('type','==','execution_bs').get();
+  const docs=[]; snap.forEach(d=>{ const x=d.data(); if(x.date>=from&&x.date<=to&&(sh==='ALL'||x.sheet===sh)) docs.push(x); });
+  const rows=[], reasons={}, bySheet={}, notes=[]; let lines=0,done=0;
+  docs.forEach(x=>{ if(x.notes) notes.push(x); });
+  docs.forEach(x=>Object.values(x.items||{}).forEach(it=>Object.entries(it.branches||{}).forEach(([bk,b])=>{
+    if(br!=='ALL'&&bk!==br) return; lines++; if(b.done===true) done++;
+    if(b.done===false){ const r=b.reason||'بدون سبب'; reasons[r]=(reasons[r]||0)+1; rows.push({date:x.date,sheet:x.sheet,bk,code:it.code,name:it.name,qty:b.qty,actual:Number(b.actual)||0,reason:r,note:b.note||''});
+      bySheet[x.sheet]=bySheet[x.sheet]||{}; bySheet[x.sheet][bk]=(bySheet[x.sheet][bk]||0)+1; }
+  })));
+  if(!docs.length){ $('sumResult').innerHTML=''; lastSummary=''; return $('sumStatus').textContent='⚠️ لا توجد بيانات محفوظة في هذه الفترة.'; }
+  const pct=lines?Math.round(done/lines*100):0;
+  let h=paperHead('تقرير ملخص الأصناف غير المنفذة',`الفترة: ${from} إلى ${to} — القسم: ${sh==='ALL'?'كل الأقسام':esc(sh)} — الفرع: ${br==='ALL'?'كل الفروع':BL[br]}`,[['أيام/أقسام محفوظة',docs.length],['نسبة التنفيذ',pct+'%'],['بنود غير منفذة',rows.length],['كمية ناقصة',fmt(rows.reduce((a,r)=>a+r.qty-r.actual,0))]]);
+  { const agg={}; rows.forEach(r=>{ const g=(r.code||'')+'||'+r.name; agg[g]=agg[g]||{code:r.code,name:r.name,q:0,rs:new Set(),ns:new Set()}; agg[g].q+=r.qty-r.actual; if(r.reason) agg[g].rs.add(r.reason); if(r.note) agg[g].ns.add(r.note); });
+    const L=Object.values(agg).sort((a,b)=>b.q-a.q);
+    h+=`<h4>أولاً: الأصناف غير المنفذة وكمياتها</h4><table><thead><tr><th>#</th><th>الكود</th><th>الصنف</th><th>الكمية غير المنفذة</th><th>الأسباب</th><th>الملاحظات</th></tr></thead><tbody>${L.map((a,i)=>`<tr><td>${i+1}</td><td>${esc(a.code)}</td><td class="name">${esc(a.name)}</td><td class="x"><b>${fmt(a.q)}</b></td><td>${esc([...a.rs].join('، ')||'—')}</td><td>${esc([...a.ns].join('، '))}</td></tr>`).join('')||'<tr><td colspan="6">لا يوجد — تم تنفيذ كل شيء ✓</td></tr>'}</tbody></table>`; }
+  h+=`<h4>التفاصيل حسب الفرع والقسم</h4>`;
+  BRANCHES.forEach(B=>{ const bl=rows.filter(r=>r.bk===B.k); if(!bl.length) return;
+    h+=`<div class="br-h">🏬 فرع ${B.l} — ${bl.length} بند غير منفذ — ناقص ${fmt(bl.reduce((a,r)=>a+r.qty-r.actual,0))}</div>`;
+    const bs={}; bl.forEach(r=>(bs[r.sheet]=bs[r.sheet]||[]).push(r));
+    Object.keys(bs).sort((a,b)=>a.localeCompare(b,'ar')).forEach(s=>{ const list=bs[s];
+    h+=`<div class="sec-h">📂 قسم ${esc(s)} (${list.length})</div><table><thead><tr><th>التاريخ</th><th>الكود</th><th>الصنف</th><th>المطلوب</th><th>المنفذ</th><th>الناقص</th><th>السبب</th><th>ملاحظة</th></tr></thead><tbody>${list.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr><td>${r.date}</td><td>${esc(r.code)}</td><td class="name">${esc(r.name)}</td><td>${fmt(r.qty)}</td><td>${fmt(r.actual)}</td><td class="x">${fmt(r.qty-r.actual)}</td><td>${esc(r.reason)}</td><td>${esc(r.note)}</td></tr>`).join('')}</tbody></table>`; }); });
+  if(notes.length) h+=`<h4>ملاحظات التقارير</h4>`+notes.map(x=>`<div class="notes"><b>${x.date} — ${esc(x.sheet)}:</b> ${esc(x.notes)}</div>`).join('');
+  lastSummary=`<div class="paper">${h}${paperFoot()}</div>`;
+  $('sumResult').innerHTML=`<div style="background:#fff;border-radius:10px;padding:14px;overflow:auto">${lastSummary}</div>`;
+  $('sumStatus').textContent=`✅ ${rows.length} بند غير منفذ.`;
+};
+$('sumPrint').onclick=()=>lastSummary?doPrint(lastSummary):($('sumStatus').textContent='⚠️ اعرض التقرير أولاً.');
+$('sumPdf').onclick=()=>lastSummary?doPdf(lastSummary,`not-executed-${$('sumFrom').value}_${$('sumTo').value}.pdf`):($('sumStatus').textContent='⚠️ اعرض التقرير أولاً.');
+
+$('loadBtn').onclick=load;
+init().catch(e=>{ console.error(e); status('❌ فشل تحميل البيانات.'); });
+</script>
+</body>
+</html>
