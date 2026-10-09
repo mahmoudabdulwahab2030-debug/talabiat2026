@@ -850,8 +850,8 @@
         <button id="reservationFab" class="fab-btn reserved-btn" type="button" title="عرض الحجوزات">📌</button>
         <button id="topBranchBtn" class="fab-btn top-branch-btn" type="button" title="أعلى فرع في الطلبات">🔝</button>
         <button id="topRangeOpenFloat" class="fab-btn range-btn" type="button" title="أعلى فرع خلال فترة">⏱️</button>
-        <button id="compareBtn" class="fab-btn compare-btn" type="button" title="مقارنة مع يوم آخر">⚖️</button>
-        <button id="rangeReportBtn" class="fab-btn range-btn" type="button" title="تقرير الطلبيات بالفترة">🗓️</button>
+        <button id="compareBtn" style="display:none" class="fab-btn compare-btn" type="button" title="مقارنة مع يوم آخر">⚖️</button>
+        <button id="rangeReportBtn" style="display:none" class="fab-btn range-btn" type="button" title="تقرير الطلبيات بالفترة">🗓️</button>
       </div>
     </div>
     <div id="reservationOverlay" role="dialog" aria-hidden="true">
@@ -957,7 +957,7 @@
         <button class="close" aria-label="إغلاق">✖</button>
         <h3>تحليل: أعلى فرع في الطلبات</h3>
         <div style="text-align:center; margin:8px 0 12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
-          <button id="openCompareFromTop" class="btn" style="padding:8px 10px; border-radius:8px; font-weight:800;">⚖️ فتح صفحة المقارنة</button>
+          <button id="openCompareFromTop" class="btn" style="display:none;padding:8px 10px; border-radius:8px; font-weight:800;">⚖️ فتح صفحة المقارنة</button>
           <button id="topShareBtn" class="btn" style="padding:8px 10px; border-radius:8px; font-weight:800;">📤 مشاركة</button>
         </div>
         <!-- date-range controls moved to a compact floating modal (opened by the floating button) -->
