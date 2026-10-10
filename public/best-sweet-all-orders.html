@@ -331,12 +331,20 @@
        (replaced previous left-aligned rules so the product text appears centered) */
     thead th:nth-child(2),
     tbody td:nth-child(2) {
-      width: 40%;
-      max-width: 40%;
+      width: 26%;
+      max-width: 26%;
       white-space: normal;
       word-break: break-word;
       text-align: center; /* changed to center */
-      padding: 12px 14px; /* balanced padding (vertical horizontal) */
+      padding: 10px 8px;
+    }
+    /* Code column: keep the code on one line */
+    thead th:nth-child(1),
+    tbody td:nth-child(1) {
+      white-space: nowrap;
+      width: 1%;
+      padding-left: 8px;
+      padding-right: 8px;
     }
 
     /* Remove any duplicate rule that forced left alignment, e.g.:
