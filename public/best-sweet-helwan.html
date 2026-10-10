@@ -366,9 +366,7 @@
       });
 
       window.showLoadDialog = async function() {
-        const { value: password } = await Swal.fire({ title: 'ادخل كلمة المرور', input: 'password', showCancelButton: true, confirmButtonText: 'تأكيد' });
-        if (password === undefined) return;
-        if (password !== '15121996') { Swal.fire('خطأ','كلمة المرور غير صحيحة','error'); return; }
+        if (!(await EditAudit.verify())) return;
         const { value: date } = await Swal.fire({ title: 'اختر التاريخ', input: 'date', showCancelButton: true, confirmButtonText: 'استدعاء' });
         if (date) loadOrderForEdit(date);
       };
@@ -468,5 +466,7 @@
     }); // DOMContentLoaded end
   </script>
   <script src="activity-logger.js"></script>
+<script src="/lovable-data/edit-audit.js"></script>
+<script>EditAudit.init({collection:'orders_best_sweet',branch:'best_sweet_helwan'});</script>
 </body>
 </html>

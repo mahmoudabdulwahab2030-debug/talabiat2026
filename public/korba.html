@@ -1070,9 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // SHOW/LOAD dialog (password protected)
   window.showLoadDialog = async function() {
-    const { value: password } = await Swal.fire({ title: 'ادخل كلمة المرور', input: 'password', showCancelButton: true, confirmButtonText: 'تأكيد' });
-    if (password === undefined) return;
-    if (password !== '15121996') { Swal.fire('خطأ','كلمة المرور غير صحيحة','error'); return; }
+    if (!(await EditAudit.verify())) return;
     const { value: date } = await Swal.fire({ title: 'اختر التاريخ', input: 'date', showCancelButton: true, confirmButtonText: 'استدعاء' });
     if (date) loadOrderForEdit(date);
   };
@@ -1502,5 +1500,7 @@ const debouncedApplyEditSearch = debounce(applyEditSearchImmediate, 140);
   // ...existing code continues ...
 }); // DOMContentLoaded
 </script>
+<script src="/lovable-data/edit-audit.js"></script>
+<script>EditAudit.init({collection:'orders',branch:'korba'});</script>
 </body>
 </html>
