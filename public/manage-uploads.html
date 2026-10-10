@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/lovable-data/edit-audit.js"></script>
   <style>
     body {
       background: linear-gradient(120deg, #23232a 60%, #2c2c2c 100%);
@@ -239,6 +240,8 @@
       border: 1px solid #ffd16655;
     }
 
+    .btn-log{background:#23232a;color:#ffd166;border:1px solid #ffd16688;border-radius:8px;padding:6px 12px;font-size:1.1rem;cursor:pointer}
+    .btn-log:hover{background:#ffd166;color:#23232a}
   </style>
 </head>
 <body>
@@ -515,6 +518,7 @@
             <th>⏫ تاريخ ووقت الرفع</th>
             <th>👤 القائم بالرفع</th>
             <th>🔢 عدد الأصناف</th>
+            <th>📝 سجل التعديل</th>
             <th>🗑️ حذف</th>
             <th>✅ اختيار</th>
           </tr>
@@ -539,6 +543,7 @@
           <td>${fmtDT(meta.upAt)}</td>
           <td>${meta.upBy || '—'}</td>
           <td>${count}</td>
+          <td><button class="btn-log" title="سجل التعديلات" onclick="EditAudit.showLogs('orders','${branch}','${date}', branchNames['${branch}'])">📝</button></td>
           <td><button class="btn-delete" onclick="deleteUpload('${branch}','${date}','${source}','${invoiceNumber}')">🗑️ حذف</button></td>
           <td><input type="checkbox" class="select-upload" data-branch="${branch}" data-date="${date}" data-source="${source}" data-invoice="${invoiceNumber}" /></td>
         </tr>`;
