@@ -668,6 +668,23 @@
       <div class="infographic" aria-hidden="true"></div>
     </button>
   </nav>
+<script src="/lovable-data/branches-registry.js"></script>
+<script>
+  // أزرار الفروع المضافة من لوحة الإدارة (براند ليدو) بجانب أزرار الفروع الأصلية
+  (function(){
+    var grid = document.getElementById('appIconGrid'); var before = document.getElementById('btnAll');
+    if (!grid || !window.BranchRegistry) return;
+    BranchRegistry.extra('ledoux').forEach(function(b){
+      var a = document.createElement('a');
+      a.className = 'icon-card'; a.id = 'btnBranch_' + b.id; a.href = BranchRegistry.page(b);
+      a.title = 'فرع ' + b.name; a.setAttribute('aria-label', 'فرع ' + b.name);
+      a.innerHTML = '<svg class="icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="10" y="22" width="44" height="28" rx="3" fill="#ffd4a6" opacity="0.18"/><path d="M8 26 L32 12 L56 26" stroke="#ff6b7a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="27" y="34" width="10" height="16" rx="1" fill="#ff6b7a"/></svg><span class="icon-label"></span><div class="infographic" aria-hidden="true"></div>';
+      a.querySelector('.icon-label').textContent = 'فرع ' + b.name;
+      grid.insertBefore(a, before || null);
+    });
+  })();
+</script>
+
 
 
 
@@ -1286,6 +1303,7 @@
       // Mark icon cards the user is not authorized to open; provides visual lock and toast
       (function(){
         const MAP = { btnKorba:'korba_page', btnDokki:'dokki_page', btnTagamo3:'tagamo3_page', btnObour:'obour_page', btnAll:'all_orders_page', btnSendToBranches:'send_to_branches_page', btnUpload:'upload_page', btnStorage:'storage_page', btnDelivery:'delivery_page', btnReservation:'reservation_page', btnAdmin:'admin_page', btnQuality:'quality_page', btnBestSweet:'best_sweet_page' };
+        try{ (window.BranchRegistry ? BranchRegistry.extra('ledoux') : []).forEach(function(b){ MAP['btnBranch_'+b.id] = b.id + '_page'; }); }catch(e){}
 
         function hasRoleFor(role, roles){ if(!roles || roles.length===0) return false; if (roles.includes('all')) return true; return roles.includes(role); }
 
