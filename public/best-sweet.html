@@ -1003,6 +1003,20 @@
     <button onclick="location.href='best-sweet-all-orders.html'">📊 تجميع طلبيات بيست سويت</button>
     <button onclick="location.href='send-to-best-sweet.html'">📨 إرسال إلى بيست سويت</button>
   </div>
+  <script src="/lovable-data/branches-registry.js"></script>
+  <script>
+    // أزرار فروع بيست سويت المضافة من لوحة الإدارة
+    (function(){
+      var group = document.querySelector('.button-group'); if (!group || !window.BranchRegistry) return;
+      var anchor = document.getElementById('bestSweetObourMarket');
+      var ref = anchor ? anchor.nextSibling : null;
+      BranchRegistry.extra('bestsweet').forEach(function(b){
+        var btn = document.createElement('button'); btn.id = 'bsBranch_' + b.id; btn.textContent = 'فرع ' + b.name;
+        btn.onclick = function(){ location.href = BranchRegistry.page(b); };
+        group.insertBefore(btn, ref);
+      });
+    })();
+  </script>
   <div id="newsContainer">
     <button id="hideNewsButton" class="hide-news-btn" aria-label="إخفاء الأخبار">✕</button>
     <div class="slider-container">
