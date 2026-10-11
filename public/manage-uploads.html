@@ -270,11 +270,6 @@
           <option value="dokki">فرع الدقي</option>
           <option value="tagamo3">فرع التجمع</option>
           <option value="obour">فرع العبور</option>
-          <option value="best_sweet_1">اول اجمال</option>
-          <option value="best_sweet_abbassia">العباسيه</option>
-          <option value="best_sweet_helw_zaytoun">حلو منه</option>
-          <option value="best_sweet_market_zaytoun">الزيتون ماركت</option>
-          <option value="best_sweet_helwan">حلوان</option>
         </select>
       </label>
 
@@ -514,10 +509,8 @@
           <tr>
             <th>🏬 الفرع</th>
             <th>📅 التاريخ</th>
-            <th>🧾 رقم الفاتورة</th>
             <th>⏫ تاريخ ووقت الرفع</th>
             <th>👤 القائم بالرفع</th>
-            <th>🔢 عدد الأصناف</th>
             <th>📝 سجل التعديل</th>
             <th>🗑️ حذف</th>
             <th>✅ اختيار</th>
@@ -539,10 +532,8 @@
         html += `<tr>
           <td>${branchNames[branch] || branch}</td>
           <td>${date}</td>
-          <td>${invoiceNumber || '—'}</td>
           <td>${fmtDT(meta.upAt)}</td>
           <td>${meta.upBy || '—'}</td>
-          <td>${count}</td>
           <td><button class="btn-log" title="سجل التعديلات" onclick="EditAudit.showLogs('orders','${branch}','${date}', branchNames['${branch}'])">📝</button></td>
           <td><button class="btn-delete" onclick="deleteUpload('${branch}','${date}','${source}','${invoiceNumber}')">🗑️ حذف</button></td>
           <td><input type="checkbox" class="select-upload" data-branch="${branch}" data-date="${date}" data-source="${source}" data-invoice="${invoiceNumber}" /></td>
