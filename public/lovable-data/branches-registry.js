@@ -61,7 +61,7 @@
     try { all = JSON.parse(localStorage.getItem(CACHE) || "[]"); } catch (e2) { all = []; }
   }
 
-  function pageFor(b) { return "branch.html?id=" + encodeURIComponent(b.id); }
+  function pageFor(b) { return (b.brand === "bestsweet" ? "branch-bestsweet.html" : "branch-ledoux.html") + "?id=" + encodeURIComponent(b.id); }
 
   var R = {
     BUILTIN: BUILTIN,
