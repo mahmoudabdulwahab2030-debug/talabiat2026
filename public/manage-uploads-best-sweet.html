@@ -270,6 +270,7 @@
           <option value="best_sweet_helw_zaytoun">حلو منه فيه الزيتون</option>
           <option value="best_sweet_market_zaytoun">الزيتون ماركت</option>
           <option value="best_sweet_helwan">حلوان</option>
+          <option value="best_sweet_obour_market">عبور ماركت</option>
         </select>
       </label>
 
@@ -315,7 +316,8 @@
       best_sweet_abbassia: "العباسيه",
       best_sweet_helw_zaytoun: "حلو منه فيه الزيتون",
       best_sweet_market_zaytoun: "الزيتون ماركت",
-      best_sweet_helwan: "حلوان"
+      best_sweet_helwan: "حلوان",
+      best_sweet_obour_market: "عبور ماركت"
     };
 
     function toggleActionButtons(hasData) {
@@ -464,7 +466,6 @@
           <tr>
             <th>🏬 الفرع</th>
             <th>📅 التاريخ</th>
-            <th>🔢 عدد السجلات</th>
             <th>📝 سجل التعديل</th>
             <th>🗑️ حذف</th>
             <th>✅ اختيار</th>
@@ -478,7 +479,6 @@
         html += `<tr>
           <td>${branchNames[branch] || branch}</td>
           <td>${date}</td>
-          <td>${count}</td>
           <td><button class="btn-log" title="سجل التعديلات" onclick="EditAudit.showLogs('orders_best_sweet','${branch}','${date}', branchNames['${branch}'])">📝</button></td>
           <td><button class="btn-delete" onclick="deleteUpload('${branch}','${date}')">🗑️ حذف</button></td>
           <td><input type="checkbox" class="select-upload" data-branch="${branch}" data-date="${date}" /></td>
