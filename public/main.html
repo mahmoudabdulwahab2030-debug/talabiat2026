@@ -1303,6 +1303,7 @@
       // Mark icon cards the user is not authorized to open; provides visual lock and toast
       (function(){
         const MAP = { btnKorba:'korba_page', btnDokki:'dokki_page', btnTagamo3:'tagamo3_page', btnObour:'obour_page', btnAll:'all_orders_page', btnSendToBranches:'send_to_branches_page', btnUpload:'upload_page', btnStorage:'storage_page', btnDelivery:'delivery_page', btnReservation:'reservation_page', btnAdmin:'admin_page', btnQuality:'quality_page', btnBestSweet:'best_sweet_page' };
+        try{ (window.BranchRegistry ? BranchRegistry.extra('ledoux') : []).forEach(function(b){ MAP['btnBranch_'+b.id] = b.id + '_page'; }); }catch(e){}
 
         function hasRoleFor(role, roles){ if(!roles || roles.length===0) return false; if (roles.includes('all')) return true; return roles.includes(role); }
 
