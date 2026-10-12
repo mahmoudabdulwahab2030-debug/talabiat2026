@@ -11,6 +11,7 @@
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="notifications.js"></script>
@@ -214,6 +215,7 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
     <button onclick="location.href='add-news.html'">📰 إضافة خبر عاجل</button>
     <button onclick="location.href='حركات.html'">🔁 حركات</button>
     <button class="primary" id="openCreateUserBtn">➕ إنشاء مستخدم جديد</button>
+    <button class="primary" onclick="BranchAdmin.open()">🏬 إدارة الفروع / إنشاء فرع جديد</button>
     <button class="ghost" id="toggleUsersBtn">👥 عرض المستخدمين</button>
     <button class="ghost" id="sliderToggleBtn">👁️ إخفاء/عرض السلايدر</button>
     <button class="ghost" id="openColumnSettingsBtn" onclick="openGlobalColumnSettings()">⚙️ إعدادات أعمدة التجميع</button>
@@ -252,6 +254,7 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
       <label><input type="checkbox" value="best_sweet_market_zaytoun_page"> فرع فيصل</label>
       <label><input type="checkbox" value="best_sweet_helwan_page"> فرع حلوان</label>
       <label><input type="checkbox" value="best_sweet_obour_market_page"> فرع العبور ماركت</label>
+      <span id="dynBranchPerms"></span>
     </div>
     <div style="margin-top:10px;"><strong>🎯 صلاحية شاملة:</strong></div>
     <div class="permissions">
@@ -330,6 +333,7 @@ const firebaseConfig = {
       obour: 'عبور',
       total: 'الإجمالي'
     };
+    try{ BranchRegistry.all().forEach(function(b){ globalTableSettingLabels[b.id] = b.name; }); }catch(e){}
     const defaultGlobalTableSettings = {
       bestSweet: {
         code: true,
@@ -352,6 +356,7 @@ const firebaseConfig = {
         total: true
       }
     };
+    try{ BranchRegistry.extra('ledoux').forEach(function(b){ defaultGlobalTableSettings.allOrders[b.id] = true; }); BranchRegistry.extra('bestsweet').forEach(function(b){ defaultGlobalTableSettings.bestSweet[b.id] = true; }); }catch(e){}
 
     function buildSettingsSection(pageKey, title, keys) {
       return `
@@ -603,7 +608,7 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
         best_sweet_helwan_page: "فرع حلوان",
         best_sweet_obour_market_page: "فرع العبور ماركت" // صلاحيات فروع بيست سويت
       };
-      return `<label><input type="checkbox" value="${role}" ${activeRoles.includes(role) ? "checked" : ""}> ${labelMap[role]}</label>`;
+      return `<label><input type="checkbox" value="${role}" ${activeRoles.includes(role) ? "checked" : ""}> ${labelMap[role] || (typeof ROLE_LABELS!=="undefined" && ROLE_LABELS[role]) || role}</label>`;
     }
 
     // canonical role labels for editor/viewer
@@ -633,6 +638,7 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
       best_sweet_helwan_page: "فرع حلوان",
       best_sweet_obour_market_page: "فرع العبور ماركت"
     };
+    try{ BranchRegistry.all().forEach(function(b){ ROLE_LABELS[b.id + '_page'] = 'فرع ' + b.name + (b.brand==='bestsweet' ? ' (بيست سويت)' : ' (ليدو)'); }); }catch(e){}
 
     async function updateRoles(username, btn) {
       const checkboxes = btn.parentElement.querySelectorAll('input[type=checkbox]');
@@ -1064,5 +1070,6 @@ async function modalComplete() {
 }
   </script>
   <script src="activity-logger.js"></script>
+  <script src="/lovable-data/branch-admin.js"></script>
 </body>
 </html>
