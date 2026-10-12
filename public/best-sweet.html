@@ -1186,6 +1186,7 @@
         bestSweetHelwan: 'best_sweet_helwan_page',
         bestSweetObourMarket: 'best_sweet_obour_market_page'
       };
+      try{ (window.BranchRegistry ? BranchRegistry.extra('bestsweet') : []).forEach(function(b){ buttonRoleMap['bsBranch_'+b.id] = b.id + '_page'; }); }catch(e){}
 
       function showNoPermissionToast(message) {
         let toast = document.getElementById('permToast');
