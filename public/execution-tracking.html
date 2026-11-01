@@ -206,7 +206,7 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
 
 <script>
 const db = firebase.firestore();
-const BRANCHES = [{k:'korba',l:'كوربة'},{k:'dokki',l:'دقي'},{k:'tagamo3',l:'التجمع'},{k:'obour',l:'العبور'}.concat((window.BranchRegistry ? BranchRegistry.extra('ledoux') : []).map(b=>({k:b.id,l:b.name})));
+const BRANCHES = [{k:'korba',l:'كوربة'},{k:'dokki',l:'دقي'},{k:'tagamo3',l:'التجمع'},{k:'obour',l:'العبور'}].concat((window.BranchRegistry ? BranchRegistry.extra('ledoux') : []).map(b=>({k:b.id,l:b.name})));
 const BL = Object.fromEntries(BRANCHES.map(b=>[b.k,b.l]));
 const REASONS = ['نقص خامات','عطل ماكينة','نقص عمالة','ضيق وقت الإنتاج','مشكلة جودة','نفاد التعبئة/التغليف','تأجيل بطلب الفرع','أخرى'];
 let allOrders = [], current = null, dirty = false;
