@@ -9,6 +9,7 @@
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1476,7 +1477,7 @@ const firebaseConfig = {
       { k:'best_sweet_helwan', l:'حلوان' },
       { k:'best_sweet_obour_market', l:'عبور2' },
       { k:'best_sweet_helw_zaytoun', l:'حلو الزيتون' }
-    ];
+    ].concat((window.BranchRegistry ? BranchRegistry.extra('bestsweet') : []).map(b=>({ k:b.id, l:b.name })));
     const BR_KEYS = BR.map(b=>b.k);
     const DISPLAY = Object.assign({ unknown:'غير معروف' }, Object.fromEntries(BR.map(b=>[b.k,b.l])));
     const zeroBranches = () => Object.fromEntries(BR_KEYS.map(k=>[k,0]));
