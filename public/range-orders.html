@@ -8,6 +8,7 @@
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
   <link href="/fonts/fonts.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -152,13 +153,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 let allData = [];
-const branchLabels = { korba:'كوربة', dokki:'دقي', tagamo3:'التجمع', obour:'العبور', unknown:'غير معروف' };
+const branchLabels = { korba:'كوربة', dokki:'دقي', tagamo3:'التجمع', obour:'العبور', ...(window.BranchRegistry ? BranchRegistry.names('ledoux') : {}), unknown:'غير معروف' };
 const branchOrder = ['dokki','korba','tagamo3','obour'];
 
 function showStatus(text){ const el = document.getElementById('status'); if (el) el.textContent = text; }
 function formatNumber(num){ num = Number(num||0); return Number.isInteger(num) ? num.toString() : num.toFixed(2); }
 function escapeHtml(text){ if (!text) return ''; return String(text).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function normalizeBranchKey(branch){ const raw = (branch||'').toString().trim(); const map = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }; return map[raw] || raw.toLowerCase() || 'unknown'; }
+function normalizeBranchKey(branch){ const raw = (branch||'').toString().trim(); const map = Object.assign({ 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }, window.BranchRegistry ? BranchRegistry.nameMap('ledoux') : {}); return map[raw] || raw.toLowerCase() || 'unknown'; }
 function getSelectedValues(group){ return Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(i=>i.value); }
 function isAllSelected(values){ return !values.length || values.includes('ALL'); }
 function initMultiSelectBehavior(){ ['sheetSelector','branchSelector'].forEach(id=>{

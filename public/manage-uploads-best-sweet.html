@@ -8,6 +8,7 @@
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/lovable-data/edit-audit.js"></script>
   <style>
@@ -319,6 +320,8 @@
       best_sweet_helwan: "حلوان",
       best_sweet_obour_market: "عبور ماركت"
     };
+
+    if (window.BranchRegistry) { BranchRegistry.extendNames(branchNames, 'bestsweet', ''); BranchRegistry.addOptions(document.getElementById('filterBranch'), 'bestsweet', ''); }
 
     function toggleActionButtons(hasData) {
       document.getElementById("actionButtons").style.display = hasData ? "block" : "none";

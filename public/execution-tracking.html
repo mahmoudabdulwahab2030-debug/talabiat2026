@@ -7,6 +7,7 @@
 <link href="/fonts/fonts.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -205,7 +206,7 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
 
 <script>
 const db = firebase.firestore();
-const BRANCHES = [{k:'korba',l:'كوربة'},{k:'dokki',l:'دقي'},{k:'tagamo3',l:'التجمع'},{k:'obour',l:'العبور'}];
+const BRANCHES = [{k:'korba',l:'كوربة'},{k:'dokki',l:'دقي'},{k:'tagamo3',l:'التجمع'},{k:'obour',l:'العبور'}].concat((window.BranchRegistry ? BranchRegistry.extra('ledoux') : []).map(b=>({k:b.id,l:b.name})));
 const BL = Object.fromEntries(BRANCHES.map(b=>[b.k,b.l]));
 const REASONS = ['نقص خامات','عطل ماكينة','نقص عمالة','ضيق وقت الإنتاج','مشكلة جودة','نفاد التعبئة/التغليف','تأجيل بطلب الفرع','أخرى'];
 let allOrders = [], current = null, dirty = false;

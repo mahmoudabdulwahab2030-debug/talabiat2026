@@ -8,7 +8,7 @@
     var b = window.BranchRegistry && BranchRegistry.get(id);
     if (!b || !b.active || b.brand !== 'ledoux') { document.addEventListener('DOMContentLoaded', function(){ document.body.innerHTML = '<h2 style="text-align:center;margin-top:80px;color:#ffd166;font-family:Cairo">🚫 هذا الفرع غير موجود أو مخفي</h2><p style="text-align:center"><a href="main.html" style="color:#ffd166">رجوع</a></p>'; }); window.DYN_BRANCH = { id: '__none__', name: '' }; }
     else window.DYN_BRANCH = b;
-    document.title = document.title.replace('__BRANCH_NAME__', window.DYN_BRANCH.name);
+    document.addEventListener('DOMContentLoaded', function(){ document.title = document.title.replace('__BRANCH_NAME__', window.DYN_BRANCH.name); });
   })();
 </script>
 

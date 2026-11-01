@@ -9,6 +9,7 @@
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1001,6 +1002,13 @@ const firebaseConfig = {
 };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    // فروع ليدو المضافة من لوحة الإدارة (لا شيء إن لم تُضف فروع)
+    const LD_EXTRA = (window.BranchRegistry ? BranchRegistry.extra('ledoux') : []).map(b=>({ k:b.id, l:b.name }));
+    const LD_KEYS = ['korba','dokki','tagamo3','obour'].concat(LD_EXTRA.map(b=>b.k));
+    const LD_COLS = 7 + LD_EXTRA.length;
+    const extraTh = (tag) => LD_EXTRA.map(b=>`<${tag||'th'} class="col-${b.k}">${escapeHtml(b.l)}</${tag||'th'}>`).join('');
+    const extraTd = (v) => LD_EXTRA.map(b=>`<td class="col-${b.k}">${displayValue(v[b.k]||0)}</td>`).join('');
+    const ldSum = (v) => LD_KEYS.reduce((s,k)=>s+(Number(v[k])||0),0);
     const globalColumnSettingsDoc = db.collection('settings').doc('tableColumnVisibility');
     const defaultAllOrdersSettings = {
       code: true,
@@ -1011,6 +1019,7 @@ const firebaseConfig = {
       obour: true,
       total: true
     };
+    LD_EXTRA.forEach(b=>{ defaultAllOrdersSettings[b.k] = true; });
     let globalColumnSettings = { bestSweet: {}, allOrders: { ...defaultAllOrdersSettings } };
     const allOrdersColumns = [
       { key: 'code', label: '🔢 الكود' },
@@ -1021,6 +1030,7 @@ const firebaseConfig = {
       { key: 'obour', label: 'عبور' },
       { key: 'total', label: 'الإجمالي' }
     ];
+    allOrdersColumns.splice(allOrdersColumns.length-1, 0, ...LD_EXTRA.map(b=>({ key:b.k, label:b.l })));
 
     async function loadGlobalColumnSettings() {
       try {
@@ -1126,7 +1136,7 @@ const firebaseConfig = {
 
     function normalizeBranchKey(branch) {
       const raw = (branch || '').toString().trim();
-      const map = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' };
+      const map = Object.assign({ 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }, window.BranchRegistry ? BranchRegistry.nameMap('ledoux') : {});
       return map[raw] || raw.toLowerCase();
     }
 
@@ -1168,16 +1178,16 @@ const firebaseConfig = {
         const branchKey = normalizeBranchKey(d.branch);
         const qty = Number(d.qty) || 0;
         if (qty > 0) {
-          if (['korba','dokki','tagamo3','obour'].includes(branchKey)) {
-            item[branchKey] += qty;
+          if (LD_KEYS.includes(branchKey)) {
+            item[branchKey] = (item[branchKey]||0) + qty;
           } else {
             item.korba += qty;
           }
         }
         if (d.notes && String(d.notes).trim()) {
           const noteText = String(d.notes).trim();
-          const noteKey = ['korba','dokki','tagamo3','obour'].includes(branchKey) ? `${branchKey}Notes` : 'korbaNotes';
-          const noteList = item[noteKey];
+          const noteKey = LD_KEYS.includes(branchKey) ? `${branchKey}Notes` : 'korbaNotes';
+          const noteList = item[noteKey] = (item[noteKey] || []);
           if (Array.isArray(noteList) && noteText && !noteList.includes(noteText)) {
             noteList.push(noteText);
           }
@@ -1204,7 +1214,7 @@ const firebaseConfig = {
         { key: 'dokkiNotes', label: 'ملاحظات فرع الدقي' },
         { key: 'tagamo3Notes', label: 'ملاحظات فرع التجمع' },
         { key: 'obourNotes', label: 'ملاحظات فرع العبور' }
-      ];
+      ].concat(LD_EXTRA.map(b=>({ key:b.k+'Notes', label:'ملاحظات فرع '+b.l })));
       return branches.map(({ key, label }) => {
         const notes = Array.isArray(item[key]) ? item[key].filter(n => String(n || '').trim()) : [];
         if (!notes.length) return '';
@@ -1234,16 +1244,16 @@ const firebaseConfig = {
         const branchKey = normalizeBranchKey(d.branch);
         const qty = Number(d.qty) || 0;
         if (qty > 0) {
-          if (['korba','dokki','tagamo3','obour'].includes(branchKey)) {
-            grouped[key][branchKey] += qty;
+          if (LD_KEYS.includes(branchKey)) {
+            grouped[key][branchKey] = (grouped[key][branchKey]||0) + qty;
           } else {
             grouped[key].korba += qty;
           }
         }
         if (d.notes && String(d.notes).trim()) {
           const noteText = String(d.notes).trim();
-          const noteKey = ['korba','dokki','tagamo3','obour'].includes(branchKey) ? `${branchKey}Notes` : 'korbaNotes';
-          const noteList = grouped[key][noteKey];
+          const noteKey = LD_KEYS.includes(branchKey) ? `${branchKey}Notes` : 'korbaNotes';
+          const noteList = grouped[key][noteKey] = (grouped[key][noteKey] || []);
           if (Array.isArray(noteList) && noteText && !noteList.includes(noteText)) {
             noteList.push(noteText);
           }
@@ -1259,7 +1269,7 @@ const firebaseConfig = {
       📝 تجميع طلبيات فروع ليدو عن يوم ${weekday} - بتاريخ ${date} - القسم: <span style="color:#ffd166">${escapeHtml(sheet)}</span>
         </h3>
         <table border="1"><thead>
-          <tr><th class="col-code">🔢 الكود</th><th class="col-name">📦 الصنف</th><th class="col-korba">كوربة</th><th class="col-dokki">دقي</th><th class="col-tagamo3">تجمع</th><th class="col-obour">عبور</th><th class="col-total">الإجمالي</th></tr>
+          <tr><th class="col-code">🔢 الكود</th><th class="col-name">📦 الصنف</th><th class="col-korba">كوربة</th><th class="col-dokki">دقي</th><th class="col-tagamo3">تجمع</th><th class="col-obour">عبور</th>${extraTh()}<th class="col-total">الإجمالي</th></tr>
         </thead><tbody>`;
 
       const entries = Object.values(grouped);
@@ -1276,7 +1286,7 @@ const firebaseConfig = {
       });
 
       rowsWithIndex.forEach(({ v }) => {
-        const sum = (v.korba || 0) + (v.dokki || 0) + (v.tagamo3 || 0) + (v.obour || 0);
+        const sum = ldSum(v);
         const icon = (v.reservationQty && v.reservationQty > 0) ? " ✅" : "";
         html += `<tr>
           <td class="col-code">${escapeHtml(v.code)}</td>
@@ -1284,7 +1294,7 @@ const firebaseConfig = {
           <td class="col-korba">${displayValue(v.korba)}</td>
           <td class="col-dokki">${displayValue(v.dokki)}</td>
           <td class="col-tagamo3">${displayValue(v.tagamo3)}</td>
-          <td class="col-obour">${displayValue(v.obour)}</td>
+          <td class="col-obour">${displayValue(v.obour)}</td>${extraTd(v)}
           <td class="col-total"><strong>${formatNumber(sum)}</strong></td>
         </tr>`;
       });
@@ -1329,7 +1339,7 @@ const firebaseConfig = {
         📝 تجميع طلبيات فروع ليدو عن يوم ${weekday} - بتاريخ ${date} - القسم: <span style="color:#ffd166">${sheetLabel}</span>
           </h3>
           <table border="1"><thead>
-            <tr><th class="col-code">🔢 الكود</th><th class="col-name">📦 الصنف</th><th class="col-korba">كوربة</th><th class="col-dokki">دقي</th><th class="col-tagamo3">تجمع</th><th class="col-obour">عبور</th><th class="col-total">الإجمالي</th></tr>
+            <tr><th class="col-code">🔢 الكود</th><th class="col-name">📦 الصنف</th><th class="col-korba">كوربة</th><th class="col-dokki">دقي</th><th class="col-tagamo3">تجمع</th><th class="col-obour">عبور</th>${extraTh()}<th class="col-total">الإجمالي</th></tr>
           </thead><tbody>`;
 
         const sectionNames = Object.keys(sections).sort((a, b) => a.localeCompare(b, 'ar'));
@@ -1339,12 +1349,12 @@ const firebaseConfig = {
           if (!entries.length) return;
 
           if (sectionIndex > 0) {
-            html += `<tr><td colspan="7" style="height:12px;border:none;background:transparent;"></td></tr>`;
-            html += `<tr><td colspan="7" style="height:12px;border:none;background:transparent;"></td></tr>`;
+            html += `<tr><td colspan="${LD_COLS}" style="height:12px;border:none;background:transparent;"></td></tr>`;
+            html += `<tr><td colspan="${LD_COLS}" style="height:12px;border:none;background:transparent;"></td></tr>`;
           }
 
-          html += `<tr><td colspan="7" style="text-align:center;font-weight:bold;padding:8px 8px;background:rgba(255,209,102,0.08);">📝 تجميع طلبيات فروع ليدو عن يوم ${new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' })} - بتاريخ ${date} - القسم: ${escapeHtml(sectionName)}</td></tr>`;
-          html += `<tr style="text-align:center;font-weight:bold;"><td class="col-code">🔢 الكود</td><td class="col-name">📦 الصنف</td><td class="col-korba">كوربة</td><td class="col-dokki">دقي</td><td class="col-tagamo3">تجمع</td><td class="col-obour">عبور</td><td class="col-total">الإجمالي</td></tr>`;
+          html += `<tr><td colspan="${LD_COLS}" style="text-align:center;font-weight:bold;padding:8px 8px;background:rgba(255,209,102,0.08);">📝 تجميع طلبيات فروع ليدو عن يوم ${new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' })} - بتاريخ ${date} - القسم: ${escapeHtml(sectionName)}</td></tr>`;
+          html += `<tr style="text-align:center;font-weight:bold;"><td class="col-code">🔢 الكود</td><td class="col-name">📦 الصنف</td><td class="col-korba">كوربة</td><td class="col-dokki">دقي</td><td class="col-tagamo3">تجمع</td><td class="col-obour">عبور</td>${extraTh('td')}<td class="col-total">الإجمالي</td></tr>`;
 
           const rowsWithIndex = entries.map((v, idx) => ({ v, idx }));
           rowsWithIndex.sort((a, b) => {
@@ -1359,7 +1369,7 @@ const firebaseConfig = {
           });
 
           rowsWithIndex.forEach(({ v }) => {
-            const sum = (v.korba || 0) + (v.dokki || 0) + (v.tagamo3 || 0) + (v.obour || 0);
+            const sum = ldSum(v);
             const icon = (v.reservationQty && v.reservationQty > 0) ? " ✅" : "";
             html += `<tr>
               <td class="col-code">${escapeHtml(v.code)}</td>
@@ -1367,7 +1377,7 @@ const firebaseConfig = {
               <td class="col-korba">${displayValue(v.korba)}</td>
               <td class="col-dokki">${displayValue(v.dokki)}</td>
               <td class="col-tagamo3">${displayValue(v.tagamo3)}</td>
-              <td class="col-obour">${displayValue(v.obour)}</td>
+              <td class="col-obour">${displayValue(v.obour)}</td>${extraTd(v)}
               <td class="col-total"><strong>${formatNumber(sum)}</strong></td>
             </tr>`;
           });
@@ -1413,7 +1423,7 @@ const firebaseConfig = {
     }
 
     function getBranchDisplayName(branchKey) {
-      const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+      const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', ...(window.BranchRegistry ? BranchRegistry.names('ledoux') : {}), unknown: 'غير معروف' };
       return displayNames[branchKey] || branchKey || 'غير معروف';
     }
 
@@ -1479,7 +1489,7 @@ const firebaseConfig = {
       const aoa = [];
       aoa.push([titleText]);
       aoa.push([]);
-      aoa.push(['🔢 الكود','📦 الصنف','كوربة','دقي','تجمع','عبور','الإجمالي']);
+      aoa.push(['🔢 الكود','📦 الصنف','كوربة','دقي','تجمع','عبور', ...LD_EXTRA.map(b=>b.l),'الإجمالي']);
 
       const merges = [ { s:{r:0,c:0}, e:{r:0,c:6} } ];
       let currentRow = 3;
@@ -1493,7 +1503,7 @@ const firebaseConfig = {
         aoa.push([`📝 تجميع طلبيات فروع ليدو عن يوم ${weekday} - بتاريخ ${dateValue} - القسم: ${sectionName}`]);
         merges.push({ s:{r:currentRow,c:0}, e:{r:currentRow,c:6} });
         currentRow += 1;
-        aoa.push(['🔢 الكود','📦 الصنف','كوربة','دقي','تجمع','عبور','الإجمالي']);
+        aoa.push(['🔢 الكود','📦 الصنف','كوربة','دقي','تجمع','عبور', ...LD_EXTRA.map(b=>b.l),'الإجمالي']);
         currentRow += 1;
 
         const entries = Object.values(sections[sectionName].items);
@@ -1510,9 +1520,9 @@ const firebaseConfig = {
         });
 
         rowsWithIndex.forEach(({ v }) => {
-          const sum = (v.korba || 0) + (v.dokki || 0) + (v.tagamo3 || 0) + (v.obour || 0);
+          const sum = ldSum(v);
           const icon = (v.reservationQty && v.reservationQty > 0) ? ' ✅' : '';
-          aoa.push([v.code, `${v.name || ''}${icon}`, v.korba || '', v.dokki || '', v.tagamo3 || '', v.obour || '', sum]);
+          aoa.push([v.code, `${v.name || ''}${icon}`, v.korba || '', v.dokki || '', v.tagamo3 || '', v.obour || '', ...LD_EXTRA.map(b=>v[b.k]||''), sum]);
           currentRow += 1;
         });
       });
@@ -1521,7 +1531,7 @@ const firebaseConfig = {
       ws['!merges'] = merges;
       ws['!sheetViews'] = [{ rightToLeft: true }];
 
-      const colWidths = [12, 40, 12, 12, 12, 12, 12];
+      const colWidths = [12, 40, 12, 12, 12, 12, ...LD_EXTRA.map(()=>12), 12];
       ws['!cols'] = colWidths.map(w => ({wch: w}));
 
       const style = {
@@ -1658,7 +1668,7 @@ const firebaseConfig = {
     }
 
     // إضافة فرع العبور إلى الجدول
- const branches = ["dokki", "korba", "tagamo3", "obour"];
+ const branches = ["dokki", "korba", "tagamo3", "obour"].concat(LD_EXTRA.map(b=>b.k));
 
     // Floating actions handlers: أعلى فرع و مقارنة
     (function(){
@@ -1676,7 +1686,7 @@ const firebaseConfig = {
         const map = {};
         filtered.forEach(d => {
           const branchKeyRaw = (d.branch || '').toString().trim();
-          const mapNames = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' };
+          const mapNames = Object.assign({ 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }, window.BranchRegistry ? BranchRegistry.nameMap('ledoux') : {});
           const branchKey = (mapNames[branchKeyRaw] || branchKeyRaw.toLowerCase() || 'unknown');
           if (!map[branchKey]) map[branchKey] = { totalQty:0, items:new Set() };
           const qty = Number(d.qty) || 0;
@@ -1734,7 +1744,7 @@ const firebaseConfig = {
         tbody.innerHTML = '';
         // prepare infographic data
         // map branch keys to Arabic display names
-        const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+        const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', ...(window.BranchRegistry ? BranchRegistry.names('ledoux') : {}), unknown: 'غير معروف' };
         const labels = rows.map(r=> displayNames[r.branch] || r.branch);
         const totals = rows.map(r=> r.total);
         const totalQty = totals.reduce((s,v)=>s+v,0);
@@ -1863,11 +1873,11 @@ const firebaseConfig = {
         const filtered = allData.filter(d=>{ const od = d.orderDate||''; const dd = d.deliveryDate||''; const inRange = (od && od >= from && od <= to) || (dd && dd >= from && dd <= to); const sheetMatch = (sheet==='ALL' || d.sheet===sheet); return inRange && sheetMatch; });
         if (!filtered.length){ toastr.info('لا توجد بيانات في النطاق'); return; }
         const stats = {};
-        filtered.forEach(d=>{ const mapNames = { 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }; const bk = mapNames[(d.branch||'').toString().trim()] || (d.branch||'').toString().trim().toLowerCase() || 'unknown'; if (!stats[bk]) stats[bk] = { total:0, items:new Set() }; stats[bk].total += Number(d.qty)||0; const key = String(d.code||d.name||'').trim(); if (key) stats[bk].items.add(key); });
+        filtered.forEach(d=>{ const mapNames = Object.assign({ 'كوربة':'korba','كوربة ':'korba','دقي':'dokki','تجمع':'tagamo3','عبور':'obour' }, window.BranchRegistry ? BranchRegistry.nameMap('ledoux') : {}); const bk = mapNames[(d.branch||'').toString().trim()] || (d.branch||'').toString().trim().toLowerCase() || 'unknown'; if (!stats[bk]) stats[bk] = { total:0, items:new Set() }; stats[bk].total += Number(d.qty)||0; const key = String(d.code||d.name||'').trim(); if (key) stats[bk].items.add(key); });
         const rows = Object.keys(stats).map(k=>({ branch:k, total: stats[k].total, distinct: stats[k].items.size }));
         rows.forEach(r=> r.score = r.total + r.distinct); rows.sort((a,b)=> b.score - a.score || b.total - a.total);
         // update KPIs
-        const totalQty = rows.reduce((s,r)=> s + (r.total||0),0); const totalDistinct = rows.reduce((s,r)=> s + (r.distinct||0),0); const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+        const totalQty = rows.reduce((s,r)=> s + (r.total||0),0); const totalDistinct = rows.reduce((s,r)=> s + (r.distinct||0),0); const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', ...(window.BranchRegistry ? BranchRegistry.names('ledoux') : {}), unknown: 'غير معروف' };
         const best = rows.length ? (displayNames[rows[0].branch]||rows[0].branch) : '-'; document.getElementById('rangeKpiQty').textContent = formatNumber(totalQty); document.getElementById('rangeKpiDistinct').textContent = formatNumber(totalDistinct); document.getElementById('rangeKpiBest').textContent = best;
         // charts
         const labels = rows.map(r=> displayNames[r.branch]||r.branch); const totals = rows.map(r=> r.total || 0);

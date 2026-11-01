@@ -43,6 +43,7 @@
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
+  <script src="/lovable-data/branches-registry.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -127,7 +128,7 @@
     bStats.forEach(r=>{ if (!map[r.branch]) map[r.branch] = { aTotal:0, aDistinct:0, bTotal:0, bDistinct:0 }; map[r.branch].bTotal = r.total; map[r.branch].bDistinct = r.distinct; });
     const rows = Object.keys(map).map(k=>({ branch:k, ...map[k] }));
     // build KPI + infographic container
-    const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+    const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', ...(window.BranchRegistry ? BranchRegistry.names('ledoux') : {}), unknown: 'غير معروف' };
     const totalBQty = rows.reduce((s,r)=> s + (r.bTotal||0), 0);
     const totalBDistinct = rows.reduce((s,r)=> s + (r.bDistinct||0), 0);
     const bestB = rows.length ? (displayNames[rows[0].branch] || rows[0].branch) : '-';
@@ -173,7 +174,7 @@
     document.getElementById('result').innerHTML = html;
     // build infographic: use bStats for ranking & totals, and grouped bar chart comparing A vs B
     (function buildInfographic(){
-      const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', unknown: 'غير معروف' };
+      const displayNames = { korba: 'كوربة', dokki: 'دقي', tagamo3: 'التجمع', obour: 'العبور', ...(window.BranchRegistry ? BranchRegistry.names('ledoux') : {}), unknown: 'غير معروف' };
       const map = {};
       bStats.forEach(r=> map[r.branch] = { bTotal: r.total, bDistinct: r.distinct });
       aStats.forEach(r=> { if (!map[r.branch]) map[r.branch] = { bTotal:0, bDistinct:0 }; map[r.branch].aTotal = r.total; map[r.branch].aDistinct = r.distinct; });
