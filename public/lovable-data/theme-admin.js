@@ -31,8 +31,9 @@
     el.querySelectorAll("[data-f]").forEach(function (i) { var k = i.dataset.f; t[k] = i.type === "checkbox" ? i.checked : i.type === "range" ? parseFloat(i.value) : i.value; });
     return t;
   }
-  function open() {
-    var original = LTheme.current(), t = Object.assign({}, original);
+  function open(init) {
+    var original = LTheme.current(), t = Object.assign({}, init || original);
+    LTheme.apply(t);
     Swal.fire({
       title: "🎨 التحكم في الثيم والألوان", width: 720, html: form(t), showCancelButton: true, showDenyButton: true,
       confirmButtonText: "💾 حفظ للجميع", denyButtonText: "↺ استعادة الافتراضي", cancelButtonText: "إلغاء",
@@ -40,7 +41,7 @@
         var c = pop.querySelector(".swal2-html-container");
         c.addEventListener("input", function (e) { var o = e.target.parentNode.querySelector("output"); if (o) o.textContent = e.target.value; t = read(c, t); LTheme.apply(t); });
         c.addEventListener("change", function () { t = read(c, t); LTheme.apply(t); });
-        c.querySelectorAll(".t-preset").forEach(function (b) { b.onclick = function () { t = Object.assign({}, LTheme.PRESETS[b.dataset.k]); LTheme.apply(t); c.innerHTML = form(t).replace(/^<div[^>]*>|<\/div>$/g, ""); c.querySelectorAll(".t-preset").forEach(function (x) { x.onclick = b.onclick.bind(x); }); }; });
+        c.querySelectorAll(".t-preset").forEach(function (b) { b.onclick = function () { var n = Object.assign({}, LTheme.PRESETS[b.dataset.k]); Swal.close(); setTimeout(function () { open(n); }, 60); }; });
       }
     }).then(async function (r) {
       try {
