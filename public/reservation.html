@@ -690,9 +690,7 @@ const db = firebase.firestore();
       </div>
     `;
 
-    return `<!doctype html><html lang="ar"><head><meta charset="utf-8">${fontLink}${css}<title>فاتورة</title>  <link rel="stylesheet" href="/lovable-data/theme.css">
-  <script src="/lovable-data/theme.js"></script>
-</head><body>${header}</body></html>`;
+    return `<!doctype html><html lang="ar"><head><meta charset="utf-8">${fontLink}${css}<title>فاتورة</title></head><body>${header}</body></html>`;
   }
 
   async function saveOrder() {
