@@ -35,7 +35,8 @@
 @keyframes t-bar { from { transform: scaleY(.25) } to { transform: scaleY(1) } }
 
 @media screen {
-  html { font-size: calc(16px * var(--t-scale)); scroll-behavior: smooth; }
+  html { font-size: calc(16px * var(--t-scale)); scroll-behavior: smooth; background: var(--t-bg); }
+  html body { min-height: 100vh; }
   html body {
     background: radial-gradient(1200px 600px at 100% -10%, rgba(142,27,36,.28), transparent 60%),
                 radial-gradient(900px 500px at -10% 110%, rgba(110,116,128,.18), transparent 60%),
