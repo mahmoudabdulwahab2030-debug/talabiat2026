@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Best Sweet order records keep item notes in the scalar `notes` field through Excel import and edit saves; the existing aggregation reads that field, so static branches and the dynamic template must preserve it consistently.

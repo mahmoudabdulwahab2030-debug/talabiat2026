@@ -251,13 +251,13 @@
         const [headers, ...dataRows] = rows;
         const validRows = dataRows.filter(row => (parseFloat(row[2]) || 0) > 0);
         if (validRows.length === 0) { tableContainer.innerHTML = "<p>⚠️ لا توجد بيانات بكميات صالحة للعرض.</p>"; return; }
-        let html = "<table class='data-table'><thead><tr><th>📄 الكود</th><th>📦 الصنف</th><th>🔢 الكمية</th></tr></thead><tbody>";
+        let html = "<table class='data-table'><thead><tr><th>📄 الكود</th><th>📦 الصنف</th><th>🔢 الكمية</th><th>📝 ملاحظات</th></tr></thead><tbody>";
         validRows.forEach((row, rowIdx) => {
           const code = row[0] || "";
           const name = row[1] || "";
-          const qty = parseFloat(row[2]) || 0;
-          currentData.push({ code, name, qty, sheet: sheetName, rowIdx });
-          html += `<tr><td>${escapeHtml(code)}</td><td>${escapeHtml(name)}</td><td>${qty}</td></tr>`;
+          const qty = parseFloat(row[2]) || 0; const notes = String(row[3] ?? "");
+          currentData.push({ code, name, qty, notes, sheet: sheetName, rowIdx });
+          html += `<tr><td>${escapeHtml(code)}</td><td>${escapeHtml(name)}</td><td>${qty}</td><td>${escapeHtml(notes)}</td></tr>`;
         });
         html += "</tbody></table>";
         tableContainer.innerHTML = html;
@@ -298,9 +298,9 @@
             dataRows.forEach((r, rowIdx) => {
               const code = r[0] || "";
               const name = r[1] || "";
-              const qty = parseFloat(r[2]) || 0;
+              const qty = parseFloat(r[2]) || 0; const notes = String(r[3] ?? "");
               if (code && name && qty > 0) {
-                const item = { code, name, qty, sheet: sheetName, rowIdx };
+                const item = { code, name, qty, notes, sheet: sheetName, rowIdx };
                 const docId = getOrderDocId(item, orderDate);
                 const ref = db.collection(getOrdersCollectionName()).doc(docId);
                 batch.set(ref, {...item, branch: BRANCH, orderDate, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
@@ -420,7 +420,7 @@
             if (!name || qty <= 0) return;
             insertOps.push(batch => {
               const ref = db.collection(ORDERS_COLLECTION).doc();
-              batch.set(ref, { code, name, qty, sheet, branch: BRANCH, orderDate: date, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+              batch.set(ref, { code, name, qty, notes: String(item.notes ?? ""), sheet, branch: BRANCH, orderDate: date, uploadedBy: (localStorage.getItem('username')||localStorage.getItem('userCode')||'غير معروف'), timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             });
           });
           if (deleteOps.length) await commitInBatches(deleteOps);
@@ -430,6 +430,7 @@
         } catch (err) { console.error('saveChanges error:', err); Swal.close(); Swal.fire('خطأ','فشل حفظ التعديلات. حاول مرة أخرى','error'); }
       };
 
+      window.updateNotes = function(index, value) { if (editingData[index]) editingData[index].notes = String(value ?? ""); };
       window.updateQty = function(index, value) { if (editingData[index]) editingData[index].qty = Number(value) || 0; };
       window.deleteItem = function(index) { Swal.fire({ title:'تأكيد', text:'حذف صنف؟', icon:'warning', showCancelButton:true, confirmButtonText:'نعم' }).then(res => { if (res.isConfirmed) { editingData.splice(index,1); renderEditTable(); } }); };
 
@@ -459,7 +460,7 @@
 
       window.insertItem = function(name, section, code) {
         if (!editingData || !Array.isArray(editingData)) editingData = [];
-        editingData.push({ code, name, qty: 1, sheet: section });
+        editingData.push({ code, name, qty: 1, notes: "", sheet: section });
         renderEditTable();
         closeCatalogModal();
       };
@@ -469,8 +470,8 @@
       window.renderEditTable = function() {
         const container = document.getElementById('editTable'); if (!container) return;
         if (!editingData || editingData.length === 0) { container.innerHTML = '<p style="padding:12px;color:#ffd166;">لا توجد عناصر للتعديل.</p>'; return; }
-        let html = `<table class="data-table"><thead><tr><th>الكود</th><th>الصنف</th><th>الكمية</th><th>حذف</th></tr></thead><tbody>`;
-        editingData.forEach((it, idx) => { const code = escapeHtml(it.code || ''); const name = escapeHtml(it.name || ''); const qty = Number(it.qty) || 0; html += `<tr><td>${code}</td><td style="text-align:right">${name}</td><td><input type="number" class="qty-input" value="${qty}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`; });
+        let html = `<table class="data-table"><thead><tr><th>الكود</th><th>الصنف</th><th>الكمية</th><th>ملاحظات</th><th>حذف</th></tr></thead><tbody>`;
+        editingData.forEach((it, idx) => { const code = escapeHtml(it.code || ''); const name = escapeHtml(it.name || ''); const qty = Number(it.qty) || 0; html += `<tr><td>${code}</td><td style="text-align:right">${name}</td><td><input type="number" class="qty-input" value="${qty}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><input type="text" class="qty-input" value="${escapeHtml(it.notes || "")}" style="width:100%;min-width:140px;padding:5px;" oninput="updateNotes(${idx}, this.value)" aria-label="ملاحظات الصنف" placeholder="أضف ملاحظة..." /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`; });
         html += `</tbody></table>`; container.innerHTML = html;
       };
 
