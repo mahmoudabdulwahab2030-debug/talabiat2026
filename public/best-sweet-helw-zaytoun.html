@@ -598,7 +598,7 @@
           const code = escapeHtml(it.code || '');
           const name = escapeHtml(it.name || '');
           const qty = Number(it.qty) || 0;
-          html += `<tr><td>${code}</td><td style="text-align:right">${name}</td><td><input type="number" class="qty-input" value="${qty}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><input type="text" class="qty-input" value="${escapeHtml(it.notes || \'\')}" style="width:100%;min-width:140px;padding:5px;" oninput="updateNotes(${idx}, this.value)" aria-label="ملاحظات الصنف" placeholder="أضف ملاحظة..." /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`;
+          html += `<tr><td>${code}</td><td style="text-align:right">${name}</td><td><input type="number" class="qty-input" value="${qty}" min="0" onchange="updateQty(${idx}, this.value)" /></td><td><input type="text" class="qty-input" value="${escapeHtml(it.notes || "")}" style="width:100%;min-width:140px;padding:5px;" oninput="updateNotes(${idx}, this.value)" aria-label="ملاحظات الصنف" placeholder="أضف ملاحظة..." /></td><td><button class="action-button secondary" onclick="deleteItem(${idx})">🗑️</button></td></tr>`;
         });
         html += `</tbody></table>`;
         container.innerHTML = html;
