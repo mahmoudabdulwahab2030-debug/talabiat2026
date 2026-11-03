@@ -1,3 +1,3 @@
 # Best Sweet notes
 - [x] Enable Excel notes, editing and persistence in six existing branches and the dynamic branch template.
-- [ ] Verify notes upload, save/reload and display in Best Sweet aggregation.
+- [x] Verify notes upload, save/reload and display in Best Sweet aggregation.
