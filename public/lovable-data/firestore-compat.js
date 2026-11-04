@@ -699,3 +699,6 @@
 
   console.info("[lovable-data] طبقة بيانات Lovable جاهزة");
 })();
+
+// حارس الجلسة والتحديثات لكل الصفحات
+(function () { try { if (document.getElementById('sgScript')) return; var s = document.createElement('script'); s.id = 'sgScript'; s.src = '/lovable-data/session-guard.js?v=1'; (document.head || document.documentElement).appendChild(s); } catch (e) {} })();
