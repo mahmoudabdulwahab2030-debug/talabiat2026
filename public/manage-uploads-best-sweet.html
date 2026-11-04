@@ -252,9 +252,8 @@
     <button onclick="selectAllUploads()">✅ تحديد الكل</button>
     <button onclick="deleteSelectedUploads()">🗑️ حذف الملفات المحددة</button>
     <button onclick="loadUploads()">🔄 تحديث القائمة</button>
-    <button onclick="UploadBackup.export(['orders_best_sweet'],'bestsweet')">💾 نسخة احتياطية</button>
-    <button onclick="UploadBackup.import(['orders_best_sweet'],'bestsweet', () => loadUploads())">📥 استيراد نسخة</button>
   </div>
+  <div id="backupButtons" style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;justify-content:center"> <button onclick="UploadBackup.export(['orders_best_sweet'],'bestsweet')">💾 نسخة احتياطية</button> <button onclick="UploadBackup.import(['orders_best_sweet'],'bestsweet', () => loadUploads())">📥 استيراد نسخة</button></div>
 
   <!-- Filter toggle button -->
   <button id="filterToggleBtn" onclick="toggleFilterPanel()" title="فتح/إغلاق الفلتر">🔎 فلتر</button>

@@ -253,9 +253,8 @@
     <button onclick="selectAllUploads()">✅ تحديد الكل</button>
     <button onclick="deleteSelectedUploads()">🗑️ حذف الملفات المحددة</button>
     <button onclick="loadUploads()">🔄 تحديث القائمة</button>
-    <button onclick="UploadBackup.export(['orders','reservations'],'ledoux')">💾 نسخة احتياطية</button>
-    <button onclick="UploadBackup.import(['orders','reservations'],'ledoux', () => loadUploads())">📥 استيراد نسخة</button>
   </div>
+  <div id="backupButtons" style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;justify-content:center"> <button onclick="UploadBackup.export(['orders','reservations'],'ledoux')">💾 نسخة احتياطية</button> <button onclick="UploadBackup.import(['orders','reservations'],'ledoux', () => loadUploads())">📥 استيراد نسخة</button></div>
 
   <!-- Filter toggle button -->
   <button id="filterToggleBtn" onclick="toggleFilterPanel()" title="فتح/إغلاق الفلتر">🔎 فلتر</button>
