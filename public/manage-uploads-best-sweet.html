@@ -11,6 +11,7 @@
   <script src="/lovable-data/branches-registry.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/lovable-data/edit-audit.js"></script>
+  <script src="/lovable-data/upload-backup.js"></script>
   <style>
     body {
       background: linear-gradient(120deg, #23232a 60%, #2c2c2c 100%);
@@ -251,6 +252,8 @@
     <button onclick="selectAllUploads()">✅ تحديد الكل</button>
     <button onclick="deleteSelectedUploads()">🗑️ حذف الملفات المحددة</button>
     <button onclick="loadUploads()">🔄 تحديث القائمة</button>
+    <button onclick="UploadBackup.export(['orders_best_sweet'],'bestsweet')">💾 نسخة احتياطية</button>
+    <button onclick="UploadBackup.import(['orders_best_sweet'],'bestsweet', () => loadUploads())">📥 استيراد نسخة</button>
   </div>
 
   <!-- Filter toggle button -->
