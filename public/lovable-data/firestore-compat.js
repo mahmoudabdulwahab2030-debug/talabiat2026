@@ -1,3 +1,17 @@
+/* بوابة الدخول: أي صفحة داخلية بدون جلسة تُحوَّل فوراً لتسجيل الدخول قبل ظهور أي محتوى */
+(function () {
+  try {
+    var p = location.pathname;
+    if (/(^|\/)(index|login|404)\.html$|^\/$/i.test(p)) return;
+    var s = null;
+    try { s = localStorage.getItem('userCode') || localStorage.getItem('userUid'); } catch (e) {}
+    if (!s) {
+      document.documentElement.style.visibility = 'hidden';
+      location.replace('/index.html?redirect=' + encodeURIComponent(decodeURIComponent(p.replace(/^\//, ''))));
+      throw new Error('[auth-gate] redirecting to login');
+    }
+  } catch (e) { if (String(e.message).indexOf('auth-gate') > -1) throw e; }
+})();
 /*
  * طبقة بيانات Lovable — بديل متوافق مع Firebase Firestore (compat API)
  * ------------------------------------------------------------------
@@ -701,4 +715,4 @@
 })();
 
 // حارس الجلسة والتحديثات لكل الصفحات
-(function () { try { if (document.getElementById('sgScript')) return; var s = document.createElement('script'); s.id = 'sgScript'; s.src = '/lovable-data/session-guard.js?v=1'; (document.head || document.documentElement).appendChild(s); } catch (e) {} })();
+(function () { try { if (document.getElementById('sgScript')) return; var s = document.createElement('script'); s.id = 'sgScript'; s.src = '/lovable-data/session-guard.js?v=2'; (document.head || document.documentElement).appendChild(s); } catch (e) {} })();
