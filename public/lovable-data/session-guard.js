@@ -4,6 +4,20 @@
  * 2) عند الرجوع لصفحة من ذاكرة المتصفح (زر الرجوع/إعادة فتح التبويب) يعيد التحقق والتحميل.
  * 3) يكتشف نشر نسخة جديدة من الصفحة ويحدّثها بهدوء عندما لا يكون المستخدم يكتب، أو يعرض شريطاً صغيراً.
  */
+/* بوابة الدخول: أي صفحة داخلية بدون جلسة تُحوَّل فوراً لتسجيل الدخول قبل ظهور أي محتوى */
+(function () {
+  try {
+    var p = location.pathname;
+    if (/(^|\/)(index|login|404)\.html$|^\/$/i.test(p)) return;
+    var s = null;
+    try { s = localStorage.getItem('userCode') || localStorage.getItem('userUid'); } catch (e) {}
+    if (!s) {
+      document.documentElement.style.visibility = 'hidden';
+      location.replace('/index.html?redirect=' + encodeURIComponent(decodeURIComponent(p.replace(/^\//, ''))));
+      throw new Error('[auth-gate] redirecting to login');
+    }
+  } catch (e) { if (String(e.message).indexOf('auth-gate') > -1) throw e; }
+})();
 (function () {
   if (window.__sessionGuard) return; window.__sessionGuard = true;
   var IDLE_MIN = 30, MAX_HOURS = 12, CHECK_MS = 30000, UPDATE_MS = 5 * 60000;
@@ -52,6 +66,21 @@
     if (t - start > MAX_HOURS * 3600000) return logout('max');
   }
   check();
+
+  // تحقق من قاعدة البيانات أن المستخدم المسجّل موجود فعلاً ولم يُفرض خروجه (يمنع تزوير بيانات الجلسة)
+  setTimeout(function verify() {
+    var code = get('userCode');
+    if (!window.db || !window.db.collection) return;
+    if (!code) return logout('invalid');
+    window.db.collection('users').where('code', '==', code).get().then(function (q) {
+      if (q.empty) return logout('invalid');
+      var d = q.docs[0].data() || {};
+      var fl = d.forceLogoutAt; var ft = fl && (fl.toMillis ? fl.toMillis() : +new Date(fl));
+      if (ft && ft > (+get('sg_loginAt') || 0)) logout('max');
+    }).catch(function () {});
+  }, 1200);
+  // نظام شرح الصفحات
+  try { if (!document.getElementById('gtScript')) { var gs = document.createElement('script'); gs.id = 'gtScript'; gs.src = '/lovable-data/guide-tour.js?v=1'; document.head.appendChild(gs); } } catch (e) {}
 
   var lastWrite = 0;
   function activity() {
