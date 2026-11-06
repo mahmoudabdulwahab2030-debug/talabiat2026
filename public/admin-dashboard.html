@@ -215,6 +215,7 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
     <button onclick="location.href='add-news.html'">📰 إضافة خبر عاجل</button>
     <button onclick="location.href='حركات.html'">🔁 حركات</button>
     <button class="primary" id="openCreateUserBtn">➕ إنشاء مستخدم جديد</button>
+    <button class="primary" onclick="GuideAdmin.open()">📘 إعدادات شرح الصفحات</button>
     <button class="primary" onclick="BranchAdmin.open()">🏬 إدارة الفروع / إنشاء فرع جديد</button>
     <button class="ghost" id="toggleUsersBtn">👥 عرض المستخدمين</button>
     <button class="ghost" id="sliderToggleBtn">👁️ إخفاء/عرض السلايدر</button>
@@ -1071,5 +1072,6 @@ async function modalComplete() {
   </script>
   <script src="activity-logger.js"></script>
   <script src="/lovable-data/branch-admin.js"></script>
+  <script src="/lovable-data/guide-admin.js?v=1"></script>
 </body>
 </html>
