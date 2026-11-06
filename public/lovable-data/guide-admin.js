@@ -1,6 +1,6 @@
 /* محرر شرح الصفحات — يُفتح من لوحة التحكم عبر GuideAdmin.open() */
 (function () {
-  var PAGES = ;
+  var PAGES = ["Dashboard.html", "Moled.html", "add-news.html", "add-product.html", "admin-dashboard.html", "admin.html", "all-orders.html", "all-reservations.html", "best-sweet-abbassia.html", "best-sweet-all-orders.html", "best-sweet-branch1.html", "best-sweet-execution-tracking.html", "best-sweet-helw-zaytoun.html", "best-sweet-helwan.html", "best-sweet-market-zaytoun.html", "best-sweet-obour-market.html", "best-sweet.html", "branch-bestsweet.html", "branch-ledoux.html", "branch.html", "chat-safe.html", "chat.html", "compare.html", "conversation.html", "dashboard-orders.html", "data-browser.html", "delivery-orders.html", "dokki.html", "execution-tracking.html", "korba.html", "main.html", "manage-invoices.html", "manage-uploads-best-sweet.html", "manage-uploads.html", "obour.html", "order-builder.html", "orders-management.html", "product-notes.html", "production-plan.html", "quality.html", "qualitydata.html", "query.html", "range-orders.html", "report.html", "reservation.html", "reservations-summary.html", "send-branches-unified.html", "send-to-best-sweet.html", "send-to-branches.html", "suggestions.html", "summary.html", "tagamo3.html", "upload-catalog.html", "user-activity-report.html", "view-file.html", "view-invoices.html"];
   var TPLS = [['standard','قياسي'],['split','صورة جانبية'],['hero','ترحيبي'],['tip','نصيحة']];
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function ensureCss(){ if(!document.getElementById('gtCss')){var l=document.createElement('link');l.id='gtCss';l.rel='stylesheet';l.href='/lovable-data/guide-glass.css?v=1';document.head.appendChild(l);} }
@@ -54,7 +54,7 @@
     add:function(){g.steps.splice(cur+1,0,blank());cur++;render();},
     del:function(){if(g.steps.length<=1){g.steps=[blank()];}else{g.steps.splice(cur,1);cur=Math.max(0,cur-1);}render();},
     rmimg:function(){g.steps[cur].image='';render();},
-    preview:function(){ if(!window.GuideTour) return alert('العارض غير محمّل'); var p=JSON.parse(JSON.stringify(g)); p.page=page; root.style.display='none'; window.GuideTour.play(p,{preview:true}); var t=setInterval(function(){ if(!document.querySelector('.gt-root .gt-card:not(.gt-wide), .gt-root .gt-card')||!document.querySelectorAll('.gt-root').length||document.querySelectorAll('.gt-root').length<2){clearInterval(t); if(root) root.style.display='';}},400); },
+    preview:function(){ if(!window.GuideTour) return alert('العارض غير محمّل'); var p=JSON.parse(JSON.stringify(g)); p.page=page; root.style.display='none'; window.GuideTour.play(p,{preview:true,onClose:function(){ if(root) root.style.display=''; }}); },
     save:function(){
       var steps=g.steps.filter(function(x){return x.title||x.body||x.image;});
       if(!steps.length) return alert('أضف خطوة واحدة على الأقل');

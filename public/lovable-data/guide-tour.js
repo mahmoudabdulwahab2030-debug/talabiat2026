@@ -18,8 +18,8 @@
     return null;
   }
 
-  var root = null;
-  function close() { if (root) { root.remove(); root = null; } document.removeEventListener('keydown', onKey, true); }
+  var root = null, onCloseCb = null;
+  function close() { if (root) { root.remove(); root = null; } if (onCloseCb) { var c = onCloseCb; onCloseCb = null; c(); } document.removeEventListener('keydown', onKey, true); }
   var api = {};
   function onKey(e) { if (!root) return; if (e.key === 'Escape') { api._skip && api._skip(); } else if (e.key === 'ArrowLeft') api._next && api._next(); else if (e.key === 'ArrowRight') api._prev && api._prev(); }
 
@@ -27,7 +27,7 @@
     opts = opts || {};
     var steps = (guide && guide.steps || []).filter(function (s) { return s && (s.title || s.body || s.image); });
     if (!steps.length) return;
-    close();
+    close(); onCloseCb = opts.onClose || null;
     var i = 0;
     root = document.createElement('div'); root.className = 'gt-root';
     root.innerHTML = '<div class="gt-overlay"></div><div class="gt-hole" style="display:none"></div><div class="gt-card" role="dialog" aria-modal="true"></div>';
