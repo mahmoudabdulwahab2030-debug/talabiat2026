@@ -70,9 +70,10 @@
   // تحقق من قاعدة البيانات أن المستخدم المسجّل موجود فعلاً ولم يُفرض خروجه (يمنع تزوير بيانات الجلسة)
   setTimeout(function verify() {
     var code = get('userCode');
-    if (!window.db || !window.db.collection) return;
+    var db = null; try { db = window.db || (window.firebase && firebase.firestore && firebase.firestore()); } catch (e) {}
+    if (!db || !db.collection) return;
     if (!code) return logout('invalid');
-    window.db.collection('users').where('code', '==', code).get().then(function (q) {
+    db.collection('users').where('code', '==', code).get().then(function (q) {
       if (q.empty) return logout('invalid');
       var d = q.docs[0].data() || {};
       var fl = d.forceLogoutAt; var ft = fl && (fl.toMillis ? fl.toMillis() : +new Date(fl));
