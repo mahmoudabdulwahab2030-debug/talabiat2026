@@ -80,9 +80,11 @@
     render();
   }
 
+  function getDb() { try { return window.db || (window.firebase && firebase.firestore && firebase.firestore()); } catch (e) { return null; } }
   function load(page) {
-    if (!window.db || !window.db.collection) return Promise.resolve(null);
-    return window.db.collection('settings').doc('guide__' + page).get().then(function (d) { return d.exists ? d.data() : null; }).catch(function () { return null; });
+    var db = getDb();
+    if (!db || !db.collection) return Promise.resolve(null);
+    return db.collection('settings').doc('guide__' + page).get().then(function (d) { return d.exists ? d.data() : null; }).catch(function () { return null; });
   }
 
   function boot() {
