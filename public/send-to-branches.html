@@ -1,484 +1,31 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>إدارة الطلبات</title>
-  <link href="style.css" rel="stylesheet" />
-  <link href="/fonts/fonts.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    :root{
-      --bg-1: #0f1012;
-      --bg-2: #17181b;
-      --panel: #1a1b1e;
-      --accent: #ff3b55;
-      --accent-2: #ffb300;
-      --muted: #9aa0a6;
-      --glass: rgba(255,42,77,0.06);
-      --surface-contrast: rgba(255,255,255,0.04);
-      --shadow: 0 6px 30px rgba(0,0,0,0.6);
-      --max-width: 1400px;
-    }
-    /* ثيم دارك احترافي */
-    body {
-      background: linear-gradient(135deg, var(--bg-2) 0%, var(--bg-1) 100%);
-      color: #e9ecef;
-      font-family: 'Cairo', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      transition: background 0.5s cubic-bezier(.4,0,.2,1);
-    }
-    .container {
-      background: linear-gradient(180deg,var(--panel), #0e0f10 120%);
-      margin: 24px auto;
-      padding: 22px;
-      border-radius: 16px;
-      max-width: var(--max-width);
-      box-shadow: var(--shadow);
-      animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
-      border: 1px solid var(--surface-contrast);
-      position: relative;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(40px);}
-      to { opacity: 1; transform: translateY(0);}
-    }
-    h2 {
-      color: #ff2a4d;
-      text-align: center;
-      margin-bottom: 24px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      text-shadow: 0 2px 8px #000a;
-    }
-    .form-row {
-      display: flex;
-      gap: 16px;
-      align-items: flex-end;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .form-group {
-      flex: 1;
-      min-width: 200px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      color: #ff2a4d;
-      font-weight: bold;
-    }
-    select, input[type="date"], input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 8px;
-      background: #23232a;
-      border: 2px solid #444;
-      border-radius: 6px;
-      color: #e0e0e0;
-      font-size: 1em;
-      outline: none;
-      transition: border-color 0.3s, box-shadow 0.3s;
-      box-shadow: 0 0 0 0 #ff2a4d;
-    }
-    select:focus, input:focus {
-      border-color: #ff2a4d;
-      box-shadow: 0 0 8px 2px #ff2a4d88;
-      animation: outlinePulse 1.2s infinite;
-    }
-    @keyframes outlinePulse {
-      0% { box-shadow: 0 0 0 0 #ff2a4d88; }
-      50% { box-shadow: 0 0 8px 2px #ff2a4d88; }
-      100% { box-shadow: 0 0 0 0 #ff2a4d88; }
-    }
-    .actions-row {
-      display: none;
-    }
-    .floating-actions-group {
-      position: fixed;
-      top: 72px;
-      left: 14px;
-      z-index: 1400;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-    }
-    .main-group-btn {
-      width: 52px;
-      height: 52px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      font-size: 1.3rem;
-      padding: 0;
-      background: linear-gradient(90deg, #ff2a4d 40%, #ffb300 100%);
-      border: 2px solid #fff;
-      color: #121212;
-      box-shadow: 0 10px 28px rgba(0,0,0,0.32);
-    }
-    .group-menu {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      background: rgba(18,18,20,0.95);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 16px;
-      padding: 10px;
-      box-shadow: 0 16px 38px rgba(0,0,0,0.35);
-      backdrop-filter: blur(16px);
-      min-width: 60px;
-    }
-    .group-menu.open {
-      display: flex;
-    }
-    .group-menu button {
-      width: 44px;
-      height: 44px;
-      padding: 0;
-      border-radius: 50%;
-      font-size: 1.2rem;
-      margin: 0;
-      border: 2px solid rgba(255,255,255,0.18);
-      background: linear-gradient(90deg, #2c2c33 40%, #18181c 100%);
-      color: #fff;
-    }
-    .group-menu button:hover {
-      transform: translateY(-1px);
-      border-color: #ff2a4d;
-      box-shadow: 0 6px 18px rgba(255,59,85,0.18);
-    }
-    .analysis-panel.hidden {
-      display: none !important;
-    }
-    @media (max-width: 900px) {
-      .floating-actions-group {
-        top: auto;
-        bottom: 14px;
-        right: 14px;
-      }
-    }
-    button {
-      background: linear-gradient(90deg, #3a3b3c 60%, #23232a 100%);
-      color: #fff;
-      border: 2px solid #ff2a4d;
-      padding: 8px 18px;
-      margin: 4px;
-      border-radius: 8px;
-      font-size: 1em;
-      cursor: pointer;
-      box-shadow: 0 2px 8px #0004;
-      transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.18s cubic-bezier(.4,0,.2,1), border-color 0.3s;
-      outline: none;
-      position: relative;
-      overflow: hidden;
-    }
-    button:hover, button:focus {
-      background: linear-gradient(90deg, #ff2a4d 60%, #ffb300 100%);
-      color: #23232a;
-      box-shadow: 0 8px 32px #ff2a4d44, 0 2px 12px #0004;
-      transform: translateY(-2px) scale(1.04) rotate(-1deg);
-      border-color: #ffb300;
-      animation: outlinePulse 1.2s infinite;
-    }
-    .row-delete-btn {
-      width: 34px;
-      height: 34px;
-      min-width: 34px;
-      border-radius: 50%;
-      border: 1px solid #ff2a4d;
-      background: rgba(255, 59, 85, 0.08);
-      color: #ff2a4d;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-      padding: 0;
-    }
-    .row-delete-btn:hover,
-    .row-delete-btn:focus {
-      background: rgba(255, 59, 85, 0.18);
-      transform: scale(1.08);
-      border-color: #ffb300;
-    }
-    .delete-cell {
-      width: 48px;
-    }
-    table {
-      width: 100%;
-      max-width: calc(var(--max-width) - 40px);
-      border-collapse: collapse;
-      margin: 20px 0;
-      background: #23232a;
-      border-radius: 16px;
-      overflow: auto;
-      box-shadow: 0 4px 32px #0008;
-      table-layout: auto;
-      animation: fadeInTable 0.7s cubic-bezier(.4,0,.2,1);
-      border: 1px solid var(--surface-contrast);
-    }
-    @keyframes fadeInTable {
-      from { opacity: 0; transform: scale(0.98);}
-      to { opacity: 1; transform: scale(1);}
-    }
-    th, td {
-      border: 1.5px solid #444;
-      padding: 14px 12px;
-      text-align: center;
-      vertical-align: middle;
-      white-space: pre-line;
-      word-break: break-word;
-      font-size: 1.08em;
-      transition: background 0.25s, color 0.25s;
-      min-width: 120px;
-      max-width: 600px;
-    }
-    th {
-      background: linear-gradient(90deg, #444 60%, #23232a 100%);
-      color: #ff2a4d;
-      font-weight: bold;
-      font-size: 1.1em;
-      border-bottom: 2.5px solid #ff2a4d;
-      letter-spacing: 0.5px;
-      transition: background 0.25s, color 0.25s;
-      position: relative;
-    }
-    tr {
-      transition: background 0.25s;
-    }
-    tr:nth-child(even) {
-      background: #292929;
-    }
-    tr:nth-child(odd) {
-      background: #23272b;
-    }
-    tr:hover td {
-      background: rgba(255,255,255,0.02);
-      color: var(--accent-2);
-      transition: background 0.25s, color 0.25s;
-      border-color: var(--accent);
-      animation: pulseAccent 1.6s infinite;
-    }
-
-    .section-header-row td {
-      background: rgba(255, 179, 0, 0.18);
-      color: #ffd966;
-      font-weight: bold;
-      text-align: right;
-      padding: 12px;
-    }
-    .section-footer-row td {
-      background: rgba(56, 87, 147, 0.12);
-      color: #c8d7ff;
-      text-align: right;
-      padding: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .section-add-item-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(18, 25, 50, 0.95);
-      color: #fff;
-      border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-    .section-add-item-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.16);
-      background: rgba(32, 64, 120, 0.98);
-    }
-
-    @keyframes pulseAccent { 0%{ box-shadow: 0 0 0 0 rgba(255,59,85,0.08);}50%{ box-shadow: 0 0 20px 6px rgba(255,59,85,0.02);}100%{ box-shadow: 0 0 0 0 rgba(255,59,85,0);} }
-    /* نافذة الجدول العائم */
-    #floating-table-modal {
-      display: none;
-      position: fixed;
-      top: 40px;
-      left: 0;
-      right: 0;
-      margin: auto;
-      z-index: 9999;
-      max-width: 98vw;
-      background: #23232a;
-      border-radius: 18px;
-      box-shadow: 0 8px 40px #000b;
-      padding: 24px 12px 18px 12px;
-      border: 2px solid #ff2a4d;
-      animation: fadeInUp 0.5s cubic-bezier(.4,0,.2,1);
-    }
-    #close-floating-table {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: #ff2a4d;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 6px 18px;
-      font-size: 1.1em;
-      cursor: pointer;
-      z-index: 10001;
-      transition: background 0.2s;
-    }
-    #close-floating-table:hover {
-      background: #ffb300;
-      color: #23232a;
-    }
-    /* Responsive for mobile */
-    button.mobile-only {
-      display: none;
-    }
-    @media (max-width: 700px) {
-      .container {
-        padding: 8px;
-        margin: 10px auto;
-        max-width: 99vw;
-      }
-      table, th, td {
-        font-size: 12px;
-      }
-      th, td {
-        min-width: 60px;
-        padding: 8px 4px;
-      }
-      button {
-        width: 100%;
-        font-size: 1em;
-      }
-      table {
-        display: block;
-        overflow-x: auto;
-        width: 100%;
-        min-width: 320px;
-      }
-      #floating-table-modal {
-        max-width: 99vw;
-        padding: 10px 2px 10px 2px;
-        left: 1vw;
-        right: 1vw;
-      }
-      button.mobile-only {
-        display: inline-block;
-        width: auto;
-      }
-    }
-    @media (max-width: 400px) {
-      .container {
-        padding: 2px;
-      }
-      th, td {
-        font-size: 10px;
-        padding: 4px 2px;
-      }
-      #floating-table-modal {
-        padding: 4px 1px 4px 1px;
-      }
-    }
-    /* أوتلاين متحرك للعناصر التفاعلية */
-    input:focus, select:focus, button:focus {
-      outline: none;
-      border-color: #ff2a4d;
-      box-shadow: 0 0 8px 2px #ff2a4d88;
-      animation: outlinePulse 1.2s infinite;
-    }
-    /* difference cell styling */
-    .diff-cell {
-      font-weight: 800;
-      color: #e9ecef;
-      background: transparent;
-      transition: background 0.24s, color 0.24s;
-      text-align: center;
-      min-width: 110px;
-    }
-    .diff-cell.negative {
-      background: linear-gradient(90deg, rgba(231,76,60,0.14), rgba(231,76,60,0.06));
-      color: #ffdddd;
-      border-radius: 6px;
-      box-shadow: inset 0 -2px 8px rgba(0,0,0,0.25);
-    }
-
-    /* analysis panel (left side) — dark style matching the page */
-    .analysis-panel {
-      position: fixed;
-      left: 12px;
-      top: 110px;
-      width: 320px;
-      max-height: calc(100vh - 160px);
-      overflow: auto;
-      z-index: 1300;
-      background: linear-gradient(180deg, rgba(20,20,22,0.96), rgba(14,14,16,0.98));
-      border: 1px solid rgba(255,255,255,0.04);
-      padding: 12px;
-      border-radius: 12px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-      font-family: 'Cairo', Arial, sans-serif;
-      color: #e9ecef;
-      backdrop-filter: blur(4px);
-    }
-    .analysis-panel h4{ margin:6px 0 10px 0; color: #e9ecef; font-size:1rem }
-    .analysis-card{ background: linear-gradient(180deg,#151517,#1b1c1f); border-radius:10px; padding:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.03); }
-    .analysis-card .title{ font-weight:800; color:#f5f5f5; }
-    .analysis-card .value{ font-size:1.15rem; font-weight:900; color:#f5f5f5; margin-top:6px }
-    .analysis-table{ width:100%; border-collapse:collapse; margin-top:8px; background:transparent }
-    .analysis-table th, .analysis-table td{ border:1px solid rgba(255,255,255,0.04); padding:6px 8px; text-align:right; font-size:0.95rem; color:#e9ecef }
-    .analysis-table th{ background: rgba(255,255,255,0.02); font-weight:800 }
-    .analysis-table tbody tr:nth-child(even){ background: rgba(255,255,255,0.01); }
-  </style>
-  <link href="print.css" rel="stylesheet" media="print">
+  <link href="/assets/css/send-orders.css" rel="stylesheet" />
   <script src="/lovable-data/branches-registry.js"></script>
 </head>
 <body>
-  <h2>📦 إدارة الطلبات</h2>
-  <!-- Floating summary icon (top-left) -->
-  <button id="summaryFloatBtn" title="تحليلات الانتاج" aria-label="تحليلات الانتاج" style="display:none">
-    📈
-    <span class="label">تحليلات الانتاج</span>
-  </button>
-  <div id="floatingActionsGroup" class="floating-actions-group" aria-label="أدوات الطلب">
-    <button id="actionsGroupToggle" class="main-group-btn" type="button" title="فتح أدوات الطلب">⚙️</button>
-    <div id="groupMenu" class="group-menu" aria-hidden="true">
-      <button id="loadTableBtn" type="button" title="عرض">⬇️</button>
-      <button id="copyRequestedToSentBtn" type="button" title="نسخ المطلوب إلى المرسَل">📋</button>
-      <button id="addRowBtn" type="button" title="إضافة صنف">➕</button>
-      <button id="saveDraftBtn" type="button" title="حفظ مؤقت">💾</button>
-      <button id="sendQuantitiesBtn" type="button" title="إرسال الكميات">📤</button>
-      <button id="toggleAnalysisBtn" type="button" title="عرض / إخفاء تحليل النواقص و الزيادات">📊</button>
-      <button id="btnManageInvoices" type="button" onclick="openInvoiceManagement()" title="إدارة الفواتير">🔍</button>
-      <button id="issueInvoiceBtn" type="button" title="إصدار فاتورة">🧾</button>
-      <button id="btnOpenSummary" type="button" style="display:none" title="تحليلات الانتاج">📈</button>
+<div class="so-shell">
+
+  <header class="so-header">
+    <div class="so-title">
+      <div class="so-icon">📦</div>
+      <div>
+        <h1>إدارة الطلبات</h1>
+        <p>اختر الفرع والقسم والتاريخ، ثم أدخل الكميات وأرسلها</p>
+      </div>
     </div>
-  </div>
-  <!-- Analysis panel: shortages / excesses -->
-  <aside class="analysis-panel" id="analysisPanel" aria-hidden="false">
-    <h4>تحليل النواقص و الزيادات</h4>
-    <div class="analysis-card">
-      <div class="title">النواقص</div>
-      <div class="value" id="shortageCount">0</div>
-      <table class="analysis-table" id="shortageTable">
-        <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
-        <tbody id="shortageList"><tr><td colspan="2" style="text-align:center">لا توجد نواقص</td></tr></tbody>
-      </table>
-    </div>
-    <div class="analysis-card">
-      <div class="title">الزيادات</div>
-      <div class="value" id="excessCount">0</div>
-      <table class="analysis-table" id="excessTable">
-        <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
-        <tbody id="excessList"><tr><td colspan="2" style="text-align:center">لا توجد زيادات</td></tr></tbody>
-      </table>
-    </div>
-  </aside>
-  <form id="manageOrderForm">
-    <div class="form-row">
-      <div class="form-group">
-        <label for="branch">🏬 اختر الفرع</label>
+  </header>
+
+  <form id="manageOrderForm" autocomplete="off">
+    <section class="so-card so-filters">
+      <div class="so-field">
+        <label for="branch">🏬 الفرع</label>
         <select id="branch" name="branch" required>
           <option value="korba">فرع الكوربة</option>
           <option value="dokki">فرع الدقي</option>
@@ -486,23 +33,37 @@
           <option value="obour">فرع العبور</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="so-field">
         <label for="orderDate">📅 تاريخ الطلبية</label>
-        <input type="date" id="orderDate" name="orderDate" required>
+        <input type="date" id="orderDate" name="orderDate" required />
       </div>
-      <div class="form-group">
-        <label for="section">📂 اختر القسم</label>
-        <div class="section-row">
-          <select id="section" name="section" required>
+      <div class="so-field">
+        <label for="section">📂 القسم</label>
+        <select id="section" name="section" required>
             <option value="">-- اختر القسم --</option>
             <option value="all">كل الأقسام</option>
           </select>
-        </div>
       </div>
-    </div>
-    <div class="table-wrap">
-      <table id="orderDataTable" border="1">
-       <thead>
+      <button type="button" id="loadTableBtn" class="so-btn-primary">⬇️ عرض الأصناف</button>
+    </section>
+
+    <div class="so-main">
+      <nav class="actions-row" aria-label="أدوات الطلب">
+        <button type="button" id="copyRequestedToSentBtn">📋 نسخ المطلوب إلى المرسَل</button>
+        <button type="button" id="addRowBtn">➕ إضافة صنف</button>
+        <button type="button" id="saveDraftBtn">💾 حفظ مؤقت</button>
+        <button type="button" id="sendQuantitiesBtn" class="so-btn-primary">📤 إرسال الكميات</button>
+        <button type="button" id="issueInvoiceBtn">🧾 إصدار فاتورة</button>
+        <button type="button" id="btnManageInvoices" onclick="openInvoiceManagement()">🔍 إدارة الفواتير</button>
+        <button type="button" id="toggleAnalysisBtn">📊 التحليل</button>
+        <button type="button" id="btnOpenSummary" style="display:none">📈 تحليلات الإنتاج</button>
+        <button type="button" id="mobileViewBtn" class="so-mobile">📱 عرض موبايل</button>
+        <button type="button" id="openCatalogBtnMobile" class="so-mobile">📋 الكتالوج</button>
+      </nav>
+
+      <div class="table-wrap">
+        <table id="orderDataTable" border="1">
+          <thead>
           <tr>
             <th>الكود</th>
             <th>المنتج</th>
@@ -512,68 +73,80 @@
             <th>حذف</th>
           </tr>
        </thead>
-       <tbody>
-         <!-- سيتم ملء البيانات هنا ديناميكياً -->
-       </tbody>
-      </table>
-    </div>
-    <div class="actions-row">
-            <button id="loadTableBtn" type="button" style="margin-left:8px;">⬇️ عرض</button>
-      <button id="copyRequestedToSentBtn" type="button">📋 نسخ المطلوب إلى المرسَل</button>
-      <button id="addRowBtn" type="button">➕ إضافة صنف</button>
-  <button id="saveDraftBtn" type="button">💾 حفظ مؤقت</button>
-      <button id="sendQuantitiesBtn" type="button">إرسال الكميات</button>
-      <button id="mobileViewBtn" class="mobile-only" type="button">📱 عرض للموبايل</button>
-      <button id="btnManageInvoices" type="button" onclick="openInvoiceManagement()">🔍 إدارة الفواتير</button>
-      <button id="issueInvoiceBtn" type="button" style="margin-left:8px;">🧾 اصدار فاتورة</button>
-      <button id="btnOpenSummary" type="button" style="display:none">📈 تحليلات الانتاج</button>
-      <!-- زر مختصر للموبايل لفتح الكتالوج (بديل F1) -->
-      <button id="openCatalogBtnMobile" type="button" class="mobile-only" aria-label="فتح الكتالوج">📋</button>
-    </div>
-   </form>
+          <tbody></tbody>
+        </table>
+      </div>
 
-  <!-- نافذة اختيار القسم -->
-  <div id="sectionModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 600px; background: #fff; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1000; padding: 20px;">
-    <h3>📋 اختيار قسم</h3>
-    <select id="sectionSelect" style="width: 100%; padding: 10px; margin-bottom: 20px;">
-      <option value="">-- اختر القسم --</option>
-    </select>
-    <button onclick="loadSectionItems()">عرض الأصناف</button>
-    <button onclick="closeSectionModal()">❌ إغلاق</button>
+      <aside class="so-card analysis-panel" id="analysisPanel" aria-hidden="false">
+        <div class="analysis-head"><h3>📊 تحليل الفروقات</h3></div>
+        <div class="so-kpis">
+          <div class="so-kpi so-kpi-bad"><span>النواقص</span><strong id="shortageCount">0</strong></div>
+          <div class="so-kpi so-kpi-good"><span>الزيادات</span><strong id="excessCount">0</strong></div>
+        </div>
+        <h4>⬇️ النواقص</h4>
+        <table class="analysis-table" id="shortageTable">
+          <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+          <tbody id="shortageList"><tr><td colspan="2">لا توجد نواقص</td></tr></tbody>
+        </table>
+        <h4>⬆️ الزيادات</h4>
+        <table class="analysis-table" id="excessTable">
+          <thead><tr><th>الصنف</th><th>الكمية</th></tr></thead>
+          <tbody id="excessList"><tr><td colspan="2">لا توجد زيادات</td></tr></tbody>
+        </table>
+      </aside>
+    </div>
+  </form>
+
+  <button type="button" id="summaryFloatBtn" title="تحليلات الإنتاج" aria-label="تحليلات الإنتاج" style="display:none">📈</button>
+  <div id="floatingActionsGroup" aria-hidden="true">
+    <button id="actionsGroupToggle" type="button"></button>
+    <div id="groupMenu" class="group-menu"></div>
   </div>
 
-  <!-- نافذة اختيار الصنف -->
-  <div id="catalogModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; max-width: 800px; height: 60%; background: #2c2c2c; border: 1px solid #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(255,0,0,0.2); z-index: 1000; padding: 20px; overflow-y: auto;">
-    <h3 style="text-align: center; color: #ff2a4d;">📋 اختيار صنف</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse; text-align: center; color: #fff;">
-      <thead>
+  <div id="modalOverlay" class="so-overlay" style="display:none"></div>
+
+  <div id="sectionModal" style="display:none">
+    <h3>📋 اختيار قسم</h3>
+    <select id="sectionSelect">
+      <option value="">-- اختر القسم --</option>
+    </select>
+    <div class="so-sheet-actions">
+      <button type="button" class="so-btn-primary" onclick="loadSectionItems()">عرض الأصناف</button>
+      <button type="button" onclick="closeSectionModal()">إغلاق</button>
+    </div>
+  </div>
+
+  <div id="catalogModal" style="display:none">
+    <h3>📋 اختيار صنف</h3>
+    <div class="so-table-scroll">
+      <table>
+        <thead>
         <tr style="background-color: #444; color: #fff;">
           <th>كود الصنف</th>
           <th>اسم الصنف</th>
           <th>اختيار</th>
         </tr>
       </thead>
-      <tbody id="catalogTableBody">
-        <!-- سيتم تحميل البيانات هنا -->
-      </tbody>
-    </table>
-    <button onclick="closeCatalogModal()" style="margin-top: 10px; display: block; margin-left: auto; margin-right: auto; background-color: #ff2a4d; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">❌ إغلاق</button>
+        <tbody id="catalogTableBody"></tbody>
+      </table>
+    </div>
+    <div class="so-sheet-actions">
+      <button type="button" onclick="closeCatalogModal()">إغلاق</button>
+    </div>
   </div>
 
-  <!-- تظليل الخلفية عند فتح النافذة -->
-  <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999;"></div>
-
-  <!-- Mobile-friendly compact view modal -->
-  <div id="mobileViewModal" style="display:none; position: fixed; top: 8vh; left: 4vw; right: 4vw; max-width: 92vw; z-index: 12000; background: #23232a; border-radius: 12px; padding: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.04);">
-    <button id="closeMobileView" style="float:left;background:#ff2a4d;color:#fff;border:none;border-radius:8px;padding:6px 12px;margin-bottom:8px;">إغلاق</button>
-    <h3 style="text-align:center;color:#ff2a4d;margin-top:4px">عرض موبايل - ملخص الأصناف</h3>
-    <div id="mobileViewContent" style="max-height:60vh;overflow:auto;margin-top:8px;"></div>
+  <div id="mobileViewModal" style="display:none">
+    <div class="so-sheet-head">
+      <h3>📱 عرض موبايل - ملخص الأصناف</h3>
+      <button id="closeMobileView" type="button">إغلاق</button>
+    </div>
+    <div id="mobileViewContent"></div>
   </div>
 
   <div id="invoicePrintSection" style="display:none;"></div>
+</div>
 
-  <!-- طبقة بيانات Lovable (بديل Firestore) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
