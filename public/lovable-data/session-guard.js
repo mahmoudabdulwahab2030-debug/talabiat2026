@@ -92,8 +92,6 @@
   ['click', 'keydown', 'pointerdown', 'touchstart', 'scroll', 'input'].forEach(function (e) { window.addEventListener(e, activity, { passive: true, capture: true }); });
   setInterval(check, CHECK_MS);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { check(); checkUpdate(); } });
-  // صفحة مستعادة من ذاكرة الرجوع: أعد التحميل لضمان أحدث نسخة وتحقق الجلسة
-  window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
   // خروج من تبويب ينعكس على باقي التبويبات
   window.addEventListener('storage', function (e) { if ((e.key === 'userCode' || e.key === 'username') && !e.newValue && !hasSession()) location.replace('/index.html'); });
 
@@ -127,9 +125,8 @@
       if (baseSig === null) { baseSig = s; return; }
       if (s !== baseSig) {
         pending = true;
-        // تحديث صامت فقط إذا كان المستخدم غائباً عن الصفحة ولا يعدّل شيئاً؛ وإلا شريط صغير
-        if (document.hidden && !busy()) { document.addEventListener('visibilitychange', function () { location.reload(); }, { once: true }); }
-        else showBar();
+        // لا يُحدَّث النظام تلقائياً؛ يظهر شريط للمستخدم فقط، والتحديث يحصل عند بداية الجلسة الجديدة أو بضغطه
+        showBar();
       }
     });
   }
