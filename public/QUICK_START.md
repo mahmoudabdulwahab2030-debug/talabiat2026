@@ -107,7 +107,7 @@ node functions/test-ai.js
 
 ### Groq API Key:
 ```
-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
+gsk_YOUR_NEW_KEY_HERE
 ```
 ✅ مدمج بأمان في الكود
 

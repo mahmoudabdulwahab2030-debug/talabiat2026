@@ -4,7 +4,7 @@
 
 ### المفتاح المستخدم:
 ```
-API Key: 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
+API Key: gsk_YOUR_NEW_KEY_HERE
 Provider: Groq AI
 Model: Mixtral 8x7b-32768
 ```

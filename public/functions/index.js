@@ -1,206 +1,117 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const axios = require('axios');
-const cors = require('cors')({ origin: true });
 
-// Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
-/**
- * AI Assistant Cloud Function
- * Receives user questions and returns AI-powered responses with Firebase data
- */
-exports.aiAssistant = functions.https.onRequest((req, res) => {
-  return cors(req, res, async () => {
-    if (req.method === 'OPTIONS') {
-      return res.status(204).send('');
+// المفتاح يُحفظ في Firebase Secret Manager ولا يوجد داخل الكود
+const GROQ_API_KEY = defineSecret('GROQ_API_KEY');
+const MODEL = 'llama-3.3-70b-versatile';
+
+// النطاقات المسموح لها باستدعاء المساعد (تُضبط من متغيرات البيئة)
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://talabiat2026.lovable.app')
+  .split(',').map(s => s.trim()).filter(Boolean);
+// أكواد الإدارة التي تستخدم دخول الإدارة المباشر ولا تملك وثيقة في users
+const ADMIN_CODES = (process.env.ADMIN_CODES || 'admin').split(',').map(s => s.trim());
+
+const MAX_MESSAGE_CHARS = 1000;
+const CONTEXT_COLLECTIONS = [
+  { name: 'branches', limit: 100 },
+  { name: 'warehouses', limit: 50 },
+  { name: 'products', limit: 150 },
+  { name: 'orders', limit: 150 },
+];
+const SENSITIVE_KEY = /pass|token|secret|apikey|pin/i;
+
+function toMs(t) {
+  if (!t) return 0;
+  if (typeof t === 'number') return t;
+  if (typeof t === 'string') { const n = Date.parse(t); return isNaN(n) ? 0 : n; }
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  if (typeof t.toDate === 'function') return t.toDate().getTime();
+  return 0;
+}
+
+// التحقق من هوية المستخدم: وثيقة موجودة، ولم تنتهِ تجربته
+async function verifyUser(code) {
+  if (!code || typeof code !== 'string' || code.length > 100) return null;
+  if (ADMIN_CODES.includes(code)) return { code, name: 'الإدارة', roles: ['admin'] };
+  const snap = await db.collection('users').doc(code).get();
+  if (!snap.exists) return null;
+  const u = snap.data() || {};
+  const trialEnd = toMs(u.trialExpiresAt);
+  if (trialEnd && trialEnd < Date.now()) return null;
+  return { code, name: u.name || code, roles: Array.isArray(u.roles) ? u.roles : [] };
+}
+
+// تجهيز بيانات النظام للنموذج: حد أقصى للعدد، وإزالة أي حقل حساس
+async function buildContext() {
+  const parts = [];
+  for (const c of CONTEXT_COLLECTIONS) {
+    try {
+      const snap = await db.collection(c.name).limit(c.limit).get();
+      const docs = [];
+      snap.forEach(d => docs.push({ _id: d.id, ...d.data() }));
+      const clean = JSON.stringify(docs, (k, v) => (SENSITIVE_KEY.test(k) ? undefined : v));
+      parts.push(`== ${c.name} (${docs.length} سجل) ==\n${clean.slice(0, 15000)}`);
+    } catch (e) {
+      console.error('context read failed', c.name, e.message);
     }
+  }
+  return parts.join('\n\n');
+}
+
+const SYSTEM_PROMPT = `أنت "محمود عبدالوهاب"، المساعد الذكي لنظام إدارة الطلبيات والمخازن والفروع (مشروع talabiat2026).
+- تخصصك الأساسي هو هذا المشروع وبياناته. عند السؤال عن الفروع أو الطلبيات أو المخازن أو المنتجات، استخدم البيانات المرفقة فقط وذكر الأرقام كما هي.
+- إذا لم تجد الإجابة في البيانات المرفقة، قل ذلك بوضوح ولا تخترع أرقاماً أو أسماء.
+- إذا كان السؤال خارج المشروع، أجب إجابة عامة مفيدة ومختصرة.
+- لا تكشف كلمات المرور أو أي بيانات دخول.
+- أجب دائماً باللغة العربية، بأسلوب واضح ومنظم وقصير قدر الإمكان.`;
+
+exports.aiAssistant = onRequest(
+  { secrets: [GROQ_API_KEY], region: 'us-central1', maxInstances: 5, timeoutSeconds: 60 },
+  async (req, res) => {
+    const origin = req.get('origin') || '';
+    if (ALLOWED_ORIGINS.includes(origin)) res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(204).send('');
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-      // Validate request
-      if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-      }
+      const body = req.body || {};
+      const message = typeof body.message === 'string' ? body.message.trim() : '';
+      if (!message) return res.status(400).json({ error: 'اكتب سؤالك أولاً' });
+      if (message.length > MAX_MESSAGE_CHARS) return res.status(400).json({ error: 'السؤال طويل جداً' });
 
-    const { message } = req.body;
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'Invalid message' });
+      const user = await verifyUser(body.userCode);
+      if (!user) return res.status(401).json({ error: 'يجب تسجيل الدخول لاستخدام المساعد' });
+
+      const context = await buildContext();
+      const system = `${SYSTEM_PROMPT}\n\nالمستخدم الحالي: ${user.name}\n\nبيانات المشروع:\n${context}`;
+
+      const r = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: MODEL,
+          temperature: 0.3,
+          max_tokens: 900,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: message },
+          ],
+        },
+        { headers: { Authorization: `Bearer ${GROQ_API_KEY.value()}` }, timeout: 30000 }
+      );
+
+      const answer = r.data?.choices?.[0]?.message?.content || 'لم أتمكن من توليد إجابة.';
+      return res.status(200).json({ answer });
+    } catch (e) {
+      console.error('aiAssistant error', e.response?.status, e.message);
+      return res.status(500).json({ error: 'حدث خطأ أثناء معالجة السؤال، حاول مرة أخرى' });
     }
-
-    // Get context from Firebase
-    const context = await getFirebaseContext();
-
-    // Call Groq AI
-    const aiResponse = await callGroqAI(message, context);
-
-    return res.status(200).json({
-      success: true,
-      message: message,
-      response: aiResponse,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error in aiAssistant:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Internal server error'
-    });
   }
-});
-
-/**
- * Fetch context data from Firestore
- */
-async function getFirebaseContext() {
-  try {
-    let context = 'معلومات النظام الحالية:\n';
-
-    // Fetch orders count
-    const ordersSnap = await db.collection('orders').limit(1).get();
-    context += `إجمالي الطلبيات: ${ordersSnap.size}\n`;
-
-    // Fetch warehouses
-    const warehousesSnap = await db.collection('warehouses').limit(10).get();
-    const warehouses = [];
-    warehousesSnap.forEach(doc => {
-      const data = doc.data();
-      warehouses.push(`${data.name || doc.id}`);
-    });
-    if (warehouses.length > 0) {
-      context += `المخازن: ${warehouses.join(', ')}\n`;
-    }
-
-    // Fetch branches
-    const branchesSnap = await db.collection('branches').limit(10).get();
-    const branches = [];
-    branchesSnap.forEach(doc => {
-      const data = doc.data();
-      branches.push(data.name || doc.id);
-    });
-    if (branches.length > 0) {
-      context += `الفروع: ${branches.join(', ')}\n`;
-    }
-
-    // Fetch recent products
-    const productsSnap = await db.collection('products').limit(5).get();
-    const products = [];
-    productsSnap.forEach(doc => {
-      const data = doc.data();
-      products.push(data.name || doc.id);
-    });
-    if (products.length > 0) {
-      context += `أمثلة منتجات: ${products.join(', ')}\n`;
-    }
-
-    return context;
-  } catch (error) {
-    console.error('Error fetching Firebase context:', error);
-    return 'معلومات النظام متاحة\n';
-  }
-}
-
-/**
- * Call Groq AI API
- */
-async function callGroqAI(userMessage, context) {
-  try {
-    const apiKey = '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';
-
-    const systemPrompt = `أنت مساعد ذكاء اصطناعي متخصص في نظام إدارة الطلبيات والمخازن والفروع.
-- فهم دقيق للأسئلة بالعربية
-- إجابات واضحة وحقيقية
-- استخدام بيانات النظام المتاحة
-- أجب باللغة العربية فقط
-
-${context}`;
-
-    const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        model: 'mixtral-8x7b-32768',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userMessage
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1024
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (response.data?.choices?.[0]?.message?.content) {
-      return response.data.choices[0].message.content;
-    }
-
-    return 'عذراً، لم أتمكن من معالجة طلبك.';
-  } catch (error) {
-    console.error('Groq API Error:', error.response?.data || error.message);
-    throw new Error('خطأ في الاتصال بخدمة الذكاء الاصطناعي');
-  }
-}
-
-/**
- * Alternative: SimpleAI for testing (when Groq is not available)
- */
-exports.simpleAI = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-      }
-
-      const { message } = req.body;
-      if (!message) {
-        return res.status(400).json({ error: 'No message provided' });
-      }
-
-      // Simple intelligent response system
-      const response = getIntelligentResponse(message);
-
-      return res.status(200).json({
-        success: true,
-        response: response
-      });
-    } catch (error) {
-      console.error('Error:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-});
-
-function getIntelligentResponse(message) {
-  const msg = message.toLowerCase().trim();
-
-  // Orders
-  if (msg.includes('طلب') || msg.includes('أوردر')) {
-    if (msg.includes('كم') || msg.includes('عدد')) {
-      return 'يمكنك عرض عدد الطلبيات من صفحة "تجميع طلبيات ليدو"';
-    }
-    return 'قسم إدارة الطلبيات يوفر رؤية شاملة لجميع الطلبيات';
-  }
-
-  // Warehouses
-  if (msg.includes('مخزن') || msg.includes('تخزين')) {
-    return 'اذهب إلى "إدارة المخازن" لإدارة جميع مخازنك وتتبع الأصناف';
-  }
-
-  // Branches
-  if (msg.includes('فرع')) {
-    return 'الفروع المتاحة: الكوربة، الدقي، التجمع، والعبور';
-  }
-
-  // Default
-  return 'مرحباً! أنا هنا لمساعدتك في إدارة الطلبيات والمخازن والفروع. كيف يمكنني مساعدتك؟';
-}
+);
