@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <link href="/assets/css/admin-glass.css" rel="stylesheet" />
+  <link href="style.css" rel="stylesheet" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <!-- طبقة بيانات Lovable (بديل Firestore) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,77 +16,214 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="notifications.js"></script>
 
+  <style>
+/* d:\ORDER\admin-dashboard.html */
+/* Modern dark theme — soft, roomy, eye-friendly */
+:root{
+  --bg-900: #0b0c0d;
+  --bg-800: #0f1112;
+  --panel: #131516;
+  --muted: #98a0a6;
+  --text: #e6eef0;
+  --accent: #ffcc21; /* warm gold */
+  --accent-2: #f6b24e;
+  --success: #16a34a;
+  --danger: #ef476f;
+  --glass: rgba(255,255,255,0.03);
+  --card-border: rgba(255,255,255,0.04);
+  --radius: 12px;
+  --shadow-soft: 0 8px 30px rgba(0,0,0,0.6);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.02);
+  --focus-ring: 0 0 0 4px rgba(255,204,33,0.06);
+}
+
+/* Base */
+html,body{height:100%;margin:0;padding:0}
+body{
+  background: linear-gradient(180deg,var(--bg-900) 0%, var(--bg-800) 60%);
+  color:var(--text);
+  font-family: 'Cairo', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  direction: rtl;
+  padding:28px;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.45;
+}
+
+/* Page shell */
+h2,h3{ color:var(--accent); margin:0 0 12px 0; text-align:center; font-weight:800; text-shadow:0 2px 0 rgba(0,0,0,0.5) }
+.container {
+  max-width:980px;
+  margin:0 auto;
+}
+
+/* Buttons */
+button{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid var(--card-border);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+  color:var(--text);
+  cursor:pointer;
+  font-weight:700;
+  transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
+}
+button:hover{ transform:translateY(-2px); box-shadow:var(--shadow-soft) }
+button.primary { background: linear-gradient(180deg, var(--accent), var(--accent-2)); color:#0b0b0b; border-color: rgba(0,0,0,0.25) }
+button.ghost { background: transparent; border:1px solid var(--card-border); color:var(--text) }
+button.danger { background: linear-gradient(180deg, var(--danger), #c13b61); color:#fff; }
+
+/* Add-user box & user rows (cards) */
+.add-user-box, .user-row {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  border: 1px solid var(--card-border);
+  padding:18px;
+  border-radius:var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+  margin-bottom:18px;
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="number"]{
+  width:100%;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.08));
+  color:var(--text);
+  outline:none;
+  box-shadow: var(--shadow-inset);
+  transition: box-shadow .12s, transform .06s, border-color .08s;
+}
+input:focus{
+  box-shadow: var(--focus-ring);
+  border-color: rgba(255,204,33,0.18);
+  transform: translateY(-1px);
+}
+
+/* Permissions chips layout */
+.permissions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.permissions label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06));
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.03);
+  color:var(--muted);
+  cursor:pointer;
+  font-weight:700;
+  font-size:13px;
+}
+.permissions input[type="checkbox"]{
+  transform:translateY(1px);
+  accent-color: var(--accent);
+}
+
+/* Controls row & top actions */
+.add-user-box > h3{ margin-bottom:10px; color:var(--accent) }
+hr{ border: none; height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent); margin:18px 0 }
+
+/* User list */
+.user-row strong{ font-size:16px; color:var(--text) }
+.user-row small{ color:var(--muted); display:block; margin-top:6px }
+
+/* Inline action buttons inside user-row */
+.user-row button{ margin-right:8px }
+
+/* Message */
+#message{ margin-top:10px; color:var(--muted); font-weight:700 }
+
+/* Responsive tweaks */
+@media (max-width:700px){
+  body{ padding:14px }
+  .permissions label{ font-size:12px; padding:6px 8px }
+  button{ padding:8px 10px }
+}
+
+/* SweetAlert2 custom (match dark theme) */
+.swal2-popup {
+  background-color: #0f1213 !important;
+  color: var(--text) !important;
+  border:1px solid rgba(255,255,255,0.04);
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+}
+.swal2-title { color: var(--accent) !important; font-weight:800 }
+.swal2-html-container { color: var(--text) !important }
+.swal2-confirm { background: linear-gradient(180deg,var(--accent), var(--accent-2)) !important; color:#000 !important; font-weight:800 }
+.swal2-cancel { background:#333 !important; color:#fff !important }
+
+/* Accessibility: focus outlines for keyboard users */
+:focus{ outline: none }
+button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
+
+/* small utility */
+.muted { color:var(--muted) }
+  /* users table */
+  #userTable { width:100%; border-collapse:collapse; margin-top:12px }
+  #userTable th, #userTable td { padding:10px 8px; border:1px solid rgba(255,255,255,0.03); text-align:center }
+  #userTable thead th { background:linear-gradient(180deg,#151717,#0f1112); color:var(--accent); font-weight:800 }
+  .pw-toggle { cursor:pointer; background:transparent; border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px }
+  /* centered modal overlay + permission modal (modern look with animation) */
+  .modal-overlay{ position:fixed; inset:0; background: rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:99999; opacity:0; pointer-events:none; transition:opacity .22s ease; }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  .perm-modal{ width:720px; max-width:96%; background:var(--panel); border-radius:14px; padding:18px; border:1px solid var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.7); transform: translateY(12px) scale(.98); opacity:0; transition: transform .28s cubic-bezier(.2,.9,.2,1), opacity .22s; }
+  .modal-overlay.open .perm-modal{ transform: translateY(0) scale(1); opacity:1; }
+  /* inline non-floating modal variant (not overlaying SweetAlert) */
+  .perm-modal-inline{ position:relative; margin:18px auto; left:0; right:0; transform:none; opacity:1; box-shadow:0 12px 30px rgba(0,0,0,0.45); }
+  .perm-modal .modal-header{ display:flex; align-items:center; gap:12px; justify-content:space-between }
+  .perm-modal h4{ margin:0; color:var(--accent) }
+  .perm-modal .close-x{ background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer }
+  .perm-modal .infographic{ height:6px; border-radius:6px; background: linear-gradient(90deg, rgba(255,204,33,0.12), rgba(240,173,78,0.12)); margin:12px 0 }
+    /* Make the modal body stack vertically so the permissions grid fills the width
+      and there is no empty right column. This makes scrolling vertical (up/down). */
+    .perm-modal .perm-body{ display:flex; flex-direction:column; gap:12px; align-items:stretch }
+    .perm-modal .perm-left{ display:none }
+    .perm-modal .perm-right{ width:100%; max-width:100% }
+  .perm-modal input[type="text"], .perm-modal input[type="password"]{ width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); color:var(--text); }
+  .perm-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:none; overflow:visible; padding-right:0 }
+    /* wrapper that enables vertical scrolling for permission grid (user requested)
+      and allows the grid to take full width and flow into 3 columns/rows. */
+    .perm-grid-wrapper{ overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding-bottom:8px; max-height:320px; }
+    .perm-grid{ display:grid; grid-auto-rows: minmax(44px, auto); grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; align-items:start; }
+  .perm-grid label{ width:100%; display:flex; align-items:center; gap:10px; justify-content:flex-start }
+  .perm-grid .perm-chip{ flex:1; white-space:normal }
+  /* horizontal scrollbar styling */
+  .perm-grid-wrapper::-webkit-scrollbar{ width:10px }
+  .perm-grid-wrapper::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.06); border-radius:6px }
+  .perm-chip{ display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); border:1px solid rgba(255,255,255,0.03); color:var(--muted); font-weight:700 }
+  .perm-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
+  </style>
 </head>
 <body>
-  <header class="adm-hero">
-    <div class="adm-hero-main">
-      <div class="adm-logo">🧑‍💼</div>
-      <div>
-        <h2>لوحة التحكم</h2>
-        <p>إدارة المستخدمين والفروع والمحتوى وقاعدة البيانات</p>
-      </div>
-    </div>
-    <div class="adm-kpis">
-      <div class="kpi"><span class="kpi-label">المستخدمون</span><strong id="kpiUsers">—</strong></div>
-      <div class="kpi"><span class="kpi-label">الجداول</span><strong id="kpiTables">—</strong></div>
-      <div class="kpi"><span class="kpi-label">إجمالي السجلات</span><strong id="kpiRows">—</strong></div>
-    </div>
-  </header>
+  <h2>🧑‍💼 لوحة التحكم | إدارة المستخدمين</h2>
 
-  <section class="adm-group" style="--i:0">
-    <div class="adm-group-head"><h3>📁 المحتوى والرفع</h3><span>الأصناف والأخبار</span></div>
-    <div class="adm-actions">
-      <button onclick="location.href='manage-uploads.html'">📂 إدارة مرفوعات ليدو</button>
-      <button onclick="location.href='manage-uploads-best-sweet.html'">📂 إدارة مرفوعات بيست سويت</button>
-      <button onclick="location.href='add-news.html'">📰 إضافة خبر عاجل</button>
-      <button class="primary" onclick="GuideAdmin.open()">📘 إعدادات شرح الصفحات</button>
-    </div>
-  </section>
+  <div class="button-group">
+    <button onclick="location.href='manage-uploads.html'">📂 إدارة مرفوعات ليدو</button>
+    <button onclick="location.href='manage-uploads-best-sweet.html'">📂 إدارة مرفوعات بيست سويت</button>
+    <button onclick="location.href='add-news.html'">📰 إضافة خبر عاجل</button>
+    <button onclick="location.href='حركات.html'">🔁 حركات</button>
+    <button class="primary" id="openCreateUserBtn">➕ إنشاء مستخدم جديد</button>
+    <button class="primary" onclick="GuideAdmin.open()">📘 إعدادات شرح الصفحات</button>
+    <button class="primary" onclick="BranchAdmin.open()">🏬 إدارة الفروع / إنشاء فرع جديد</button>
+    <button class="ghost" id="toggleUsersBtn">👥 عرض المستخدمين</button>
+    <button class="ghost" id="sliderToggleBtn">👁️ إخفاء/عرض السلايدر</button>
+    <button class="ghost" id="openColumnSettingsBtn" onclick="openGlobalColumnSettings()">⚙️ إعدادات أعمدة التجميع</button>
+     <button onclick="location.href='suggestions.html'"> المقترحات</button>
+        <button class="btn" onclick="location.href='production-plan.html'">🔧 خطة إنتاج لكل صنف</button>
 
-  <section class="adm-group" style="--i:1">
-    <div class="adm-group-head"><h3>⚙️ العمليات</h3><span>الحركات والطلبات</span></div>
-    <div class="adm-actions">
-      <button onclick="location.href='حركات.html'">🔁 حركات</button>
-      <button onclick="location.href='suggestions.html'">💡 المقترحات</button>
-      <button class="btn" onclick="location.href='production-plan.html'">🔧 خطة إنتاج لكل صنف</button>
-    </div>
-  </section>
-
-  <section class="adm-group" style="--i:2">
-    <div class="adm-group-head"><h3>👥 المستخدمون</h3><span>إنشاء وعرض الحسابات</span></div>
-    <div class="adm-actions">
-      <button class="primary" id="openCreateUserBtn">➕ إنشاء مستخدم جديد</button>
-      <button class="ghost" id="toggleUsersBtn">👥 عرض المستخدمين</button>
-    </div>
-  </section>
-
-  <section class="adm-group" style="--i:3">
-    <div class="adm-group-head"><h3>🏬 الفروع والإعدادات</h3><span>الفروع وأعمدة التجميع</span></div>
-    <div class="adm-actions">
-      <button class="primary" onclick="BranchAdmin.open()">🏬 إدارة الفروع / إنشاء فرع جديد</button>
-      <button class="ghost" id="sliderToggleBtn">👁️ إخفاء/عرض السلايدر</button>
-      <button class="ghost" id="openColumnSettingsBtn" onclick="openGlobalColumnSettings()">⚙️ إعدادات أعمدة التجميع</button>
-    </div>
-  </section>
-
-  <section class="adm-group" id="dbSection" style="--i:4">
-    <div class="adm-group-head"><h3>🗄️ قاعدة البيانات والتخزين</h3><button class="ghost" id="dbRefresh" style="padding:8px 12px">🔄 تحديث</button></div>
-    <div class="db-grid">
-      <div class="db-ring-wrap">
-        <div class="db-ring" id="dbRing"><div class="db-ring-inner"><strong id="dbPct">—</strong><span>مستخدم</span></div></div>
-      </div>
-      <div class="db-figures">
-        <div class="db-bar"><div class="db-fill" id="dbFill"></div></div>
-        <div class="db-legend">
-          <span><i class="dot used"></i>مستخدم: <b id="dbUsed">—</b></span>
-          <span><i class="dot free"></i>فارغ: <b id="dbFree">—</b></span>
-          <span>الحصة الكلية: <b id="dbQuota">—</b></span>
-        </div>
-        <div id="dbNote" class="db-status muted"></div>
-      </div>
-    </div>
-    <div class="db-tables" id="dbTables"></div>
-  </section>
+  </div>
 
   <!-- legacy inline add box (hidden) - we now use a modal -->
   <div class="add-user-box" id="legacyAddBox" style="display:none;">
@@ -163,11 +300,11 @@
     </div>
   </div>
 
-  <section class="adm-group" style="--i:5">
-    <div class="adm-group-head"><h3>📋 المستخدمون الحاليون</h3><button class="ghost" onclick="loadUsers()" style="padding:8px 12px">🔄 تحديث القائمة</button></div>
-    <div id="userList"></div>
-    <div id="permPanel" style="margin-top:14px;"></div>
-  </section>
+  <hr />
+  <h3>📋 المستخدمون الحاليون:</h3>
+  <button onclick="loadUsers()">🔄 تحديث القائمة</button>
+  <div id="userList"></div>
+  <div id="permPanel" style="margin-top:14px;"></div>
 
   <script>
 const firebaseConfig = {
@@ -943,86 +1080,5 @@ async function modalComplete() {
   <script src="activity-logger.js"></script>
   <script src="/lovable-data/branch-admin.js"></script>
   <script src="/lovable-data/guide-admin.js?v=1"></script>
-  <script>
-  (function () {
-    var DB_STATS_URL = "https://hhsavgucqgzehardjzdc.supabase.co/functions/v1/db-stats";
-    function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-    function fmt(b) {
-      if (!b || b < 0) return "0 B";
-      var u = ["B", "KB", "MB", "GB"];
-      var i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), 3);
-      return (b / Math.pow(1024, i)).toFixed(i ? 2 : 0) + " " + u[i];
-    }
-    function setText(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
-    function colorFor(p) { return p > 85 ? "#ff6b6b" : p > 60 ? "#f5b041" : "#3ecf8e"; }
-
-    function render(d) {
-      var used = Number(d.used_bytes) || 0, quota = Number(d.quota_bytes) || 0;
-      var free = Math.max(quota - used, 0);
-      var pct = quota ? Math.min(used / quota * 100, 100) : 0;
-      var tables = d.tables || [];
-
-      var ring = document.getElementById("dbRing");
-      ring.style.setProperty("--ring-color", colorFor(pct));
-      setTimeout(function () { ring.style.setProperty("--p", pct.toFixed(1)); }, 50);
-
-      var fill = document.getElementById("dbFill");
-      fill.style.background = pct > 85 ? "linear-gradient(90deg,#ff6b6b,#ffa3a3)" : pct > 60 ? "linear-gradient(90deg,#f5b041,#f9d68a)" : "";
-      setTimeout(function () { fill.style.width = pct.toFixed(1) + "%"; }, 50);
-
-      setText("dbPct", pct.toFixed(1) + "%");
-      setText("dbUsed", fmt(used));
-      setText("dbFree", fmt(free));
-      setText("dbQuota", fmt(quota));
-
-      var note = document.getElementById("dbNote");
-      if (pct > 85) { note.className = "db-status bad"; note.textContent = "⚠️ المساحة شارفت على الامتلاء، راجع الجداول الأكبر حجماً."; }
-      else if (pct > 60) { note.className = "db-status warn"; note.textContent = "انتبه: أكثر من 60% من المساحة مستخدمة."; }
-      else { note.className = "db-status muted"; note.textContent = "المساحة بحالة جيدة."; }
-
-      var totalRows = tables.reduce(function (s, t) { return s + (Number(t.rows) || 0); }, 0);
-      var usersT = tables.filter(function (t) { return t.name === "users"; })[0];
-      setText("kpiTables", tables.length);
-      setText("kpiRows", totalRows.toLocaleString("ar-EG"));
-      setText("kpiUsers", usersT ? (Number(usersT.rows) || 0).toLocaleString("ar-EG") : "—");
-
-      var max = Math.max.apply(null, tables.map(function (t) { return Number(t.bytes) || 0; }).concat([1]));
-      var box = document.getElementById("dbTables");
-      box.innerHTML = tables.map(function (t, i) {
-        var w = ((Number(t.bytes) || 0) / max * 100).toFixed(1);
-        return '<div class="db-table-row" style="animation-delay:' + (i * 40) + 'ms">' +
-          '<span class="db-table-name">' + esc(t.name) + '</span>' +
-          '<div class="db-table-track"><div class="db-table-fill" data-w="' + w + '%"></div></div>' +
-          '<span class="db-table-size">' + fmt(t.bytes) + ' · ' + (Number(t.rows) || 0).toLocaleString("ar-EG") + ' سجل</span>' +
-          '</div>';
-      }).join("");
-      setTimeout(function () {
-        box.querySelectorAll(".db-table-fill").forEach(function (el) { el.style.width = el.dataset.w; });
-      }, 80);
-    }
-
-    async function loadDb() {
-      var note = document.getElementById("dbNote");
-      note.className = "db-status muted";
-      note.textContent = "⏳ جاري قراءة الإحصائيات...";
-      try {
-        var res = await fetch(DB_STATS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userCode: localStorage.getItem("userCode") || "" })
-        });
-        var d = await res.json().catch(function () { return {}; });
-        if (!res.ok) throw new Error(d.error || "تعذر تحميل الإحصائيات");
-        render(d);
-      } catch (e) {
-        note.className = "db-status bad";
-        note.textContent = "❌ " + e.message;
-      }
-    }
-
-    document.getElementById("dbRefresh").addEventListener("click", loadDb);
-    loadDb();
-  })();
-  </script>
 </body>
 </html>
