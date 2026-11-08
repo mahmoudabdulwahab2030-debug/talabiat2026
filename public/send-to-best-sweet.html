@@ -9,8 +9,6 @@
   <link href="/assets/css/send-orders.css" rel="stylesheet" />
 
   <script src="/lovable-data/branches-registry.js"></script>
-  <script src="/assets/js/invoice-print.js"></script>
-  <link href="/fonts/fonts.css" rel="stylesheet" />
 </head>
 <body>
 <div class="so-shell">
@@ -59,7 +57,6 @@
         <button type="button" id="addRowBtn">➕ إضافة صنف</button>
         <button type="button" id="saveDraftBtnBest">💾 حفظ مؤقت</button>
         <button type="button" id="sendQuantitiesBtn" class="so-btn-primary">📤 إرسال الكميات</button>
-        <button type="button" id="invoiceSettingsBtn">✍️ إعداد التوقيعات</button>
         <button type="button" id="issueInvoiceBtn">🧾 إصدار فاتورة</button>
         <button type="button" id="btnManageInvoices" onclick="openInvoiceManagement()">🔍 إدارة الفواتير</button>
         <button type="button" id="toggleAnalysisBtn">📊 التحليل</button>
@@ -646,9 +643,177 @@ async function sendQuantities(){
 }
 
 // طباعة فاتورة: نستخدم نفس مظهر وسلوك الطباعة الموجود في manage-invoices.html
-function printInvoice(invoice) {
-    return InvoicePrint.print(invoice, { db: db, brandKey: 'bestsweet', brandName: 'بيست سويت', brandSub: 'Best Sweet' });
-  }
+function printInvoice(invoice){
+  const printSection = document.getElementById('invoicePrintSection');
+  const branchLabel = (typeof branchLabels !== 'undefined' && branchLabels[invoice.branch]) ? branchLabels[invoice.branch] : invoice.branch;
+
+  const invoiceContent = `
+    <div class="print-invoice-container">
+      <h2 style="color:#ff2a4d;text-align:center;margin-bottom:16px;font-family:'Cairo',Arial,sans-serif;">فاتورة رقم ${invoice.invoiceNumber||''}</h2>
+      <table class="print-invoice-table" style="width:100%;margin-bottom:20px;border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:#23232a;color:#ff2a4d;">
+            <th>الفرع</th>
+            <th>التاريخ</th>
+            <th>القسم</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#292929;">
+            <td>${escapeHtml(branchLabel)}</td>
+            <td>${escapeHtml(invoice.orderDate)}</td>
+            <td>${escapeHtml(invoice.section)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3 style="color:#ff2a4d;text-align:right;margin-bottom:8px;">المنتجات</h3>
+      <table class="print-invoice-table" style="width:100%;border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:#23232a;color:#ff2a4d;">
+            <th>كود المنتج</th>
+            <th>اسم المنتج</th>
+            <th>الكمية المطلوبة</th>
+            <th>الكمية المرسلة</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(invoice.products||[]).filter(p => Number(p.sentQuantity||0) > 0).map(p => `
+            <tr style="background:#292929;color:#e0e0e0;">
+              <td>${escapeHtml(p.code)}</td>
+              <td>${escapeHtml(p.name)}</td>
+              <td>${p.requestedQuantity}</td>
+              <td>${p.sentQuantity}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <!-- طباعة: جدولان منفصلان - النواقص و الزيادات (مصغران ووضعان جنبًا إلى جنب) -->
+      <div class="print-analysis-row" style="display:flex;gap:12px;justify-content:space-between;margin-top:12px;margin-bottom:6px;">
+        <div style="flex:1;min-width:220px;max-width:48%;">
+          <h3 style="text-align:right;margin-bottom:6px;">النواقص</h3>
+          <table class="print-invoice-table print-shortage-table" style="width:100%;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>الكمية</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${( () => {
+                const shortages = [];
+                (invoice.products||[]).forEach(p => {
+                  const req = Number(p.requestedQuantity||0);
+                  const sent = Number(p.sentQuantity||0);
+                  const diff = sent - req;
+                  if(diff < 0) shortages.push({ name: p.name, qty: Math.abs(diff) });
+                });
+                if(shortages.length===0) return '<tr><td colspan="2" style="text-align:center;color:#000">لا توجد نواقص</td></tr>';
+                return shortages.map(s => `<tr style="background:#fff;color:#000;"><td style="vertical-align:top;text-align:right;padding:8px;color:#000">${s.name}</td><td style="vertical-align:top;text-align:center;padding:8px;color:#000">${s.qty}</td></tr>`).join('');
+              })() }
+            </tbody>
+          </table>
+        </div>
+        <div style="flex:1;min-width:220px;max-width:48%;">
+          <h3 style="text-align:right;margin-bottom:6px;">الزيادات</h3>
+          <table class="print-invoice-table print-excess-table" style="width:100%;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>الكمية</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${( () => {
+                const excesses = [];
+                (invoice.products||[]).forEach(p => {
+                  const req = Number(p.requestedQuantity||0);
+                  const sent = Number(p.sentQuantity||0);
+                  const diff = sent - req;
+                  if(diff > 0) excesses.push({ name: p.name, qty: diff });
+                });
+                if(excesses.length===0) return '<tr><td colspan="2" style="text-align:center;color:#000">لا توجد زيادات</td></tr>';
+                return excesses.map(e => `<tr style="background:#fff;color:#000;"><td style="vertical-align:top;text-align:right;padding:8px;color:#000">${e.name}</td><td style="vertical-align:top;text-align:center;padding:8px;color:#000">${e.qty}</td></tr>`).join('');
+              })() }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;text-align:left;color:#000;font-size:0.95em;">
+        <span>تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')}</span>
+      </div>
+
+      <!-- Signature table with headers in first row (match send-to-branches layout) -->
+      <table style="width:100%;margin-top:32px;border-collapse:collapse;">
+        <tr>
+          <td style="width:50%;color:#000;font-weight:bold;font-size:1.1em;padding:12px 0;text-align:center;">توقيع الكنترول</td>
+          <td style="width:50%;color:#000;font-weight:bold;font-size:1.1em;padding:12px 0;text-align:center;">توقيع المستلم من الفرع</td>
+        </tr>
+        <tr>
+          <td style="height:48px;border-bottom:1px solid #000;"></td>
+          <td style="height:48px;border-bottom:1px solid #000;"></td>
+        </tr>
+      </table>
+
+    </div>
+    <style>
+      /* Force black-on-white print: remove any color and ensure strong black borders/text */
+      @media print {
+        body * { visibility: hidden !important; }
+        #invoicePrintSection, #invoicePrintSection * { visibility: visible !important; }
+        #invoicePrintSection {
+          position: absolute;
+          left: 0; top: 0; width: 100vw; min-height: 100vh;
+          background: #fff !important;
+          color: #000 !important;
+          padding: 16px !important;
+          font-family: 'Cairo', Arial, sans-serif;
+        }
+        .print-invoice-container {
+          background: #fff !important;
+          border-radius: 6px !important;
+          border: 3px solid #000 !important;
+          padding: 18px !important;
+          margin: auto !important;
+          max-width: 1000px !important;
+        }
+        .print-invoice-table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin-bottom: 12px !important;
+          font-size: 12pt !important;
+        }
+        .print-invoice-table th, .print-invoice-table td {
+          border: 3px solid #000 !important;
+          padding: 8px 10px !important;
+          text-align: center !important;
+          vertical-align: middle !important;
+          background: #fff !important;
+          color: #000 !important;
+          font-weight: 700 !important;
+        }
+        /* layout for shortages/excesses printed side-by-side */
+        .print-analysis-row { display: flex !important; gap: 12px !important; justify-content: space-between !important; align-items: flex-start !important; }
+        .print-invoice-table.print-shortage-table, .print-invoice-table.print-excess-table { width: 48% !important; }
+        .print-invoice-table.print-shortage-table th, .print-invoice-table.print-excess-table th,
+        .print-invoice-table.print-shortage-table td, .print-invoice-table.print-excess-table td { text-align: right !important; }
+        .print-invoice-table th { font-size: 12pt !important; }
+        .print-invoice-table td { font-weight: 600 !important; }
+        /* signature table styling */
+        .print-signatures td { background: #fff !important; color: #000 !important; }
+        @page { size: auto; margin: 10mm; }
+      }
+    </style>
+  `;
+
+  printSection.innerHTML = invoiceContent;
+  printSection.style.display = 'block';
+
+  setTimeout(() => {
+    try { window.print(); }
+    finally { printSection.style.display = 'none'; printSection.innerHTML = ''; }
+  }, 100);
+}
 
 // navigation / invoice management
 function navigateWithRoles(url){ try{ const s = localStorage.getItem('roles'); if(s){ const sep = url.includes('?')?'&':'?'; window.location.href = url + sep + 'roles=' + encodeURIComponent(s); return; } }catch(e){} window.location.href = url; }
@@ -956,8 +1121,6 @@ document.getElementById('manageOrderForm')?.addEventListener('submit', (e) => e.
   });
 });
 
-// فتح صفحة إعداد توقيعات الفاتورة في تبويب جديد
-document.getElementById('invoiceSettingsBtn')?.addEventListener('click', () => window.open('invoice-settings.html', '_blank'));
 </script>
 </body>
 </html>
