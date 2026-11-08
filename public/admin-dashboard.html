@@ -205,6 +205,7 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
   .perm-chip{ display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); border:1px solid rgba(255,255,255,0.03); color:var(--muted); font-weight:700 }
   .perm-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
   </style>
+  <link href="/assets/css/db-storage.css" rel="stylesheet" />
 </head>
 <body>
   <h2>🧑‍💼 لوحة التحكم | إدارة المستخدمين</h2>
@@ -299,6 +300,25 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
       </div>
     </div>
   </div>
+
+    <section class="db-panel" id="dbSection">
+    <div class="db-head"><h3>🗄️ قاعدة البيانات والتخزين</h3><button class="ghost" id="dbRefresh">🔄 تحديث</button></div>
+    <div class="db-grid">
+      <div class="db-ring-wrap">
+        <div class="db-ring" id="dbRing"><div class="db-ring-inner"><strong id="dbPct">—</strong><span>مستخدم</span></div></div>
+      </div>
+      <div class="db-figures">
+        <div class="db-bar"><div class="db-fill" id="dbFill"></div></div>
+        <div class="db-legend">
+          <span><i class="dot used"></i>مستخدم: <b id="dbUsed">—</b></span>
+          <span><i class="dot free"></i>فارغ: <b id="dbFree">—</b></span>
+          <span>الحصة الكلية: <b id="dbQuota">—</b></span>
+        </div>
+        <div id="dbNote" class="db-status muted"></div>
+      </div>
+    </div>
+    <div class="db-tables" id="dbTables"></div>
+  </section>
 
   <hr />
   <h3>📋 المستخدمون الحاليون:</h3>
@@ -1080,5 +1100,86 @@ async function modalComplete() {
   <script src="activity-logger.js"></script>
   <script src="/lovable-data/branch-admin.js"></script>
   <script src="/lovable-data/guide-admin.js?v=1"></script>
+  <script>
+  (function () {
+    var DB_STATS_URL = "https://hhsavgucqgzehardjzdc.supabase.co/functions/v1/db-stats";
+    function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    function fmt(b) {
+      if (!b || b < 0) return "0 B";
+      var u = ["B", "KB", "MB", "GB"];
+      var i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), 3);
+      return (b / Math.pow(1024, i)).toFixed(i ? 2 : 0) + " " + u[i];
+    }
+    function setText(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+    function colorFor(p) { return p > 85 ? "#ff6b6b" : p > 60 ? "#f5b041" : "#3ecf8e"; }
+
+    function render(d) {
+      var used = Number(d.used_bytes) || 0, quota = Number(d.quota_bytes) || 0;
+      var free = Math.max(quota - used, 0);
+      var pct = quota ? Math.min(used / quota * 100, 100) : 0;
+      var tables = d.tables || [];
+
+      var ring = document.getElementById("dbRing");
+      ring.style.setProperty("--ring-color", colorFor(pct));
+      setTimeout(function () { ring.style.setProperty("--p", pct.toFixed(1)); }, 50);
+
+      var fill = document.getElementById("dbFill");
+      fill.style.background = pct > 85 ? "linear-gradient(90deg,#ff6b6b,#ffa3a3)" : pct > 60 ? "linear-gradient(90deg,#f5b041,#f9d68a)" : "";
+      setTimeout(function () { fill.style.width = pct.toFixed(1) + "%"; }, 50);
+
+      setText("dbPct", pct.toFixed(1) + "%");
+      setText("dbUsed", fmt(used));
+      setText("dbFree", fmt(free));
+      setText("dbQuota", fmt(quota));
+
+      var note = document.getElementById("dbNote");
+      if (pct > 85) { note.className = "db-status bad"; note.textContent = "⚠️ المساحة شارفت على الامتلاء، راجع الجداول الأكبر حجماً."; }
+      else if (pct > 60) { note.className = "db-status warn"; note.textContent = "انتبه: أكثر من 60% من المساحة مستخدمة."; }
+      else { note.className = "db-status muted"; note.textContent = "المساحة بحالة جيدة."; }
+
+      var totalRows = tables.reduce(function (s, t) { return s + (Number(t.rows) || 0); }, 0);
+      var usersT = tables.filter(function (t) { return t.name === "users"; })[0];
+      setText("kpiTables", tables.length);
+      setText("kpiRows", totalRows.toLocaleString("ar-EG"));
+      setText("kpiUsers", usersT ? (Number(usersT.rows) || 0).toLocaleString("ar-EG") : "—");
+
+      var max = Math.max.apply(null, tables.map(function (t) { return Number(t.bytes) || 0; }).concat([1]));
+      var box = document.getElementById("dbTables");
+      box.innerHTML = tables.map(function (t, i) {
+        var w = ((Number(t.bytes) || 0) / max * 100).toFixed(1);
+        return '<div class="db-table-row" style="animation-delay:' + (i * 40) + 'ms">' +
+          '<span class="db-table-name">' + esc(t.name) + '</span>' +
+          '<div class="db-table-track"><div class="db-table-fill" data-w="' + w + '%"></div></div>' +
+          '<span class="db-table-size">' + fmt(t.bytes) + ' · ' + (Number(t.rows) || 0).toLocaleString("ar-EG") + ' سجل</span>' +
+          '</div>';
+      }).join("");
+      setTimeout(function () {
+        box.querySelectorAll(".db-table-fill").forEach(function (el) { el.style.width = el.dataset.w; });
+      }, 80);
+    }
+
+    async function loadDb() {
+      var note = document.getElementById("dbNote");
+      note.className = "db-status muted";
+      note.textContent = "⏳ جاري قراءة الإحصائيات...";
+      try {
+        var res = await fetch(DB_STATS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userCode: localStorage.getItem("userCode") || "" })
+        });
+        var d = await res.json().catch(function () { return {}; });
+        if (!res.ok) throw new Error(d.error || "تعذر تحميل الإحصائيات");
+        render(d);
+      } catch (e) {
+        note.className = "db-status bad";
+        note.textContent = "❌ " + e.message;
+      }
+    }
+
+    document.getElementById("dbRefresh").addEventListener("click", loadDb);
+    loadDb();
+  })();
+  </script>
 </body>
 </html>
