@@ -150,6 +150,28 @@
   <script src="/lovable-data/firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
+// ربط قائمة الفروع بسجل الفروع المركزي (الأصلية + المضافة من لوحة الإدارة)
+(function fillBranchSelectFromRegistry(brand) {
+  var sel = document.getElementById('branch');
+  if (!sel || !window.BranchRegistry) return;
+  var R = window.BranchRegistry;
+  var current = sel.value;
+  var items = [];
+  (R.BUILTIN[brand] || []).forEach(function (b) {
+    if (R.isHiddenBuiltin(b.id)) return;
+    var o = R.override(b.id);
+    items.push({ id: b.id, name: (o && o.name) || b.name });
+  });
+  R.extra(brand).forEach(function (b) { items.push({ id: b.id, name: b.name }); });
+  var seen = {};
+  sel.innerHTML = '<option value="">-- اختر الفرع --</option>' + items.filter(function (it) {
+    if (seen[it.id]) return false; seen[it.id] = true; return true;
+  }).map(function (it) {
+    return '<option value="' + it.id.replace(/"/g, '&quot;') + '">فرع ' + String(it.name).replace(/</g, '&lt;') + '</option>';
+  }).join('');
+  if (current && seen[current]) sel.value = current;
+})('ledoux');
+
   // Floating button styles and tooltip
   (function(){
     const style = document.createElement('style');
