@@ -22,38 +22,84 @@
     return arr;
   }
 
-  function listHtml(arr) {
-    if (!arr.length) return '<div style="opacity:.7;padding:12px;text-align:center">لا توجد فروع مضافة بعد — الفروع الأصلية لا تظهر هنا ولا تتأثر.</div>';
-    return '<table class="ba-t"><thead><tr><th>الفرع</th><th>البراند</th><th>المعرف</th><th>الترتيب</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>' +
-      arr.map(function (b) {
-        return "<tr><td><a href=\"" + esc(BranchRegistry.page(b)) + '" target="_blank" style="color:inherit">' + esc(b.name) + "</a></td><td>" + esc(BRANDS[b.brand] || b.brand) + "</td><td><code>" + esc(b.id) + "</code></td><td>" + (b.order || 0) + "</td><td>" +
-          (b.active !== false ? "🟢 ظاهر" : "⚪ مخفي") + '</td><td style="white-space:nowrap">' +
-          '<button class="ba-b" data-act="edit" data-id="' + esc(b._doc) + '" title="تعديل">✏️</button> ' +
-          '<button class="ba-b" data-act="toggle" data-id="' + esc(b._doc) + '" title="إخفاء/إظهار">' + (b.active !== false ? "🙈" : "👁️") + "</button> " +
-          '<button class="ba-b" data-act="del" data-id="' + esc(b._doc) + '" title="حذف">🗑️</button></td></tr>';
-      }).join("") + "</tbody></table>";
+  var BRAND_TABS = [["ledoux", "ليدو LE DOUX"], ["bestsweet", "بيست سويت Best Sweet"]];
+  var STYLE =
+    "<style>" +
+    ".ba-t{width:100%;border-collapse:collapse;font-size:13px;direction:rtl}" +
+    ".ba-t th{background:#ffd166;color:#23232a;padding:8px}" +
+    ".ba-t td{border-bottom:1px solid #ddd;padding:6px;text-align:center}" +
+    ".ba-b{border:none;background:#23232a;color:#ffd166;border-radius:8px;padding:5px 9px;cursor:pointer;text-decoration:none;display:inline-block}" +
+    ".ba-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid #ffd166;padding-bottom:0;margin-bottom:12px}" +
+    ".ba-tab{border:none;background:#eee;color:#23232a;padding:9px 16px;border-radius:10px 10px 0 0;cursor:pointer;font-weight:700;font-size:14px}" +
+    ".ba-tab.on{background:#ffd166}" +
+    ".ba-tab span{opacity:.7;font-weight:400}" +
+    ".ba-tag{font-size:12px;background:#eee;border-radius:6px;padding:2px 6px;white-space:nowrap}" +
+    "</style>";
+
+  function brandPanel(brand, arr) {
+    var rows = [];
+    (BranchRegistry.BUILTIN[brand] || []).forEach(function (b) {
+      rows.push("<tr><td>" + esc(b.name) + "</td><td><code>" + esc(b.id) + '</code></td><td><span class="ba-tag">🔒 أصلي</span></td><td>—</td><td>—</td><td style="white-space:nowrap">' +
+        '<a class="ba-b" href="' + esc(b.page) + '" target="_blank" title="فتح الصفحة">🔗</a></td></tr>');
+    });
+    arr.filter(function (b) { return b.brand === brand; }).forEach(function (b) {
+      rows.push("<tr><td>" + esc(b.name) + "</td><td><code>" + esc(b.id) + '</code></td><td><span class="ba-tag">➕ مُضاف</span></td><td>' + (b.order || 0) + "</td><td>" +
+        (b.active !== false ? "🟢 ظاهر" : "⚪ مخفي") + '</td><td style="white-space:nowrap">' +
+        '<a class="ba-b" href="' + esc(BranchRegistry.page(b)) + '" target="_blank" title="فتح الصفحة">🔗</a> ' +
+        '<button class="ba-b" data-act="edit" data-id="' + esc(b._doc) + '" title="تعديل">✏️</button> ' +
+        '<button class="ba-b" data-act="toggle" data-id="' + esc(b._doc) + '" title="إخفاء/إظهار">' + (b.active !== false ? "🙈" : "👁️") + '</button> ' +
+        '<button class="ba-b" data-act="del" data-id="' + esc(b._doc) + '" title="حذف">🗑️</button></td></tr>');
+    });
+    if (!rows.length) return '<div style="opacity:.7;padding:14px;text-align:center">لا توجد فروع لهذا البراند بعد.</div>';
+    return '<table class="ba-t"><thead><tr><th>الفرع</th><th>المعرف</th><th>النوع</th><th>الترتيب</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>' +
+      rows.join("") + "</tbody></table>";
   }
 
-  async function open() {
+  function tabsHtml(arr, active) {
+    var tabs = BRAND_TABS.map(function (t) {
+      var n = (BranchRegistry.BUILTIN[t[0]] || []).length + arr.filter(function (b) { return b.brand === t[0]; }).length;
+      return '<button type="button" class="ba-tab' + (t[0] === active ? " on" : "") + '" data-tab="' + t[0] + '">' + esc(t[1]) + ' <span>(' + n + ")</span></button>";
+    }).join("");
+    var panels = BRAND_TABS.map(function (t) {
+      return '<div class="ba-panel" data-panel="' + t[0] + '"' + (t[0] === active ? "" : ' style="display:none"') + ">" + brandPanel(t[0], arr) + "</div>";
+    }).join("");
+    return '<div class="ba-tabs">' + tabs + "</div>" + panels;
+  }
+
+  async function open(startBrand) {
+    var active = startBrand || "ledoux";
     Swal.fire({ title: "جاري التحميل...", didOpen: function () { Swal.showLoading(); } });
     var arr = [];
     try { arr = await loadList(); } catch (e) { return Swal.fire("خطأ", "تعذر تحميل الفروع", "error"); }
     await Swal.fire({
       title: "🏬 إدارة الفروع",
-      width: "min(900px,96vw)",
+      width: "min(960px,96vw)",
       html:
-        "<style>.ba-t{width:100%;border-collapse:collapse;font-size:13px;direction:rtl}.ba-t th{background:#ffd166;color:#23232a;padding:8px}.ba-t td{border-bottom:1px solid #ddd;padding:6px;text-align:center}.ba-b{border:none;background:#23232a;color:#ffd166;border-radius:8px;padding:5px 9px;cursor:pointer}</style>" +
+        STYLE +
         '<div style="direction:rtl;text-align:right">' +
         '<button id="baNew" class="swal2-confirm swal2-styled" style="margin:0 0 12px">➕ إنشاء فرع جديد</button>' +
-        '<div id="baList">' + listHtml(arr) + "</div>" +
-        '<p style="font-size:12px;opacity:.75;margin-top:10px">💡 حذف الفرع أو إخفاؤه يزيل زره وأعمدته من الصفحات، والطلبيات المرفوعة له تبقى محفوظة.</p></div>',
+        '<div id="baTabs">' + tabsHtml(arr, active) + "</div>" +
+        '<p style="font-size:12px;opacity:.75;margin-top:10px">💡 الفروع 🔒 الأصلية تُدار من صفحاتها نفسها ولا تُعدَّل أو تُحذف من هنا. أما الفروع ➕ المضافة فيمكن تعديلها أو إخفاؤها أو حذفها، والطلبيات المرفوعة لها تبقى محفوظة.</p></div>',
       showConfirmButton: true, confirmButtonText: "إغلاق",
       didOpen: function () {
-        document.getElementById("baNew").onclick = function () { form(null, arr); };
-        document.querySelectorAll(".ba-b").forEach(function (b) {
+        document.getElementById("baNew").onclick = function () {
+          var cur = document.querySelector(".ba-tab.on");
+          form(null, arr, cur ? cur.dataset.tab : active);
+        };
+        document.querySelectorAll(".ba-tab").forEach(function (tab) {
+          tab.onclick = function () {
+            document.querySelectorAll(".ba-tab").forEach(function (x) { x.classList.toggle("on", x === tab); });
+            document.querySelectorAll(".ba-panel").forEach(function (pn) {
+              pn.style.display = pn.dataset.panel === tab.dataset.tab ? "" : "none";
+            });
+          };
+        });
+        document.querySelectorAll(".ba-b[data-act]").forEach(function (b) {
           b.onclick = function () {
             var item = arr.filter(function (x) { return x._doc === b.dataset.id; })[0];
-            if (b.dataset.act === "edit") form(item, arr);
+            var cur = document.querySelector(".ba-tab.on");
+            var brandNow = cur ? cur.dataset.tab : active;
+            if (b.dataset.act === "edit") form(item, arr, brandNow);
             else if (b.dataset.act === "toggle") toggle(item);
             else del(item);
           };
@@ -62,15 +108,16 @@
     });
   }
 
-  async function form(item, arr) {
+  async function form(item, arr, brand) {
     var isEdit = !!item;
+    var startBrand = isEdit ? item.brand : (brand || "ledoux");
     var res = await Swal.fire({
       title: isEdit ? "✏️ تعديل الفرع" : "➕ إنشاء فرع جديد",
       html:
         '<div style="direction:rtl;text-align:right;display:grid;gap:10px">' +
         '<label>اسم الفرع بالعربي<input id="baName" class="swal2-input" style="width:100%;margin:4px 0 0;box-sizing:border-box" placeholder="مثال: مدينة نصر" value="' + esc(isEdit ? item.name : "") + '"></label>' +
         '<label>البراند<select id="baBrand" class="swal2-select" style="width:100%;margin:4px 0 0" ' + (isEdit ? "disabled" : "") + ">" +
-        Object.keys(BRANDS).map(function (k) { return '<option value="' + k + '"' + (isEdit && item.brand === k ? " selected" : "") + ">" + BRANDS[k] + "</option>"; }).join("") + "</select></label>" +
+        Object.keys(BRANDS).map(function (k) { return '<option value="' + k + '"' + (startBrand === k ? " selected" : "") + ">" + BRANDS[k] + "</option>"; }).join("") + "</select></label>" +
         '<label>المعرف بالإنجليزي (يُقترح تلقائيًا)<input id="baId" class="swal2-input" dir="ltr" style="width:100%;margin:4px 0 0;box-sizing:border-box" value="' + esc(isEdit ? item.id : "") + '" ' + (isEdit ? "disabled" : "") + "></label>" +
         '<label>الترتيب بين الأزرار<input id="baOrder" type="number" class="swal2-input" style="width:100%;margin:4px 0 0;box-sizing:border-box" value="' + (isEdit ? item.order || 0 : arr.length + 1) + '"></label>' +
         '<label style="display:flex;gap:8px;align-items:center"><input id="baActive" type="checkbox" ' + (!isEdit || item.active !== false ? "checked" : "") + "> ظاهر في الصفحات</label>" +
@@ -103,7 +150,7 @@
         return { id: isEdit ? item.id : id, brand: isEdit ? item.brand : brand };
       },
     });
-    if (!res.isConfirmed) return open();
+    if (!res.isConfirmed) return open(startBrand);
     try { localStorage.removeItem("lovable_dynamic_branches"); } catch (e) {}
     var b = res.value;
     await Swal.fire({
