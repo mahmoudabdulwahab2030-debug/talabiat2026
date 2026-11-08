@@ -504,7 +504,7 @@ async function addUser() {
             const table = document.createElement('table');
             table.id = 'userTable';
             const thead = document.createElement('thead');
-            thead.innerHTML = '<tr><th>كود المستخدم</th><th>اسم المستخدم</th><th>فترة التجربة</th><th>كلمة المرور</th><th>صلاحيات</th><th>حذف</th></tr>';
+            thead.innerHTML = '<tr><th>كود المستخدم</th><th>اسم المستخدم</th><th>فترة التجربة</th><th>كلمة المرور</th><th>صلاحيات</th><th>النشاط</th><th>حذف</th></tr>';
             table.appendChild(thead);
             const tbody = document.createElement('tbody');
             snapshot.forEach(doc => {
@@ -557,12 +557,18 @@ async function addUser() {
               permEditBtn.title = 'تحديث/تعديل الصلاحيات';
               permEditBtn.onclick = () => openPermEditor(doc.id);
               tdPerm.appendChild(permViewBtn); tdPerm.appendChild(permEditBtn);
+              // activity details (opens in a new tab)
+              const tdAct = document.createElement('td');
+              const actBtn = document.createElement('button'); actBtn.className = 'ghost'; actBtn.textContent = '📊 عرض النشاط';
+              actBtn.title = 'فتح تفاصيل النشاط والجلسات في تبويب جديد';
+              actBtn.onclick = () => window.open('user-details.html?user=' + encodeURIComponent(doc.id), '_blank');
+              tdAct.appendChild(actBtn);
               // delete
               const tdDel = document.createElement('td');
               const delBtn = document.createElement('button'); delBtn.className = 'danger'; delBtn.textContent = '🗑️ حذف'; delBtn.onclick = () => deleteUser(doc.id);
               tdDel.appendChild(delBtn);
 
-              tr.appendChild(tdCode); tr.appendChild(tdName); tr.appendChild(tdTrial); tr.appendChild(tdPass); tr.appendChild(tdPerm); tr.appendChild(tdDel);
+              tr.appendChild(tdCode); tr.appendChild(tdName); tr.appendChild(tdTrial); tr.appendChild(tdPass); tr.appendChild(tdPerm); tr.appendChild(tdAct); tr.appendChild(tdDel);
               tbody.appendChild(tr);
             });
             table.appendChild(tbody);
