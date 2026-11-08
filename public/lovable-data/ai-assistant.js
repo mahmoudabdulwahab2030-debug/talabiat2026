@@ -1,6 +1,6 @@
 /* مساعد "محمود عبدالوهاب" - زر عائم ونافذة محادثة فوق الصفحة */
 (function () {
-  var ENDPOINT = "https://us-central1-ledoux-80b46.cloudfunctions.net/aiAssistant";
+  var ENDPOINT = "https://hhsavgucqgzehardjzdc.supabase.co/functions/v1/ai-assistant";
   var NAME = "محمود عبدالوهاب";
 
   var css = [
