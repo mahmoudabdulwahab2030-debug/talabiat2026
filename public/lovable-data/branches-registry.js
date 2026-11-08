@@ -47,6 +47,18 @@
       .sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name, "ar"); });
   }
 
+  var CACHE_OVR = "lovable_builtin_overrides";
+  var OVR = {};
+  /* إعدادات الفروع الأصلية: وثائق في مجموعة branches بحقل builtin: true */
+  function collectOverrides(rows) {
+    var o = {};
+    (rows || []).forEach(function (r) {
+      var d = r.data || {};
+      if (d.builtin === true) o[String(d.id || r.id || "")] = d;
+    });
+    return o;
+  }
+
   var all = [];
   try {
     var x = new XMLHttpRequest();
@@ -54,19 +66,73 @@
     x.setRequestHeader("apikey", KEY);
     x.send(null);
     if (x.status >= 200 && x.status < 300) {
-      all = normalize(JSON.parse(x.responseText));
-      try { localStorage.setItem(CACHE, JSON.stringify(all)); } catch (e) {}
+      var raw = JSON.parse(x.responseText);
+      all = normalize(raw);
+      OVR = collectOverrides(raw);
+      try { localStorage.setItem(CACHE, JSON.stringify(all)); localStorage.setItem(CACHE_OVR, JSON.stringify(OVR)); } catch (e) {}
     } else throw new Error("status " + x.status);
   } catch (e) {
     try { all = JSON.parse(localStorage.getItem(CACHE) || "[]"); } catch (e2) { all = []; }
+    try { OVR = JSON.parse(localStorage.getItem(CACHE_OVR) || "{}"); } catch (e3) { OVR = {}; }
   }
 
   function pageFor(b) { return (b.brand === "bestsweet" ? "branch-bestsweet.html" : "branch-ledoux.html") + "?id=" + encodeURIComponent(b.id); }
+
+  /* ===== تطبيق إعدادات الفروع الأصلية على الصفحات ===== */
+  var BUILTIN_BY_ID = {};
+  Object.keys(BUILTIN).forEach(function (k) {
+    BUILTIN[k].forEach(function (b) { BUILTIN_BY_ID[b.id] = Object.assign({ brand: k }, b); });
+  });
+  function hiddenBuiltin(id) {
+    var o = OVR[id];
+    return !!(o && (o.deleted === true || o.active === false));
+  }
+  function applyBuiltinOverrides() {
+    Object.keys(BUILTIN_BY_ID).forEach(function (id) {
+      var o = OVR[id];
+      if (!o) return;
+      var b = BUILTIN_BY_ID[id];
+      var hidden = hiddenBuiltin(id);
+      var sel = 'a[href="' + b.page + '"], a[href^="' + b.page + '?"], a[href*="id=' + id + '"], option[value="' + id + '"]';
+      document.querySelectorAll(sel).forEach(function (el) {
+        if (el.tagName === "OPTION") {
+          if (hidden) el.remove(); else if (o.name) el.textContent = o.name;
+          return;
+        }
+        if (hidden) {
+          var box = el.closest(".icon-card, li, .card, .btn, .branch-card") || el;
+          box.style.display = "none";
+          return;
+        }
+        if (o.name) {
+          el.title = o.name;
+          el.setAttribute("aria-label", o.name);
+          var txt = Array.prototype.filter.call(el.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
+          if (txt.length) txt[0].textContent = o.name;
+          else if (!el.children.length) el.textContent = o.name;
+          el.querySelectorAll(".label, .name, .title").forEach(function (x) { x.textContent = o.name; });
+        }
+      });
+    });
+  }
+  function pageGate() {
+    var path = decodeURIComponent(location.pathname).replace(/^\//, "");
+    Object.keys(BUILTIN_BY_ID).forEach(function (id) {
+      if (BUILTIN_BY_ID[id].page === path && hiddenBuiltin(id)) {
+        document.body.innerHTML = '<div dir="rtl" style="font-family:Cairo,sans-serif;text-align:center;padding:80px 20px;color:#eee;background:#111;min-height:100vh"><div style="font-size:48px">🔒</div><h2>هذا الفرع غير متاح حالياً</h2><p style="opacity:.7">تواصل مع الإدارة لمزيد من المعلومات.</p></div>';
+      }
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    try { applyBuiltinOverrides(); pageGate(); } catch (e) { console.warn("branch overrides", e); }
+  });
 
   var R = {
     BUILTIN: BUILTIN,
     all: function (includeHidden) { return all.filter(function (b) { return includeHidden || b.active; }); },
     extra: function (brand) { return R.all().filter(function (b) { return b.brand === brand; }); },
+    override: function (id) { return OVR[id] || null; },
+    isHiddenBuiltin: function (id) { return hiddenBuiltin(id); },
     get: function (id) { for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i]; return null; },
     names: function (brand) { var o = {}; R.extra(brand).forEach(function (b) { o[b.id] = b.name; }); return o; },
     /* خريطة الاسم العربي → المعرف (لصفحات تطبيع اسم الفرع) */

@@ -22,6 +22,20 @@
     return arr;
   }
 
+  var OVR_MAP = {};
+  async function loadOverrides() {
+    var snap = await db.collection("branches").get();
+    var m = {};
+    snap.forEach(function (d) { var x = d.data() || {}; if (x.builtin === true) m[d.id] = x; });
+    return m;
+  }
+  function bState(id) {
+    var o = OVR_MAP[id] || {};
+    var deleted = o.deleted === true;
+    var active = o.active !== false && !deleted;
+    return { name: o.name || null, deleted: deleted, active: active };
+  }
+
   var BRAND_TABS = [["ledoux", "ليدو LE DOUX"], ["bestsweet", "بيست سويت Best Sweet"]];
   var STYLE =
     "<style>" +
@@ -39,8 +53,17 @@
   function brandPanel(brand, arr) {
     var rows = [];
     (BranchRegistry.BUILTIN[brand] || []).forEach(function (b) {
-      rows.push("<tr><td>" + esc(b.name) + "</td><td><code>" + esc(b.id) + '</code></td><td><span class="ba-tag">🔒 أصلي</span></td><td>—</td><td>—</td><td style="white-space:nowrap">' +
-        '<a class="ba-b" href="' + esc(b.page) + '" target="_blank" title="فتح الصفحة">🔗</a></td></tr>');
+      var st = bState(b.id);
+      var nm = st.name || b.name;
+      var status = st.deleted ? "🗑️ محذوف" : (st.active ? "🟢 ظاهر" : "⚪ مخفي");
+      rows.push("<tr" + (st.deleted ? ' style="opacity:.5"' : "") + "><td>" + esc(nm) + "</td><td><code>" + esc(b.id) + '</code></td><td><span class="ba-tag">🔒 أصلي</span></td><td>—</td><td>' + status + '</td><td style="white-space:nowrap">' +
+        '<a class="ba-b" href="' + esc(b.page) + '" target="_blank" title="فتح الصفحة">🔗</a> ' +
+        '<button class="ba-b" data-act="bedit" data-bid="' + esc(b.id) + '" title="تعديل الاسم">✏️</button> ' +
+        (st.deleted
+          ? '<button class="ba-b" data-act="brestore" data-bid="' + esc(b.id) + '" title="استعادة">♻️</button>'
+          : '<button class="ba-b" data-act="btoggle" data-bid="' + esc(b.id) + '" title="إخفاء/إظهار">' + (st.active ? "👁️" : "🙈") + '</button> ' +
+            '<button class="ba-b" data-act="bdel" data-bid="' + esc(b.id) + '" title="حذف">🗑️</button>') +
+        "</td></tr>");
     });
     arr.filter(function (b) { return b.brand === brand; }).forEach(function (b) {
       rows.push("<tr><td>" + esc(b.name) + "</td><td><code>" + esc(b.id) + '</code></td><td><span class="ba-tag">➕ مُضاف</span></td><td>' + (b.order || 0) + "</td><td>" +
@@ -71,6 +94,7 @@
     Swal.fire({ title: "جاري التحميل...", didOpen: function () { Swal.showLoading(); } });
     var arr = [];
     try { arr = await loadList(); } catch (e) { return Swal.fire("خطأ", "تعذر تحميل الفروع", "error"); }
+    try { OVR_MAP = await loadOverrides(); } catch (e) { OVR_MAP = {}; }
     await Swal.fire({
       title: "🏬 إدارة الفروع",
       width: "min(960px,96vw)",
@@ -96,9 +120,10 @@
         });
         document.querySelectorAll(".ba-b[data-act]").forEach(function (b) {
           b.onclick = function () {
-            var item = arr.filter(function (x) { return x._doc === b.dataset.id; })[0];
             var cur = document.querySelector(".ba-tab.on");
             var brandNow = cur ? cur.dataset.tab : active;
+            if (b.dataset.bid) return builtinAction(b.dataset.act, b.dataset.bid, brandNow);
+            var item = arr.filter(function (x) { return x._doc === b.dataset.id; })[0];
             if (b.dataset.act === "edit") form(item, arr, brandNow);
             else if (b.dataset.act === "toggle") toggle(item);
             else del(item);
@@ -172,6 +197,47 @@
     if (!r.isConfirmed) return open();
     await db.collection("branches").doc(item._doc).delete();
     try { localStorage.removeItem("lovable_dynamic_branches"); } catch (e) {}
+    location.reload();
+  }
+
+  async function saveOverride(id, patch) {
+    await db.collection("branches").doc(id).set(Object.assign({ id: id, builtin: true, updatedAt: new Date().toISOString(), updatedBy: localStorage.getItem("username") || "" }, patch), { merge: true });
+    try { localStorage.removeItem("lovable_builtin_overrides"); localStorage.removeItem("lovable_dynamic_branches"); } catch (e) {}
+  }
+  function findBuiltin(id) {
+    var out = null;
+    Object.keys(BranchRegistry.BUILTIN).forEach(function (k) {
+      BranchRegistry.BUILTIN[k].forEach(function (b) { if (b.id === id) out = Object.assign({ brand: k }, b); });
+    });
+    return out;
+  }
+  async function builtinAction(act, id, brand) {
+    var b = findBuiltin(id);
+    if (!b) return;
+    var st = bState(id);
+    try {
+      if (act === "bedit") {
+        var r = await Swal.fire({
+          title: "✏️ تعديل اسم الفرع", input: "text", inputValue: st.name || b.name,
+          inputLabel: "الاسم الظاهر في الأزرار والصفحات", showCancelButton: true,
+          confirmButtonText: "حفظ", cancelButtonText: "إلغاء",
+          inputValidator: function (v) { if (!String(v || "").trim()) return "اكتب اسم الفرع"; },
+        });
+        if (!r.isConfirmed) return open(brand);
+        await saveOverride(id, { name: r.value.trim() });
+      } else if (act === "btoggle") {
+        await saveOverride(id, { active: !st.active });
+      } else if (act === "bdel") {
+        var d = await Swal.fire({ icon: "warning", title: "حذف فرع " + esc(st.name || b.name) + "؟", html: "سيختفي زر الفرع من كل الصفحات، وتُمنع صفحته من الفتح.<br>يمكنك استعادته لاحقاً بزر ♻️.", showCancelButton: true, confirmButtonText: "نعم، احذف", cancelButtonText: "إلغاء", confirmButtonColor: "#d33" });
+        if (!d.isConfirmed) return open(brand);
+        await saveOverride(id, { deleted: true, active: false });
+      } else if (act === "brestore") {
+        await saveOverride(id, { deleted: false, active: true });
+      }
+    } catch (e) {
+      await Swal.fire("خطأ", "تعذر الحفظ: " + (e.message || e), "error");
+      return open(brand);
+    }
     location.reload();
   }
 
