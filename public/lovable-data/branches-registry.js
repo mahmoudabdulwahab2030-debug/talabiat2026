@@ -87,30 +87,45 @@
     var o = OVR[id];
     return !!(o && (o.deleted === true || o.active === false));
   }
+  /* معرّفات أزرار الفروع الأصلية داخل الصفحات الرئيسية (main.html و best-sweet.html) */
+  var BUILTIN_DOM = {
+    korba: ["#btnKorba"], dokki: ["#btnDokki"], tagamo3: ["#btnTagamo3"], obour: ["#btnObour"],
+    best_sweet_1: ["#bestSweetBranch1"],
+    best_sweet_abbassia: ["#bestSweetAbbassia"],
+    best_sweet_helw_zaytoun: ["#bestSweetHelwZaytoun"],
+    best_sweet_market_zaytoun: ["#bestSweetMarketZaytoun"],
+    best_sweet_helwan: ["#bestSweetHelwan"],
+    best_sweet_obour_market: ["#bestSweetObourMarket"]
+  };
   function applyBuiltinOverrides() {
     Object.keys(BUILTIN_BY_ID).forEach(function (id) {
       var o = OVR[id];
       if (!o) return;
       var b = BUILTIN_BY_ID[id];
       var hidden = hiddenBuiltin(id);
-      var sel = 'a[href="' + b.page + '"], a[href^="' + b.page + '?"], a[href*="id=' + id + '"], option[value="' + id + '"]';
-      document.querySelectorAll(sel).forEach(function (el) {
+      var sels = [
+        'a[href="' + b.page + '"]',
+        'a[href^="' + b.page + '?"]',
+        '[onclick*="' + b.page + '"]',
+        'option[value="' + id + '"]'
+      ].concat(BUILTIN_DOM[id] || []);
+      document.querySelectorAll(sels.join(", ")).forEach(function (el) {
         if (el.tagName === "OPTION") {
-          if (hidden) el.remove(); else if (o.name) el.textContent = o.name;
+          if (hidden) el.remove(); else if (o.name) el.textContent = "فرع " + o.name;
           return;
         }
         if (hidden) {
-          var box = el.closest(".icon-card, li, .card, .btn, .branch-card") || el;
+          var box = el.closest(".icon-card, li, .card, .branch-card") || el;
           box.style.display = "none";
           return;
         }
         if (o.name) {
-          el.title = o.name;
-          el.setAttribute("aria-label", o.name);
-          var txt = Array.prototype.filter.call(el.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
-          if (txt.length) txt[0].textContent = o.name;
-          else if (!el.children.length) el.textContent = o.name;
-          el.querySelectorAll(".label, .name, .title").forEach(function (x) { x.textContent = o.name; });
+          var label = "فرع " + o.name;
+          el.title = label;
+          el.setAttribute("aria-label", label);
+          var lbl = el.querySelector(".icon-label, .label, .name, .title");
+          if (lbl) lbl.textContent = label;
+          else if (!el.children.length) el.textContent = label;
         }
       });
     });
