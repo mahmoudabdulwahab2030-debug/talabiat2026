@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>نشاط المستخدم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
+  <style>
+    :root {
+      --glass: rgba(255,255,255,0.06);
+      --glass-strong: rgba(255,255,255,0.10);
+      --glass-border: rgba(255,255,255,0.12);
+      --text: #f2f4f7;
+      --muted: #9aa3ad;
+      --accent: #e8b44a;
+      --accent-soft: rgba(232,180,74,0.15);
+      --ok: #3ecf8e;
+      --off: #8a8f94;
+      --shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      padding: 28px 20px 40px;
+      font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(232,180,74,0.18), transparent 60%),
+        radial-gradient(800px 500px at 110% 10%, rgba(62,207,142,0.12), transparent 60%),
+        linear-gradient(160deg, #0a0c0e 0%, #11151a 60%, #0a0c0e 100%);
+      background-attachment: fixed;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    h3 { margin: 30px 0 12px; font-size: 18px; color: var(--accent); font-weight: 700; display:flex; align-items:center; gap:8px; }
+
+    /* الهيدر */
+    .header {
+      display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+      padding: 22px 24px; border-radius: 18px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--shadow);
+    }
+    .header h1 { margin:0; font-size: 24px; font-weight: 800; }
+    .header .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+    /* الأزرار */
+    .btn {
+      cursor:pointer; font-family:inherit; font-size:14px; font-weight:600; color:var(--text);
+      padding:9px 16px; border-radius:12px; border:1px solid var(--glass-border);
+      background: var(--glass-strong); transition: all .2s ease;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+    .btn.primary { background: linear-gradient(180deg, var(--accent), #c99534); color:#111; border-color: transparent; }
+    .btn.primary:hover { color:#111; filter: brightness(1.08); }
+
+    /* الحالة */
+    .status { margin-top: 14px; color: var(--muted); font-size: 13px; }
+
+    /* البطاقات */
+    .cards { display:grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 18px; }
+    .card {
+      position:relative; overflow:hidden;
+      background: var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:16px 18px;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: var(--shadow);
+    }
+    .card::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background: linear-gradient(180deg, var(--accent), transparent); }
+    .card .label { font-size:12px; color:var(--muted); margin-bottom:8px; }
+    .card .value { font-size:17px; font-weight:700; word-break:break-word; }
+    .card .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+
+    /* الشارات */
+    .badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:999px; font-size:13px; font-weight:700; }
+    .badge.on { background: rgba(62,207,142,0.15); color: var(--ok); border:1px solid rgba(62,207,142,0.35); }
+    .badge.off { background: rgba(138,143,148,0.15); color: var(--off); border:1px solid rgba(138,143,148,0.3); }
+    .dot { width:8px; height:8px; border-radius:50%; background: currentColor; }
+    .badge.on .dot { box-shadow: 0 0 0 0 rgba(62,207,142,.7); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(62,207,142,.6);} 70% { box-shadow: 0 0 0 8px rgba(62,207,142,0);} 100% { box-shadow: 0 0 0 0 rgba(62,207,142,0);} }
+
+    /* الجداول */
+    .table-card {
+      background: var(--glass); border:1px solid var(--glass-border); border-radius:16px; overflow:hidden;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: var(--shadow);
+    }
+    .table-scroll { overflow-x:auto; max-height: 520px; }
+    table { width:100%; border-collapse: collapse; font-size:14px; }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: rgba(12,14,16,0.92); color: var(--accent); font-weight:700;
+      padding: 12px 10px; border-bottom: 1px solid var(--glass-border); white-space: nowrap;
+    }
+    tbody td { padding: 11px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align:center; vertical-align: middle; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,0.025); }
+    tbody tr:hover { background: var(--accent-soft); }
+    .ltr { direction:ltr; unicode-bidi: embed; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+    .muted { color: var(--muted); }
+    .empty { padding: 26px; text-align:center; color: var(--muted); }
+    .details-text { max-width: 380px; margin: 0 auto; color: var(--muted); font-size: 12px; text-align: right; word-break: break-word; }
+
+    /* الجلسات */
+    .session {
+      margin-bottom: 14px; border-radius: 16px; overflow:hidden;
+      background: var(--glass); border:1px solid var(--glass-border); box-shadow: var(--shadow);
+    }
+    .session summary {
+      cursor:pointer; list-style:none; padding: 16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      font-weight:700;
+    }
+    .session summary::-webkit-details-marker { display:none; }
+    .session summary .chips { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background: rgba(255,255,255,0.07); color: var(--muted); border:1px solid var(--glass-border); }
+    .session[open] summary { border-bottom: 1px solid var(--glass-border); }
+    .session .table-scroll { max-height: 420px; }
+
+    /* طباعة */
+    @media print {
+      body { background:#fff !important; color:#111; padding:0; }
+      .actions, .btn, .no-print { display:none !important; }
+      .header, .card, .table-card, .session { background:#fff !important; box-shadow:none !important; backdrop-filter:none !important; border:1px solid #ccc !important; color:#111 !important; }
+      .card .value, .header h1, thead th, h3 { color:#111 !important; }
+      .table-scroll { max-height:none !important; overflow:visible !important; }
+      thead th { position: static; background:#eee !important; color:#111 !important; }
+      .session { break-inside: avoid; }
+      .session:not([open]) .table-scroll { display:none; }
+    }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 20px; }
+      table { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- قوالب قابلة لإعادة الاستخدام -->
+  <template id="قالب-الجلسة">
+    <details class="session">
+      <summary>
+        <span class="عنوان-الجلسة"></span>
+        <span class="chips">
+          <span class="chip مدة"></span>
+          <span class="chip زيارات"></span>
+          <span class="chip أحداث"></span>
+        </span>
+      </summary>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>الوقت</th><th>الصفحة</th><th>الإجراء</th><th>التفاصيل</th></tr></thead>
+          <tbody class="جسم-الجدول"></tbody>
+        </table>
+      </div>
+    </details>
+  </template>
+
+  <template id="قالب-صف-الحدث">
+    <tr>
+      <td class="الوقت"></td>
+      <td class="ltr الصفحة"></td>
+      <td class="ltr الإجراء"></td>
+      <td class="التفاصيل"></td>
+    </tr>
+  </template>
+
+  <template id="قالب-بطاقة">
+    <div class="card">
+      <div class="label"></div>
+      <div class="value"></div>
+      <div class="hint"></div>
+    </div>
+  </template>
+
+  <div class="header">
+    <div>
+      <h1 id="العنوان">⏳ جاري التحميل...</h1>
+      <div class="sub" id="الفرعي"></div>
+    </div>
+    <div class="actions no-print">
+      <button class="btn" id="زر-تحديث">🔄 تحديث</button>
+      <button class="btn" id="زر-تصدير-الصفحات">⬇️ تصدير الصفحات</button>
+      <button class="btn" id="زر-تصدير-الأحداث">⬇️ تصدير الأحداث</button>
+      <button class="btn primary" id="زر-طباعة">🖨️ طباعة التقرير</button>
+    </div>
+  </div>
+  <div class="status" id="الحالة"></div>
+
+  <div class="cards" id="البطاقات"></div>
+
+  <h3>🧭 الصفحات التي زارها</h3>
+  <div class="table-card"><div class="table-scroll" id="جدول-الصفحات"></div></div>
+
+  <h3>📊 الإجراءات المسجلة</h3>
+  <div class="table-card"><div class="table-scroll" id="جدول-الإجراءات"></div></div>
+
+  <h3>🗂️ الجلسات</h3>
+  <div id="الجلسات"></div>
+
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+    authDomain: "ledoux-80b46.firebaseapp.com",
+    projectId: "ledoux-80b46",
+    storageBucket: "ledoux-80b46.appspot.com",
+    messagingSenderId: "1020769543389",
+    appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+    measurementId: "G-VJTW1W3D8D"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // فجوة زمنية أكبر من هذه المدة تعني بداية جلسة جديدة
+  const مدة_الجلسة = 30 * 60 * 1000;
+  // يُعتبر المستخدم نشطاً الآن إذا كان آخر نشاط خلال هذه المدة
+  const مدة_النشاط = 5 * 60 * 1000;
+
+  const كود_المستخدم = (new URLSearchParams(location.search).get("user") || "").trim();
+  let بيانات_الصفحة = { المستخدم: null, السجلات: [], الجلسات: [], الصفحات: [], الإجراءات: [] };
+
+  const ترجمة_الإجراءات = {
+    page_view: "زيارة صفحة",
+    login: "تسجيل دخول",
+    logout: "تسجيل خروج",
+    create: "إضافة",
+    update: "تعديل",
+    delete: "حذف",
+    export: "تصدير"
+  };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  }
+  function نص_الإجراء(a) { return ترجمة_الإجراءات[a] || a || "—"; }
+
+  function تحويل_الوقت(t) {
+    if (!t) return 0;
+    if (typeof t === "number") return t;
+    if (typeof t === "string") { const n = Date.parse(t); return isNaN(n) ? 0 : n; }
+    if (typeof t.toMillis === "function") return t.toMillis();
+    if (typeof t.toDate === "function") return t.toDate().getTime();
+    if (typeof t.seconds === "number") return t.seconds * 1000;
+    return 0;
+  }
+  function تاريخ(ms) { return ms ? new Date(ms).toLocaleString("ar-EG") : "—"; }
+  function مدة(ms) {
+    if (!ms || ms < 0) return "0 د";
+    const دقائق = Math.floor(ms / 60000);
+    const ساعات = Math.floor(دقائق / 60), باقي = دقائق % 60;
+    return ساعات ? `${ساعات} س ${باقي} د` : `${باقي} د`;
+  }
+  function منذ(ms) {
+    if (!ms) return "";
+    const فرق = Date.now() - ms;
+    if (فرق < 60000) return "منذ لحظات";
+    const دقائق = Math.floor(فرق / 60000);
+    if (دقائق < 60) return `منذ ${دقائق} د`;
+    const ساعات = Math.floor(دقائق / 60);
+    if (ساعات < 24) return `منذ ${ساعات} س`;
+    return `منذ ${Math.floor(ساعات / 24)} يوم`;
+  }
+  function وصف_التفاصيل(d) {
+    if (!d) return "";
+    let txt = typeof d === "string" ? d : (d.title ? d.title : JSON.stringify(d));
+    if (txt.length > 200) txt = txt.slice(0, 200) + "…";
+    return txt;
+  }
+  function نسخ_القالب(id) { return document.getElementById(id).content.firstElementChild.cloneNode(true); }
+  function ضع_حالة(msg) { document.getElementById("الحالة").textContent = msg; }
+
+  function بناء_الجلسات(السجلات) {
+    const الجلسات = [];
+    let حالية = null;
+    السجلات.forEach(l => {
+      if (!l._ms) return;
+      if (!حالية || l._ms - حالية.النهاية > مدة_الجلسة) {
+        حالية = { البداية: l._ms, النهاية: l._ms, الأحداث: [] };
+        الجلسات.push(حالية);
+      }
+      حالية.النهاية = l._ms;
+      حالية.الأحداث.push(l);
+    });
+    return الجلسات;
+  }
+
+  function جدول(أعمدة, صفوف) {
+    if (!صفوف.length) return `<div class="empty">لا توجد بيانات</div>`;
+    return `<table><thead><tr>${أعمدة.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
+      <tbody>${صفوف.map(r => `<tr>${r.map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+
+  function عرض(المستخدم, السجلات) {
+    const الاسم = (المستخدم && المستخدم.name) || كود_المستخدم;
+    document.getElementById("العنوان").textContent = `👤 ${الاسم}`;
+    document.getElementById("الفرعي").textContent = `كود المستخدم: ${كود_المستخدم}`;
+    document.title = `نشاط ${الاسم}`;
+
+    const الصلاحيات = (المستخدم && المستخدم.roles) || [];
+    const نهاية_التجربة = المستخدم ? تحويل_الوقت(المستخدم.trialExpiresAt) : 0;
+    const حالة_التجربة = !نهاية_التجربة ? "غير محددة" : (نهاية_التجربة - Date.now() <= 0 ? "منتهية" : `تنتهي ${تاريخ(نهاية_التجربة)}`);
+
+    const الجلسات = بناء_الجلسات(السجلات);
+    const آخر = السجلات.length ? السجلات[السجلات.length - 1] : null;
+    const نشط = آخر && (Date.now() - آخر._ms) < مدة_النشاط;
+    const الزيارات = السجلات.filter(l => l.action === "page_view");
+    const متوسط = الجلسات.length ? الجلسات.reduce((s, x) => s + (x.النهاية - x.البداية), 0) / الجلسات.length : 0;
+    const أول = السجلات.length ? السجلات[0]._ms : 0;
+
+    بيانات_الصفحة = { المستخدم, السجلات, الجلسات, الصفحات: [], الإجراءات: [] };
+
+    // البطاقات باستخدام القالب
+    const بطاقات = document.getElementById("البطاقات");
+    بطاقات.innerHTML = "";
+    const بيانات_البطاقات = [
+      { ت: "حالة النشاط", ق: نشط ? `<span class="badge on"><span class="dot"></span>نشط الآن</span>` : `<span class="badge off"><span class="dot"></span>غير نشط</span>`, html: true },
+      { ت: "آخر نشاط", ق: تاريخ(آخر && آخر._ms), هـ: آخر ? منذ(آخر._ms) : "" },
+      { ت: "آخر صفحة", ق: آخر ? (آخر.page || "—") : "—", ltr: true },
+      { ت: "عدد الجلسات", ق: الجلسات.length },
+      { ت: "إجمالي الزيارات", ق: الزيارات.length },
+      { ت: "إجمالي الأحداث", ق: السجلات.length },
+      { ت: "متوسط مدة الجلسة", ق: مدة(متوسط) },
+      { ت: "أول نشاط مسجل", ق: تاريخ(أول) },
+      { ت: "عدد الصلاحيات", ق: الصلاحيات.length },
+      { ت: "فترة التجربة", ق: حالة_التجربة }
+    ];
+    بيانات_الحقول_البطاقات(بطاقات, بيانات_البطاقات);
+
+    // الصفحات
+    const إحصاء_الصفحات = {};
+    الزيارات.forEach(l => {
+      const p = l.page || "—";
+      if (!إحصاء_الصفحات[p]) إحصاء_الصفحات[p] = { العدد: 0, الآخر: 0 };
+      إحصاء_الصفحات[p].العدد++;
+      إحصاء_الصفحات[p].الآخر = Math.max(إحصاء_الصفحات[p].الآخر, l._ms);
+    });
+    بيانات_الصفحة.الصفحات = Object.entries(إحصاء_الصفحات).sort((a, b) => b[1].العدد - a[1].العدد);
+    document.getElementById("جدول-الصفحات").innerHTML = جدول(
+      ["الصفحة", "عدد الزيارات", "آخر زيارة"],
+      بيانات_الصفحة.الصفحات.map(([p, s]) => [`<span class="ltr">${esc(p)}</span>`, `<b>${s.العدد}</b>`, esc(تاريخ(s.الآخر))])
+    );
+
+    // الإجراءات
+    const إحصاء_الإجراءات = {};
+    السجلات.forEach(l => { const a = l.action || "—"; إحصاء_الإجراءات[a] = (إحصاء_الإجراءات[a] || 0) + 1; });
+    بيانات_الصفحة.الإجراءات = Object.entries(إحصاء_الإجراءات).sort((a, b) => b[1] - a[1]);
+    document.getElementById("جدول-الإجراءات").innerHTML = جدول(
+      ["الإجراء", "عدد المرات"],
+      بيانات_الصفحة.الإجراءات.map(([a, c]) => [esc(نص_الإجراء(a)), `<b>${c}</b>`])
+    );
+
+    // الجلسات باستخدام القوالب
+    const حاوية = document.getElementById("الجلسات");
+    حاوية.innerHTML = "";
+    if (!الجلسات.length) {
+      حاوية.innerHTML = `<div class="table-card"><div class="empty">لا توجد جلسات مسجلة لهذا المستخدم</div></div>`;
+      return;
+    }
+    الجلسات.slice().reverse().forEach((s, idx) => {
+      const رقم = الجلسات.length - idx;
+      const زيارات = s.الأحداث.filter(i => i.action === "page_view").length;
+      const el = نسخ_القالب("قالب-الجلسة");
+      if (idx === 0) el.setAttribute("open", "");
+      el.querySelector(".عنوان-الجلسة").textContent = `الجلسة ${رقم} · ${تاريخ(s.البداية)} ← ${تاريخ(s.النهاية)}`;
+      el.querySelector(".مدة").textContent = `⏱️ ${مدة(s.النهاية - s.البداية)}`;
+      el.querySelector(".زيارات").textContent = `📄 ${زيارات} زيارة`;
+      el.querySelector(".أحداث").textContent = `⚡ ${s.الأحداث.length} حدث`;
+      const tbody = el.querySelector(".جسم-الجدول");
+      s.الأحداث.slice().reverse().forEach(i => {
+        const tr = نسخ_القالب("قالب-صف-الحدث");
+        tr.querySelector(".الوقت").textContent = تاريخ(i._ms);
+        tr.querySelector(".الصفحة").textContent = i.page || "—";
+        tr.querySelector(".الإجراء").textContent = نص_الإجراء(i.action);
+        tr.querySelector(".التفاصيل").innerHTML = `<div class="details-text">${esc(وصف_التفاصيل(i.details))}</div>`;
+        tbody.appendChild(tr);
+      });
+      حاوية.appendChild(el);
+    });
+  }
+
+  // تعبئة البطاقات من القالب
+  function بيانات_الحقول_البطاقات(حاوية, عناصر) {
+    عناصر.forEach(ع => {
+      const c = نسخ_القالب("قالب-بطاقة");
+      c.querySelector(".label").textContent = ع.ت;
+      const v = c.querySelector(".value");
+      if (ع.html) v.innerHTML = ع.ق; else { v.textContent = ع.ق; if (ع.ltr) v.classList.add("ltr"); }
+      c.querySelector(".hint").textContent = ع.هـ || "";
+      حاوية.appendChild(c);
+    });
+  }
+
+  // التصدير إلى CSV (يُفتح في Excel مع دعم العربية)
+  function تصدير_CSV(اسم, رؤوس, صفوف) {
+    const سطور = [رؤوس, ...صفوف].map(r => r.map(v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`).join(","));
+    const blob = new Blob(["\uFEFF" + سطور.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${اسم}-${كود_المستخدم}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  async function تحميل() {
+    if (!كود_المستخدم) {
+      document.getElementById("العنوان").textContent = "لم يتم تحديد المستخدم";
+      ضع_حالة("افتح هذه الصفحة من لوحة الإدارة عبر زر 📊.");
+      return;
+    }
+    ضع_حالة("⏳ جاري جلب البيانات...");
+    try {
+      const [userDoc, logsSnap] = await Promise.all([
+        db.collection("users").doc(كود_المستخدم).get(),
+        db.collection("activity_logs")
+          .where("user", "==", كود_المستخدم)
+          .orderBy("timestamp", "desc")
+          .limit(1000)
+          .get()
+      ]);
+      const المستخدم = userDoc.exists ? (userDoc.data() || {}) : null;
+      const السجلات = [];
+      logsSnap.forEach(d => {
+        const x = d.data() || {};
+        السجلات.push({ ...x, _ms: تحويل_الوقت(x.timestamp) });
+      });
+      السجلات.sort((a, b) => a._ms - b._ms);
+      عرض(المستخدم, السجلات);
+      ضع_حالة(`✅ تم تحميل ${السجلات.length} سجل`);
+    } catch (e) {
+      console.error(e);
+      ضع_حالة("❌ فشل جلب البيانات. تأكد من الاتصال، ومن أن مجموعة activity_logs متاحة.");
+    }
+  }
+
+  document.getElementById("زر-تحديث").addEventListener("click", تحميل);
+  document.getElementById("زر-طباعة").addEventListener("click", () => window.print());
+  document.getElementById("زر-تصدير-الصفحات").addEventListener("click", () => {
+    تصدير_CSV("الصفحات", ["الصفحة", "عدد الزيارات", "آخر زيارة"],
+      بيانات_الصفحة.الصفحات.map(([p, s]) => [p, s.العدد, تاريخ(s.الآخر)]));
+  });
+  document.getElementById("زر-تصدير-الأحداث").addEventListener("click", () => {
+    تصدير_CSV("الأحداث", ["الوقت", "الصفحة", "الإجراء", "التفاصيل"],
+      بيانات_الصفحة.السجلات.slice().reverse().map(i => [تاريخ(i._ms), i.page || "", نص_الإجراء(i.action), وصف_التفاصيل(i.details)]));
+  });
+
+  تحميل();
+</script>
+</body>
+</html>

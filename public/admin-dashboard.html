@@ -559,9 +559,10 @@ async function addUser() {
               tdPerm.appendChild(permViewBtn); tdPerm.appendChild(permEditBtn);
               // activity details (opens in a new tab)
               const tdAct = document.createElement('td');
-              const actBtn = document.createElement('button'); actBtn.className = 'ghost'; actBtn.textContent = '📊 عرض النشاط';
-              actBtn.title = 'فتح تفاصيل النشاط والجلسات في تبويب جديد';
-              actBtn.onclick = () => window.open('user-details.html?user=' + encodeURIComponent(doc.id), '_blank');
+              const actBtn = document.createElement('button'); actBtn.className = 'ghost'; actBtn.textContent = '📊';
+              actBtn.title = 'عرض نشاط المستخدم'; actBtn.setAttribute('aria-label', 'عرض نشاط المستخدم');
+              actBtn.style.fontSize = '18px'; actBtn.style.padding = '4px 10px';
+              actBtn.onclick = () => window.open('نشاط-المستخدم.html?user=' + encodeURIComponent(doc.id), '_blank');
               tdAct.appendChild(actBtn);
               // delete
               const tdDel = document.createElement('td');
