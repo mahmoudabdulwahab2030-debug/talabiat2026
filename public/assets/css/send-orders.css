@@ -401,3 +401,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* شريط الأدوات يمتد فوق الجدول والتحليل داخل الشبكة */
+.so-main > .actions-row { grid-column: 1 / -1; }
+
+/* الجدول على اليمين وتحليل الفروقات على اليسار (الشبكة RTL: العمود 1 يمين و2 يسار) */
+.so-main > .table-wrap { grid-column: 1; grid-row: 2; min-width: 0; }
+.so-main > .analysis-panel { grid-column: 2; grid-row: 2; }
+@media (max-width: 1100px) {
+  .so-main > .table-wrap, .so-main > .analysis-panel { grid-column: 1; }
+  .so-main > .table-wrap { grid-row: 2; }
+  .so-main > .analysis-panel { grid-row: 3; }
+}
