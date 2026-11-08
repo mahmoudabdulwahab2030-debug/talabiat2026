@@ -401,28 +401,3 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-
-/* ---------- الطباعة: فاتورة فقط ---------- */
-@media print {
-  body { background: #fff !important; color: #000; padding: 0; }
-  body::before, body::after { display: none; }
-  body * { visibility: hidden; }
-  #invoicePrintSection, #invoicePrintSection * { visibility: visible; }
-  #invoicePrintSection {
-    display: block !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: #fff;
-    color: #000;
-  }
-  #invoicePrintSection table { width: 100%; border-collapse: collapse; text-align: center; color: #000; }
-  #invoicePrintSection table th, #invoicePrintSection table td { border: 1px solid #000; background: #fff; color: #000; padding: 8px; }
-  #invoicePrintSection h2, #invoicePrintSection p, #invoicePrintSection h3 { color: #000; }
-  #invoicePrintSection thead tr { background-color: #f2f2f2; }
-  @page { margin: 1cm; }
-}
-
-/* شريط الأدوات يمتد فوق الجدول والتحليل داخل الشبكة */
-.so-main > .actions-row { grid-column: 1 / -1; }

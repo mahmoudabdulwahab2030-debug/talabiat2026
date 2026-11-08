@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>إعداد توقيعات الفاتورة</title>
+  <link href="/fonts/fonts.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/lovable-data/firestore-compat.js"></script>
+  <link href="/assets/css/send-orders.css" rel="stylesheet" />
+  <style>
+    .set-card { max-width: 760px; margin: 0 auto; padding: 22px; display: grid; gap: 14px; }
+    .set-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .set-grid .full { grid-column: 1 / -1; }
+    .set-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+    .set-actions button { min-width: 150px; }
+    textarea { width: 100%; min-height: 80px; padding: 12px 14px; font-family: var(--font); font-size: 14px; color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 14px; outline: none; resize: vertical; }
+    textarea:focus, input[type="text"]:focus { border-color: var(--accent); box-shadow: var(--focus); }
+    .hint { font-size: 12px; color: var(--muted); }
+    @media (max-width: 600px) { .set-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="so-shell">
+    <header class="so-header">
+      <div class="so-title">
+        <div class="so-icon">✍️</div>
+        <div>
+          <h1>إعداد توقيعات الفاتورة</h1>
+          <p>تُطبع هذه البيانات في نهاية كل فاتورة، ويمكن تغييرها في أي وقت</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="so-card set-card">
+      <div class="set-grid">
+        <div class="so-field full">
+          <label for="brandKey">🏷️ البراند</label>
+          <select id="brandKey">
+            <option value="ledoux">ليدو LE DOUX</option>
+            <option value="bestsweet">بيست سويت Best Sweet</option>
+          </select>
+        </div>
+
+        <div class="so-field">
+          <label for="controllerTitle">المسمى (التوقيع الأول)</label>
+          <input type="text" id="controllerTitle" placeholder="مثال: كنترول مان" />
+        </div>
+        <div class="so-field">
+          <label for="controllerName">الاسم (التوقيع الأول)</label>
+          <input type="text" id="controllerName" placeholder="اسم المسؤول" />
+        </div>
+
+        <div class="so-field">
+          <label for="receiverTitle">المسمى (التوقيع الثاني)</label>
+          <input type="text" id="receiverTitle" placeholder="مثال: المستلم" />
+        </div>
+        <div class="so-field">
+          <label for="receiverName">الاسم (التوقيع الثاني)</label>
+          <input type="text" id="receiverName" placeholder="اسم المستلم" />
+        </div>
+
+        <div class="so-field full">
+          <label for="footerText">نص أسفل الفاتورة</label>
+          <input type="text" id="footerText" placeholder="يرجى الاستلام وإرجاع صورة موقعة من الفاتورة" />
+        </div>
+
+        <div class="so-field full">
+          <label for="defaultNotes">ملاحظات افتراضية</label>
+          <textarea id="defaultNotes" placeholder="تظهر تلقائياً في خانة الملاحظات عند الطباعة (يمكن تعديلها لكل فاتورة)"></textarea>
+          <span class="hint">تُعرض في نافذة الطباعة، ويمكنك تعديلها لكل فاتورة على حدة.</span>
+        </div>
+      </div>
+
+      <div class="set-actions">
+        <button type="button" id="resetBtn">↺ استعادة الافتراضي</button>
+        <button type="button" id="saveBtn" class="so-btn-primary">💾 حفظ الإعدادات</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyA5nOr7oPJQydnZTUULmf2YxE33ppYz2Gw",
+      authDomain: "ledoux-80b46.firebaseapp.com",
+      projectId: "ledoux-80b46",
+      storageBucket: "ledoux-80b46.appspot.com",
+      messagingSenderId: "1020769543389",
+      appId: "1:1020769543389:web:fc083525fd9675d9f86734",
+      measurementId: "G-VJTW1W3D8D"
+    });
+    const db = firebase.firestore();
+
+    const DEFAULTS = {
+      controllerTitle: "كنترول مان", controllerName: "",
+      receiverTitle: "المستلم", receiverName: "",
+      footerText: "يرجى الاستلام وإرجاع صورة موقعة من الفاتورة", defaultNotes: ""
+    };
+    const FIELDS = Object.keys(DEFAULTS);
+    const brandSel = document.getElementById("brandKey");
+
+    function fill(data) {
+      FIELDS.forEach(function (k) { document.getElementById(k).value = data[k] || ""; });
+    }
+    async function load() {
+      const key = brandSel.value;
+      try {
+        const snap = await db.collection("settings").doc("invoice_" + key).get();
+        fill(Object.assign({}, DEFAULTS, snap && snap.exists ? snap.data() : {}));
+      } catch (e) {
+        fill(DEFAULTS);
+        Swal.fire("تنبيه", "تعذر تحميل الإعدادات، تحقق من الاتصال.", "warning");
+      }
+    }
+    async function save() {
+      const data = {};
+      FIELDS.forEach(function (k) { data[k] = document.getElementById(k).value.trim(); });
+      try {
+        await db.collection("settings").doc("invoice_" + brandSel.value).set(data);
+        Swal.fire({ icon: "success", title: "تم الحفظ", text: "ستظهر التوقيعات الجديدة في الفواتير القادمة.", timer: 1800, showConfirmButton: false });
+      } catch (e) {
+        console.error(e);
+        Swal.fire("خطأ", "تعذر حفظ الإعدادات.", "error");
+      }
+    }
+
+    brandSel.addEventListener("change", load);
+    document.getElementById("saveBtn").addEventListener("click", save);
+    document.getElementById("resetBtn").addEventListener("click", function () { fill(DEFAULTS); });
+    load();
+  </script>
+</body>
+</html>

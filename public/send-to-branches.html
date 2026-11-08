@@ -8,6 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link href="/assets/css/send-orders.css" rel="stylesheet" />
   <script src="/lovable-data/branches-registry.js"></script>
+  <script src="/assets/js/invoice-print.js"></script>
+  <link href="/fonts/fonts.css" rel="stylesheet" />
 </head>
 <body>
 <div class="so-shell">
@@ -53,6 +55,7 @@
         <button type="button" id="addRowBtn">➕ إضافة صنف</button>
         <button type="button" id="saveDraftBtn">💾 حفظ مؤقت</button>
         <button type="button" id="sendQuantitiesBtn" class="so-btn-primary">📤 إرسال الكميات</button>
+        <button type="button" id="invoiceSettingsBtn">✍️ إعداد التوقيعات</button>
         <button type="button" id="issueInvoiceBtn">🧾 إصدار فاتورة</button>
         <button type="button" id="btnManageInvoices" onclick="openInvoiceManagement()">🔍 إدارة الفواتير</button>
         <button type="button" id="toggleAnalysisBtn">📊 التحليل</button>
@@ -508,148 +511,7 @@ function showToast(message, type = 'info', duration = 3000) {
 
   // تعديل دالة الطباعة: تطبع فقط محتوى الفاتورة مع CSS احترافي
   function printInvoice(invoice) {
-    const printSection = document.getElementById('invoicePrintSection');
-    // HTML الفاتورة
-    const invoiceContent = `
-      <div class="print-invoice-container">
-        <h2 style="text-align:center;margin-bottom:16px;font-family:'Cairo',Arial,sans-serif;">فاتورة رقم ${invoice.invoiceNumber}</h2>
-        <table class="print-invoice-table" style="width:100%;margin-bottom:20px;border-radius:10px;overflow:hidden;">
-          <thead>
-            <tr>
-              <th>الفرع</th>
-              <th>التاريخ</th>
-              <th>القسم</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${invoice.branch}</td>
-              <td>${invoice.orderDate}</td>
-              <td>${invoice.section}</td>
-            </tr>
-          </tbody>
-        </table>
-        <h3 style="text-align:right;margin-bottom:8px;">المنتجات</h3>
-        <table class="print-invoice-table" style="width:100%;border-radius:10px;overflow:hidden;">
-          <thead>
-            <tr>
-              <th>كود الصنف</th>
-              <th>اسم الصنف</th>
-              <th>الكمية المطلوبة</th>
-              <th>الكمية المرسلة</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${invoice.products.filter(product => Number(product.sentQuantity || 0) > 0).map(product => `
-              <tr>
-                <td>${product.code}</td>
-                <td>${product.name}</td>
-                <td>${product.requestedQuantity}</td>
-                <td>${product.sentQuantity}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        <div style="margin-top:24px;text-align:left;color:#000;font-size:0.95em;">
-          <span>تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')}</span>
-        </div>
-
-        <!-- Signature table with headers in first row (same layout as send-to-best-sweet) -->
-        <table style="width:100%;margin-top:32px;border-collapse:collapse;">
-          <tr>
-            <td style="width:50%;color:#000;font-weight:bold;font-size:1.1em;padding:12px 0;text-align:center;">توقيع الكنترول مان:</td>
-            <td style="width:50%;color:#000;font-weight:bold;font-size:1.1em;padding:12px 0;text-align:center;">توقيع المستلم:</td>
-          </tr>
-          <tr>
-            <td style="height:48px;border-bottom:1px solid #000;"></td>
-            <td style="height:48px;border-bottom:1px solid #000;"></td>
-          </tr>
-        </table>
-
-        <div style="margin-top:32px;text-align:center;color:#000;font-size:1.08em;font-weight:bold;">
-          يرجى الاستلام وارجاع صورة للمصنع للمراجعة وحفظ البيانات
-        </div>
-      </div>
-      <style>
-        /* Strong black-on-white print settings */
-        @media print {
-          /* force printers to render colors and backgrounds as specified */
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-
-          body * { visibility: hidden !important; }
-          #invoicePrintSection, #invoicePrintSection * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-
-          /* page container */
-          #invoicePrintSection {
-            position: absolute;
-            left: 0; top: 0; width: 100vw; min-height: 100vh;
-            background: #fff !important;
-            color: #000 !important;
-            padding: 16px !important;
-            font-family: 'Cairo', Arial, sans-serif;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          /* visual rules for printed invoice */
-
-          .print-invoice-container {
-            background: #fff !important;
-            border-radius: 6px !important;
-            border: 4px solid #000 !important;
-            padding: 18px !important;
-            margin: auto !important;
-            max-width: 1000px !important;
-            box-shadow: none !important;
-          }
-
-          .print-invoice-table {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            margin-bottom: 12px !important;
-            font-size: 13pt !important; /* slightly larger for readability */
-            box-shadow: none !important;
-            background: #fff !important;
-          }
-
-          .print-invoice-table th, .print-invoice-table td {
-            border: 4px solid #000 !important; /* thicker, pure black borders */
-            padding: 10px 12px !important;
-            text-align: center !important;
-            vertical-align: middle !important;
-            background: #fff !important;
-            color: #000 !important;
-            font-weight: 800 !important; /* heavier weight */
-            font-size: 12.5pt !important;
-            line-height: 1.2 !important;
-            opacity: 1 !important;
-            filter: none !important;
-            -webkit-filter: none !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-          }
-
-          .print-invoice-table th { font-size: 13pt !important; }
-          .print-invoice-table td { font-weight: 700 !important; }
-          .print-signatures td { background: #fff !important; color: #000 !important; font-weight:700 !important }
-
-          /* make every row background white to avoid faint gray printing */
-          .print-invoice-table tr { background: #fff !important; }
-
-          /* remove any residual shadows or translucency and force full opacity */
-          * { box-shadow: none !important; text-shadow: none !important; filter: none !important; opacity: 1 !important; }
-
-          @page { size: auto; margin: 10mm; }
-        }
-      </style>
-    `;
-    printSection.innerHTML = invoiceContent;
-    printSection.style.display = 'block';
-    setTimeout(() => {
-      window.print();
-      printSection.style.display = 'none';
-      printSection.innerHTML = '';
-    }, 100);
+    return InvoicePrint.print(invoice, { db: db, brandKey: 'ledoux', brandName: 'ليدو', brandSub: 'LE DOUX' });
   }
 
   // فتح نافذة اختيار القسم
@@ -1466,6 +1328,9 @@ function showToast(message, type = 'info', duration = 3000) {
         }catch(e){ console.error('openMobileView',e); }
       }
       function closeMobileView(){ const modal = document.getElementById('mobileViewModal'); if(modal) modal.style.display='none'; }
- </script>
+
+// فتح صفحة إعداد توقيعات الفاتورة في تبويب جديد
+document.getElementById('invoiceSettingsBtn')?.addEventListener('click', () => window.open('invoice-settings.html', '_blank'));
+</script>
 </body>
 </html>
