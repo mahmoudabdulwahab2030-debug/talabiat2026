@@ -162,7 +162,9 @@
   })();
 
   // lightweight transient toast used for draft save/load feedback (global)
-  function showToast(message, type = 'info', duration = 3000) {
+  function dataRows(tbody){ return Array.from(tbody.querySelectorAll('tr')).filter(r => !!r.querySelector('.sent-qty')); }
+function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function showToast(message, type = 'info', duration = 3000) {
     try{
       const colors = { success: '#2ecc71', error: '#e74c3c', warning: '#f1c40f', info: '#3498db' };
       const bg = colors[type] || colors.info;
@@ -218,6 +220,12 @@
 
     branchSelect.addEventListener('change', loadSections);
     orderDateInput.addEventListener('change', loadSections);
+
+    // مسح الجدول عند تغيير أي اختيار حتى لا تُرسل بيانات فرع أو قسم قديم بالخطأ
+    function clearOrderTable(){ orderDataTable.innerHTML = ''; updateAnalysisCards(); }
+    branchSelect.addEventListener('change', clearOrderTable);
+    orderDateInput.addEventListener('change', clearOrderTable);
+    sectionSelect.addEventListener('change', clearOrderTable);
 
     function loadSections() {
       const branch = branchSelect.value;
@@ -330,7 +338,7 @@
           if (section === 'all' || sectionGroups.size > 1) {
             const headerRow = document.createElement('tr');
             headerRow.className = 'section-header-row';
-            headerRow.innerHTML = `<td colspan="6">📁 ${sheetName}</td>`;
+            headerRow.innerHTML = `<td colspan="6">📁 ${escHtml(sheetName)}</td>`;
             orderDataTable.appendChild(headerRow);
           }
 
@@ -338,8 +346,8 @@
             const row = document.createElement('tr');
             row.dataset.sheet = sheetName;
             row.innerHTML = `
-              <td>${order.code}</td>
-              <td>${order.name}</td>
+              <td>${escHtml(order.code)}</td>
+              <td>${escHtml(order.name)}</td>
               <td>${order.qty}</td>
               <td><input type="number" value="0" min="0" class="sent-qty"></td>
               <td class="diff-cell">0</td>
@@ -439,7 +447,7 @@
 
   function updateAnalysisCards(){
     try{
-      const rows = Array.from(orderDataTable.querySelectorAll('tr'));
+      const rows = dataRows(orderDataTable);
       const shortages = [];
       const excesses = [];
       rows.forEach(row=>{
@@ -471,126 +479,10 @@
     }catch(e){ console.warn('updateAnalysisCards', e); }
   }
 
-  document.getElementById('manageOrderForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const branch = branchSelect.value;
-    const orderDate = orderDateInput.value;
-    const section = sectionSelect.value;
-
-    if (!branch || !orderDate || !section) {
-      Swal.fire('خطأ', 'يرجى اختيار الفرع والتاريخ والقسم لإرسال الفاتورة.', 'error');
-      return;
-    }
-
-    const rows = Array.from(orderDataTable.querySelectorAll('tr'));
-    const invoiceProducts = rows.map((row) => {
-      const codeInput = row.querySelector('.item-code');
-      const nameInput = row.querySelector('.item-name');
-      const requestedQtyInput = row.querySelector('.requested-qty');
-      const sentQtyInput = row.querySelector('.sent-qty');
-
-      return {
-        code: codeInput ? codeInput.value.trim() : row.cells[0].textContent.trim(),
-        name: nameInput ? nameInput.value.trim() : row.cells[1].textContent.trim(),
-        requestedQuantity: parseFloat(requestedQtyInput ? requestedQtyInput.value : row.cells[2].textContent) || 0,
-        sentQuantity: parseFloat(sentQtyInput ? sentQtyInput.value : row.cells[3].querySelector('input').value) || 0
-      };
+    document.getElementById('manageOrderForm').addEventListener('submit', (e) => {
+      e.preventDefault(); // الإرسال يتم من زر "إرسال الكميات" فقط لمنع فواتير مكررة
+      sendQuantities();
     });
-
-    // compute shortages/excesses for saved invoice
-    const shortages = [];
-    const excesses = [];
-    invoiceProducts.forEach(p => {
-      const diff = (Number(p.sentQuantity)||0) - (Number(p.requestedQuantity)||0);
-      if(diff < 0) shortages.push({ code: p.code, name: p.name, qty: Math.abs(diff) });
-      else if(diff > 0) excesses.push({ code: p.code, name: p.name, qty: diff });
-    });
-
-    const invoice = {
-      branch,
-      orderDate,
-      section,
-      products: invoiceProducts,
-      shortages,
-      excesses,
-      createdAt: new Date().toISOString(),
-      invoiceNumber: invoiceCounter // إضافة رقم الفاتورة
-    };
-
-    const invoiceRef = db.collection('invoices').doc(`${branch}_${orderDate}_${section}`);
-    const invoiceSnapshot = await invoiceRef.get();
-
-    if (invoiceSnapshot.exists) {
-      // حوار بثلاثة خيارات: تعديل / حفظ جديد / إلغاء
-      Swal.fire({
-        title: 'تنبيه',
-        text: 'تم العثور على فاتورة بنفس الفرع والتاريخ والقسم. ماذا تريد أن تفعل؟',
-        icon: 'warning',
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: 'تعديل',
-        denyButtonText: 'حفظ جديد',
-        cancelButtonText: 'إلغاء'
-      }).then(async (result) => {
-        try {
-          if (result.isConfirmed) {
-            // تحديث الفاتورة الموجودة
-            await invoiceRef.update(invoice);
-            Swal.fire({
-              title: '✅ تم التعديل',
-              text: 'تم تعديل الفاتورة بنجاح.',
-              icon: 'success',
-              showDenyButton: true,
-              confirmButtonText: 'موافق',
-              denyButtonText: 'طباعة الفاتورة'
-            }).then((res) => {
-              if (res.isDenied) {
-                printInvoice(invoice);
-              }
-            });
-          } else if (result.isDenied) {
-            // حفظ كفاتورة جديدة برقم جديد
-            const newInvoice = Object.assign({}, invoice, { invoiceNumber: nextInvoiceNumber, createdAt: new Date().toISOString() });
-            await db.collection('invoices').add(newInvoice);
-            Swal.fire({
-              title: '✅ تم الحفظ كفاتورة جديدة',
-              text: `تم حفظ فاتورة جديدة بالرقم ${nextInvoiceNumber}.`,
-              icon: 'success',
-              showDenyButton: true,
-              confirmButtonText: 'موافق',
-              denyButtonText: 'طباعة الفاتورة'
-            }).then((res) => {
-              if (res.isDenied) {
-                printInvoice(newInvoice);
-              }
-            });
-            nextInvoiceNumber++;
-          } else {
-            Swal.fire('تم الإلغاء', 'لم يتم إجراء أي تغييرات.', 'info');
-          }
-        } catch (err) {
-          console.error('Invoice action error:', err);
-          Swal.fire('❌ خطأ', 'حدث خطأ أثناء معالجة الطلب.', 'error');
-        }
-      });
-    } else {
-      await invoiceRef.set(invoice);
-      Swal.fire({
-        title: 'تم',
-        text: 'تم إنشاء الفاتورة بنجاح!',
-        icon: 'success',
-        showDenyButton: true,
-        confirmButtonText: 'موافق',
-        denyButtonText: 'طباعة الفاتورة'
-      }).then((result) => {
-        if (result.isDenied) {
-          printInvoice(invoice);
-        }
-      });
-      invoiceCounter++; // زيادة رقم الفاتورة بعد الإنشاء
-    }
-  });
 
   // تعديل دالة الطباعة: تطبع فقط محتوى الفاتورة مع CSS احترافي
   function printInvoice(invoice) {
@@ -1141,7 +1033,7 @@
    }
 
    function copyRequestedToSentValues() {
-     const rows = Array.from(orderDataTable.querySelectorAll('tr'));
+     const rows = dataRows(orderDataTable);
      let updated = false;
      rows.forEach(row => {
        const requested = getRequestedFromRow(row);
@@ -1173,7 +1065,7 @@
       return;
     }
 
-    const rows = Array.from(orderDataTable.querySelectorAll('tr'));
+    const rows = dataRows(orderDataTable);
     if (rows.length === 0) {
       Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'لا توجد أصناف لإرسالها.' });
       return;
@@ -1224,6 +1116,7 @@
       // invoiceNumber handled below depending on action
     };
 
+    await fetchLastInvoiceNumber();
     const docId = `${branch}_${orderDate}_${section}`;
     const invoiceRef = db.collection('invoices').doc(docId);
 
@@ -1333,7 +1226,7 @@
   if (issueInvoiceBtn) {
     issueInvoiceBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      loadSectionsFromCatalog();
+      sendQuantities();
     });
   }
 
@@ -1360,7 +1253,7 @@
         } finally {
           allowLoadTable = false;
           loadTableBtn.disabled = false;
-          loadTableBtn.textContent = '⬇️ عرض';
+          loadTableBtn.textContent = '⬇️ عرض الأصناف';
         }
       });
     }
@@ -1384,7 +1277,7 @@
       const orderDate = orderDateInput.value;
       const section = sectionSelect.value;
   if(!branch || !orderDate || !section){ showToast('اختر الفرع والتاريخ والقسم ثم اضغط حفظ مؤقت','warning',3000); return; }
-      const rows = Array.from(orderDataTable.querySelectorAll('tr'));
+      const rows = dataRows(orderDataTable);
       const products = rows.map(row => {
         const code = row.querySelector('.item-code') ? row.querySelector('.item-code').value.trim() : (row.cells[0]?row.cells[0].textContent.trim():'');
         const name = row.querySelector('.item-name') ? row.querySelector('.item-name').value.trim() : (row.cells[1]?row.cells[1].textContent.trim():'');
@@ -1466,7 +1359,7 @@
           }
         }
         if(!Array.isArray(products) || products.length===0) return;
-        const rows = Array.from(orderDataTable.querySelectorAll('tr'));
+        const rows = dataRows(orderDataTable);
         const map = new Map();
         products.forEach(p => {
           const code = (p.code||'').toString().trim().toLowerCase();
@@ -1533,7 +1426,7 @@
           const modal = document.getElementById('mobileViewModal');
           const content = document.getElementById('mobileViewContent');
           if(!modal || !content) return;
-          const rows = Array.from(orderDataTable.querySelectorAll('tr'));
+          const rows = dataRows(orderDataTable);
           if(rows.length===0){ content.innerHTML = '<div style="text-align:center;padding:12px;color:#ccc">لا توجد أصناف</div>'; }
           else{
             const html = rows.map(r=>{

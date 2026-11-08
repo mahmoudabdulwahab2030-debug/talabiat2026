@@ -185,6 +185,8 @@ let allowLoadTable = false;
 let nextInvoiceNumber = 1;
 
 // helpers
+function dataRows(tbody){ return Array.from(tbody.querySelectorAll('tr')).filter(r => !!r.querySelector('.sent-qty')); }
+function escHtml(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 function escapeJs(s){ return String(s||'').replace(/'/g,"\\'").replace(/\n/g,' '); }
 
@@ -512,7 +514,7 @@ function selectCatalogItem(code, name, codeInputId, nameInputId){
     const nameEl = document.getElementById(nameInputId);
     if(codeEl && nameEl){ codeEl.value = code; nameEl.value = name; closeCatalogModal(); return; }
   }
-  const rows = orderDataBody.querySelectorAll('tr');
+  const rows = dataRows(orderDataBody);
   const last = rows[rows.length-1];
   if(last){
     const codeInput = last.querySelector('.item-code');
@@ -538,7 +540,7 @@ async function sendQuantities(){
   if(!db){ Swal.fire('خطأ','قاعدة البيانات غير متاحة','error'); return; }
   const branch = branchSelect.value, orderDate = orderDateInput.value, section = sectionSelect.value;
   if(!branch || !orderDate || !section){ Swal.fire('خطأ','اختر الفرع والتاريخ والقسم','error'); return; }
-  const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+  const rows = dataRows(orderDataBody);
   if(rows.length===0){ Swal.fire('تنبيه','لا توجد أصناف','warning'); return; }
   const products = rows.map(row=>{
     const cells = row.querySelectorAll('td');
@@ -564,6 +566,7 @@ async function sendQuantities(){
     else if(diff > 0) excesses.push({ code: p.code, name: p.name, qty: diff });
   });
   const invoice = { branch, orderDate, section, products, shortages, excesses, createdAt: new Date().toISOString() };
+  await fetchLastInvoiceNumber();
   const docId = `${branch}_${orderDate}_${section}`;
   const ref = db.collection('invoices').doc(docId);
 
@@ -819,7 +822,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // mobile view binding
   const mobileViewBtn = document.getElementById('mobileViewBtn');
   if(mobileViewBtn) mobileViewBtn.addEventListener('click', (e)=>{ e.preventDefault(); openMobileView(); });
-  if(issueInvoiceBtn) issueInvoiceBtn.addEventListener('click', (e)=>{ e.preventDefault(); loadSectionsFromCatalog(); });
+  if(issueInvoiceBtn) issueInvoiceBtn.addEventListener('click', (e)=>{ e.preventDefault(); sendQuantities(); });
   document.getElementById('openCatalogBtnMobile')?.addEventListener('click', (e)=>{ e.preventDefault(); openCatalogModal(); });
 
   const actionsGroupToggle = document.getElementById('actionsGroupToggle');
@@ -891,7 +894,7 @@ async function saveDraftBest(){
   const section = sectionSelect ? sectionSelect.value : '';
   if(!branch || !orderDate || !section){ showToast('اختر الفرع والتاريخ والقسم ثم اضغط حفظ مؤقت','warning',3000); return; }
 
-  const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+  const rows = dataRows(orderDataBody);
   const products = rows.map(row => {
     const code = row.querySelector('.item-code') ? row.querySelector('.item-code').value.trim() : (row.cells[0]?row.cells[0].textContent.trim(): '');
     const name = row.querySelector('.item-name') ? row.querySelector('.item-name').value.trim() : (row.cells[1]?row.cells[1].textContent.trim(): '');
@@ -951,7 +954,7 @@ async function loadDraftBest(branch, orderDate, section){
       }
     }
     if(!Array.isArray(products) || products.length===0) return;
-    const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+    const rows = dataRows(orderDataBody);
     const map = new Map();
     products.forEach(p=>{
       const code = (p.code||'').toString().trim().toLowerCase();
@@ -990,7 +993,7 @@ function openMobileView(){
     const modal = document.getElementById('mobileViewModal');
     const content = document.getElementById('mobileViewContent');
     if(!modal || !content) return;
-    const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+    const rows = dataRows(orderDataBody);
     if(rows.length===0){ content.innerHTML = '<div style="text-align:center;padding:12px;color:#ccc">لا توجد أصناف</div>'; }
     else{
       const html = rows.map(r=>{
@@ -1036,7 +1039,7 @@ function updateRowDiff(row){
 
 function updateAnalysisCards(){
   try{
-    const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+    const rows = dataRows(orderDataBody);
     const shortages = [];
     const excesses = [];
     rows.forEach(row=>{
@@ -1069,7 +1072,7 @@ function updateAnalysisCards(){
 }
 
 function copyRequestedToSentValues() {
-  const rows = Array.from(orderDataBody.querySelectorAll('tr'));
+  const rows = dataRows(orderDataBody);
   let updated = false;
   rows.forEach(row => {
     const requested = getRequestedFromRow_bs(row);
@@ -1085,6 +1088,16 @@ function copyRequestedToSentValues() {
     showToast('تم نسخ الكميات المطلوبة إلى المرسلة', 'success', 2600);
   }
 }
-  </script>
+
+// منع الإرسال الافتراضي للنموذج (إعادة تحميل الصفحة)، ومسح الجدول عند تغيير أي اختيار
+document.getElementById('manageOrderForm')?.addEventListener('submit', (e) => e.preventDefault());
+['branch', 'orderDate', 'section'].forEach((id) => {
+  document.getElementById(id)?.addEventListener('change', () => {
+    orderDataBody.innerHTML = '';
+    if (typeof updateAnalysisCards === 'function') updateAnalysisCards();
+  });
+});
+
+</script>
 </body>
 </html>
