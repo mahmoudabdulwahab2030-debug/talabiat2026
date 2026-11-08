@@ -1,6 +1,6 @@
 /*
  * حارس الجلسة والتحديثات — يُحمَّل تلقائياً من firestore-compat.js في كل الصفحات.
- * 1) يخرج المستخدم بعد فترة خمول (IDLE_MIN) أو بعد أقصى مدة للجلسة (MAX_HOURS) ويعيده لتسجيل الدخول ثم لنفس الصفحة.
+ * 1) يخرج المستخدم بعد فترة خمول (IDLE_MIN = 8 ساعات) أو بعد أقصى مدة للجلسة (MAX_HOURS) ويعيده لتسجيل الدخول من البداية، فيذهب إلى main.html بعد الدخول.
  * 2) عند الرجوع لصفحة من ذاكرة المتصفح (زر الرجوع/إعادة فتح التبويب) يعيد التحقق والتحميل.
  * 3) يكتشف نشر نسخة جديدة من الصفحة ويحدّثها بهدوء عندما لا يكون المستخدم يكتب، أو يعرض شريطاً صغيراً.
  */
@@ -20,7 +20,7 @@
 })();
 (function () {
   if (window.__sessionGuard) return; window.__sessionGuard = true;
-  var IDLE_MIN = 30, MAX_HOURS = 12, CHECK_MS = 30000, UPDATE_MS = 5 * 60000;
+  var IDLE_MIN = 480, MAX_HOURS = 12, CHECK_MS = 30000, UPDATE_MS = 5 * 60000;
   var LOGIN_PAGES = /(^|\/)(index|login)\.html$|^\/$/i;
   var path = location.pathname;
   var isLogin = LOGIN_PAGES.test(path);
@@ -33,8 +33,8 @@
     ['userCode', 'username', 'userUid', 'userRoles', 'sg_lastActive', 'sg_loginAt'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
     try { sessionStorage.clear(); } catch (e) {}
     set('sg_reason', reason || 'idle');
-    var back = path.replace(/^\//, '') + location.search.replace(/[?&](user|roles)=[^&]*/g, '').replace(/^&/, '?');
-    location.replace('/index.html?redirect=' + encodeURIComponent(back.split('?')[0]));
+    // بعد الخروج يُعاد المستخدم لتسجيل الدخول من البداية (بدون redirect) فيذهب إلى main.html بعد الدخول
+    location.replace('/index.html');
   }
 
   if (isLogin) {
