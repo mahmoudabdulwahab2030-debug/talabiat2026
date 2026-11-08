@@ -81,7 +81,6 @@
     ".items td{border:1px solid #e3d7bd;padding:8px;font-size:13px;text-align:center}",
     ".items td.nm{text-align:right}",
     ".items tbody tr:nth-child(even){background:#fbf8f1}",
-    ".items tfoot td{font-weight:800;background:#f3ead6;border:1px solid #d9c9a3;padding:9px}",
     ".empty{padding:18px;color:#8a8f99}",
     ".notes{margin-top:14px}",
     ".label{font-size:12px;font-weight:800;color:#8a6d2f;margin-bottom:4px}",
@@ -97,9 +96,7 @@
 
   function buildHtml(invoice, brand, sig, notes) {
     var products = (invoice.products || []).filter(function (p) { return num(p.sentQuantity) > 0; });
-    var totalReq = 0, totalSent = 0;
     var rows = products.map(function (p) {
-      totalReq += num(p.requestedQuantity); totalSent += num(p.sentQuantity);
       return '<tr><td>' + esc(p.code) + '</td><td class="nm">' + esc(p.name) + '</td><td>' +
         num(p.requestedQuantity) + '</td><td>' + num(p.sentQuantity) + '</td></tr>';
     }).join("");
@@ -120,7 +117,7 @@
       '</section>' +
       '<table class="items"><thead><tr><th>كود الصنف</th><th>المنتج</th><th>المطلوب</th><th>المرسل</th></tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
-      '<tfoot><tr><td colspan="2">الإجمالي</td><td>' + totalReq + '</td><td>' + totalSent + '</td></tr></tfoot></table>' +
+      '</table>' +
       '<section class="notes"><div class="label">ملاحظات</div><div class="box">' + esc(notes) + '</div></section>' +
       '<section class="sigs">' +
       '<div class="sig"><div class="sig-title">' + esc(sig.controllerTitle) + '</div><div class="sig-name">' + esc(sig.controllerName) + '</div><div class="sig-line"></div><span>التوقيع</span></div>' +
