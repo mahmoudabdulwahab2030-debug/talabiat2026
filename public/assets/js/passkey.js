@@ -2,7 +2,6 @@
 (function (global) {
   var API = "https://hhsavgucqgzehardjzdc.supabase.co/functions/v1/passkey";
   var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  var DECLINE_DAYS = 14;
 
   function b64uToBuf(s) {
     var b = String(s).replace(/-/g, "+").replace(/_/g, "/");
@@ -71,16 +70,19 @@
   async function offerEnrollAfterPassword(code, password) {
     try {
       if (!(await canUse())) return;
-      var key = "passkeyDeclined_" + code;
-      var last = Number(localStorage.getItem(key) || 0);
-      if (Date.now() - last < DECLINE_DAYS * 864e5) return;
+      // مفعّلة على هذا الجهاز: لا تسأل مرة أخرى
+      if (localStorage.getItem("passkeyEnrolled_" + code)) return;
+      // رفض في هذه الجلسة فقط: يُسأل مرة أخرى في الجلسة التالية
+      var declinedKey = "passkeyDeclined_" + code;
+      if (sessionStorage.getItem(declinedKey)) return;
       if (!await appConfirm("تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.")) {
-        localStorage.setItem(key, String(Date.now()));
+        sessionStorage.setItem(declinedKey, "1");
         return;
       }
       var o = await post({ action: "reg-options", userCode: code, password: password });
       var cred = await navigator.credentials.create({ publicKey: prep(o.options) });
       await post({ action: "reg-verify", userCode: code, password: password, challengeId: o.challengeId, response: serializeAtt(cred) });
+      try { localStorage.setItem("passkeyEnrolled_" + code, "1"); } catch (e) {}
       alert("✅ تم تفعيل الدخول بالبصمة على هذا الجهاز");
     } catch (e) {
       console.warn("passkey enrollment", e);
