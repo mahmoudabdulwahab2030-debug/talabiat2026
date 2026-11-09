@@ -330,25 +330,92 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- الطباعة: التقرير أو الملخص فقط ---------- */
+/* ---------- الطباعة: ورقة تقرير احترافية (A4 أفقي) ---------- */
 @media print {
-  @page { size: A4; margin: 12mm; }
-  body { background: #fff !important; color: #000 !important; }
-  body > *:not(#printSection):not(#notesArea) { display: none !important; }
-  body * { visibility: hidden; }
-  #printSection, #printSection *, #notesArea, #notesArea * { visibility: visible; }
+  @page {
+    size: A4 landscape;
+    margin: 12mm 10mm 14mm;
+    @bottom-right { content: "صفحة " counter(page) " من " counter(pages); font-family: "Cairo", Arial, sans-serif; font-size: 9pt; color: #555; }
+    @bottom-left { content: "بيست سويت - تقرير تجميع الطلبيات"; font-family: "Cairo", Arial, sans-serif; font-size: 9pt; color: #555; }
+  }
+  html, body {
+    background: #fff !important;
+    color: #111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* إخفاء كل واجهة التطبيق، وإظهار ورقة الطباعة فقط */
+  body * { visibility: hidden !important; }
+  body > h2,
+  .controls, #status, .btn-row, .fab-widget, #sheetLoader, #resultArea > .table-container:empty,
+  #reservationOverlay, #topBranchOverlay, #topRangeOverlay, .sheet-loader { display: none !important; }
+  #printSection, #printSection *,
+  #notesArea, #notesArea * { visibility: visible !important; }
+
   #printSection, #notesArea {
     position: absolute;
-    inset: 0 0 auto 0;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
-    padding: 0;
     margin: 0;
+    padding: 0;
     background: #fff !important;
-    color: #000 !important;
+    color: #111 !important;
+    font-family: "Cairo", Arial, sans-serif;
+    font-size: 10.5pt;
   }
-  #printSection *, #notesArea * { color: #000 !important; background: #fff !important; border-color: #000 !important; box-shadow: none !important; }
-  #printSection table, #notesArea table { width: 100%; border-collapse: collapse; }
-  #printSection th, #printSection td, #notesArea th, #notesArea td { border: 1px solid #000 !important; padding: 6px 8px; font-size: 11pt; }
-  #printSection thead th { background: #eee !important; }
-  #printSection tr { break-inside: avoid; }
+  #notesArea { display: block !important; }
+
+  /* عنوان التقرير */
+  #printSection > h3, #notesArea > h3 {
+    margin: 0 0 6mm;
+    padding: 0 0 3mm;
+    font-size: 15pt;
+    font-weight: 800;
+    text-align: center;
+    color: #111 !important;
+    border-bottom: 2.2pt solid #c99534;
+    line-height: 1.5;
+  }
+  #printSection span[style*="color"] { color: #8a5a00 !important; font-weight: 800; }
+
+  /* الجدول */
+  #printSection table, #notesArea table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: auto;
+    font-size: 10pt;
+    margin-top: 2mm;
+  }
+  #printSection thead { display: table-header-group; }
+  #printSection tfoot { display: table-footer-group; }
+  #printSection tr { break-inside: avoid; page-break-inside: avoid; }
+  #printSection th, #printSection td, #notesArea th, #notesArea td {
+    border: 0.6pt solid #8c8c8c !important;
+    padding: 2.2mm 2mm;
+    text-align: center;
+    vertical-align: middle;
+    color: #111 !important;
+    background: #fff !important;
+    line-height: 1.35;
+  }
+  #printSection thead th, #notesArea thead th {
+    background: #f3e7c9 !important;
+    font-weight: 800;
+    font-size: 10pt;
+    border-color: #6b5314 !important;
+  }
+  #printSection tbody tr:nth-child(even) td { background: #fbf8f1 !important; }
+  #printSection td.col-name, #printSection th.col-name { text-align: right; min-width: 40mm; white-space: normal; }
+  #printSection td.col-code { font-family: "Courier New", monospace; font-size: 9.5pt; direction: ltr; white-space: nowrap; }
+  #printSection td.col-total, #printSection th.col-total { font-weight: 800; background: #f7f0de !important; }
+  #printSection tr:last-child td { border-top: 1.2pt solid #111 !important; font-weight: 800; }
+
+  /* الملاحظات */
+  #notesArea { white-space: pre-wrap; line-height: 1.7; }
+  #notesArea p, #notesArea div { margin: 0 0 2mm; }
+  #notesArea strong { font-weight: 800; }
 }
