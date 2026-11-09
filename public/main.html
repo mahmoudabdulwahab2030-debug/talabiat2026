@@ -1889,8 +1889,17 @@
         btn.className = 'suggest-floating-btn';
         btn.title = 'أرسل اقتراح';
         btn.setAttribute('aria-label', 'أرسل اقتراح');
-        btn.className = 'suggest-floating-btn fab fab-suggest';
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1V17h5v-1c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>';
+        btn.className = 'suggest-floating-btn';
+        // Compact Telegram-like circular SVG (white plane on blue gradient)
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" width="24" height="24">
+            <defs>
+              <linearGradient id="tg1" x1="0" x2="1"><stop offset="0" stop-color="#2aabff"/><stop offset="1" stop-color="#00d9ff"/></linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="12" fill="url(#tg1)"></circle>
+            <path d="M19 5L5 11l4 1 1 4 3-3 5 2-9-10z" fill="#fff" opacity="0.98"></path>
+          </svg>
+        `;
         btn.addEventListener('click', openSuggestModal);
 
         // Insert next to upload widget label if present, otherwise append to body (fixed fallback)
@@ -1905,8 +1914,7 @@
 
         // Create chat button (next to suggest button)
         const chatBtn = document.createElement('button'); chatBtn.id = 'chatBtn'; chatBtn.title = 'تواصل مع المستخدمين'; chatBtn.setAttribute('aria-label','تواصل مع المستخدمين');
-        chatBtn.className = 'fab fab-chat';
-        chatBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.2A8 8 0 1 1 21 12z"/></svg><span class="unread-count"></span>';
+        chatBtn.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" aria-hidden="true"><path d="M2 21l1.5-5.5C3.9 14 5 13 6.5 13H7V7C7 5.3 8.3 4 10 4h4c1.7 0 3 1.3 3 3v6c0 1.1-.9 2-2 2h-1l-4 4H6c-1.1 0-2-.9-2-2z" fill="#fff" opacity="0.98"/></svg><span class="unread-count"></span>`;
         document.body.appendChild(chatBtn);
         chatBtn.style.position = 'fixed'; chatBtn.style.left = '86px'; chatBtn.style.bottom = '18px';
         
