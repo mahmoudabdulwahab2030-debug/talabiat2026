@@ -330,89 +330,71 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- الطباعة: ورقة تقرير واحدة منسقة (A4 عمودي) ---------- */
+/* ---------- الطباعة: قالب تقرير رسمي (A4 عمودي) ---------- */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 9mm 13mm;
-    @bottom-left { content: "بيست سويت - تقرير تجميع الطلبيات"; font-family: "Cairo", Arial, sans-serif; font-size: 8pt; color: #666; }
-    @bottom-right { content: "صفحة " counter(page) " من " counter(pages); font-family: "Cairo", Arial, sans-serif; font-size: 8pt; color: #666; }
+    margin: 11mm 10mm 14mm;
+    @bottom-left { content: "بيست سويت - تقرير تجميع الطلبيات"; font-family: "Cairo", Arial, sans-serif; font-size: 7.5pt; color: #777; }
+    @bottom-right { content: "صفحة " counter(page) " من " counter(pages); font-family: "Cairo", Arial, sans-serif; font-size: 7.5pt; color: #777; }
   }
-  html, body {
-    background: #fff !important;
-    color: #111 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+  html, body { background: #fff !important; color: #111 !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  /* إخفاء كل شيء لا يُطبع بالكامل حتى لا تُحجز مساحة (لا صفحات فارغة) */
+  /* لا يُعرض إلا التقرير: كل شيء آخر يُخفى بلا مساحة */
   body * { display: none !important; }
-  /* إظهار الطريق إلى التقرير فقط */
   body, .container, #resultArea { display: block !important; }
-  .container { padding: 0 !important; margin: 0 !important; max-width: none !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+  .container { padding: 0 !important; margin: 0 !important; max-width: none !important; background: none !important; border: 0 !important; box-shadow: none !important; min-height: 0 !important; }
   #printSection, #printSection * { display: revert !important; }
+  #printSection[data-pr="1"] > h3 { display: none !important; }
   #printSection { width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-family: "Cairo", Arial, sans-serif; }
-  #notesArea:not(:empty), #notesArea:not(:empty) * { display: revert !important; }
-  #notesArea:not(:empty) { width: 100% !important; margin: 4mm 0 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-size: 9.5pt; line-height: 1.7; }
   #printSection *, #notesArea * { color: #111 !important; background-color: transparent !important; box-shadow: none !important; }
 
-  /* عنوان التقرير وشريط علوي */
-  #printSection::before {
-    content: "بيست سويت";
-    display: block;
-    font-size: 9pt;
-    font-weight: 800;
-    letter-spacing: 1.5pt;
-    color: #8a5a00 !important;
-    text-align: left;
-    margin-bottom: 2mm;
-  }
-  #printSection > h3 {
-    display: block !important;
-    margin: 0 0 4mm !important;
-    padding: 0 0 3mm !important;
-    font-size: 13pt !important;
-    font-weight: 800 !important;
-    text-align: center !important;
-    line-height: 1.6 !important;
-    border-bottom: 2pt solid #c99534 !important;
-  }
-  #printSection > h3 span { color: #8a5a00 !important; font-weight: 800; }
+  /* الترويسة */
+  .pr-head { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4mm; padding-bottom: 3mm !important; margin-bottom: 5mm !important; border-bottom: 1.6pt solid #c99534 !important; }
+  .pr-brand { display: flex !important; flex-direction: column; line-height: 1.1; min-width: 32mm; }
+  .pr-brand b { font-size: 15pt; font-weight: 800; color: #111 !important; }
+  .pr-brand span { font-size: 7.5pt; letter-spacing: 1.6pt; color: #8a5a00 !important; text-transform: uppercase; margin-top: 1mm; }
+  .pr-title { flex: 1; text-align: center; font-size: 12.5pt; font-weight: 800; line-height: 1.5; color: #111 !important; }
+  .pr-chip { min-width: 26mm; text-align: center; font-size: 7.5pt; font-weight: 700; padding: 1.2mm 2.5mm; border-radius: 99px; border: 0.8pt solid #8a5a00; color: #8a5a00 !important; }
 
-  /* الجدول */
-  #printSection table {
-    display: table !important;
-    width: 100% !important;
-    border-collapse: collapse !important;
-    border-spacing: 0 !important;
-    font-size: 9pt !important;
-    margin: 0 !important;
-  }
+  /* الجدول: أعمدة ثابتة مع التفاف النص داخل الخلايا */
+  #printSection table { display: table !important; width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; border-spacing: 0 !important; font-size: 8.6pt !important; margin: 0 !important; }
   #printSection thead { display: table-header-group !important; }
   #printSection tbody { display: table-row-group !important; }
   #printSection tr { display: table-row !important; break-inside: avoid; page-break-inside: avoid; }
   #printSection th, #printSection td {
     display: table-cell !important;
-    border: 0.5pt solid #7d7d7d !important;
-    padding: 1.8mm 1.5mm !important;
+    border: 0.5pt solid #8a8a8a !important;
+    padding: 1.7mm 1.3mm !important;
     text-align: center !important;
     vertical-align: middle !important;
-    line-height: 1.3 !important;
-    white-space: nowrap;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
   }
-  #printSection thead th {
-    background-color: #f1e3bf !important;
-    font-weight: 800 !important;
-    font-size: 8.5pt !important;
-    border-color: #6b5314 !important;
-  }
+  #printSection thead th { background-color: #efe0b8 !important; font-weight: 800 !important; font-size: 8.2pt !important; border-color: #6b5314 !important; }
   #printSection tbody tr:nth-child(even) td { background-color: #faf6ec !important; }
-  #printSection td.col-name, #printSection th.col-name { text-align: right !important; white-space: normal !important; width: 34%; }
-  #printSection td.col-code { font-family: "Courier New", monospace !important; font-size: 8pt !important; direction: ltr; }
-  #printSection td.col-total, #printSection th.col-total { font-weight: 800 !important; background-color: #f5ecd6 !important; }
-  #printSection tbody tr:last-child td { border-top: 1.2pt solid #111 !important; font-weight: 800 !important; }
+  #printSection th.col-code, #printSection td.col-code { width: 15% !important; font-family: "Courier New", monospace !important; font-size: 7.8pt !important; direction: ltr !important; }
+  #printSection th.col-name, #printSection td.col-name { width: 27% !important; text-align: right !important; }
+  #printSection th.col-total, #printSection td.col-total { width: 10% !important; font-weight: 800 !important; background-color: #f5ecd6 !important; }
+  #printSection thead th.col-total { background-color: #e6d19a !important; }
 
-  #notesArea:not(:empty) strong { font-weight: 800; }
+  /* الملخص النهائي أسفل الجدول */
+  .pr-summary { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 3mm !important; margin-top: 6mm !important; break-inside: avoid; }
+  .pr-card { border: 0.8pt solid #c9b27a !important; border-radius: 2.5mm; padding: 3mm 3mm; text-align: center; background: #fcfaf3 !important; }
+  .pr-card span { display: block; font-size: 7.8pt; color: #6d5a2a !important; font-weight: 700; margin-bottom: 1.5mm; }
+  .pr-card b { display: block; font-size: 13pt; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pr-card.pr-grand { background: #f3e5bd !important; border-color: #8a5a00 !important; }
+  .pr-card.pr-grand b { font-size: 15pt; }
+
+  /* خانات التوقيع */
+  .pr-sign { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6mm !important; margin-top: 9mm !important; break-inside: avoid; }
+  .pr-sign div { text-align: center; }
+  .pr-sign span { display: block; font-size: 8pt; font-weight: 700; color: #333 !important; }
+  .pr-sign i { display: block; height: 13mm; margin-top: 2mm; border-bottom: 0.9pt solid #111; }
+
+  /* الملاحظات */
+  #notesArea:not(:empty) { display: block !important; width: 100% !important; margin: 5mm 0 0 !important; padding: 0 !important; background: #fff !important; font-size: 8.8pt; line-height: 1.7; }
+  #notesArea:not(:empty) * { display: revert !important; }
 }
