@@ -330,93 +330,89 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- الطباعة: ورقة تقرير احترافية (A4 أفقي) ---------- */
+/* ---------- الطباعة: ورقة تقرير واحدة منسقة (A4 عمودي) ---------- */
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 8mm 8mm 11mm;
-    @bottom-right { content: "صفحة " counter(page) " من " counter(pages); font-family: "Cairo", Arial, sans-serif; font-size: 9pt; color: #555; }
-    @bottom-left { content: "بيست سويت - تقرير تجميع الطلبيات"; font-family: "Cairo", Arial, sans-serif; font-size: 9pt; color: #555; }
+    size: A4 portrait;
+    margin: 10mm 9mm 13mm;
+    @bottom-left { content: "بيست سويت - تقرير تجميع الطلبيات"; font-family: "Cairo", Arial, sans-serif; font-size: 8pt; color: #666; }
+    @bottom-right { content: "صفحة " counter(page) " من " counter(pages); font-family: "Cairo", Arial, sans-serif; font-size: 8pt; color: #666; }
   }
   html, body {
     background: #fff !important;
     color: #111 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* إخفاء كل واجهة التطبيق، وإظهار ورقة الطباعة فقط */
-  body * { visibility: hidden !important; }
-  body > h2,
-  .controls, #status, .btn-row, .fab-widget, #sheetLoader, #resultArea > .table-container:empty,
-  #reservationOverlay, #topBranchOverlay, #topRangeOverlay, .sheet-loader { display: none !important; }
-  #printSection, #printSection *,
-  #notesArea, #notesArea * { visibility: visible !important; }
+  /* إخفاء كل شيء لا يُطبع بالكامل حتى لا تُحجز مساحة (لا صفحات فارغة) */
+  body * { display: none !important; }
+  /* إظهار الطريق إلى التقرير فقط */
+  body, .container, #resultArea { display: block !important; }
+  .container { padding: 0 !important; margin: 0 !important; max-width: none !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+  #printSection, #printSection * { display: revert !important; }
+  #printSection { width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-family: "Cairo", Arial, sans-serif; }
+  #notesArea:not(:empty), #notesArea:not(:empty) * { display: revert !important; }
+  #notesArea:not(:empty) { width: 100% !important; margin: 4mm 0 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-size: 9.5pt; line-height: 1.7; }
+  #printSection *, #notesArea * { color: #111 !important; background-color: transparent !important; box-shadow: none !important; }
 
-  #printSection, #notesArea {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background: #fff !important;
-    color: #111 !important;
-    font-family: "Cairo", Arial, sans-serif;
-    font-size: 9.5pt;
-  }
-  /* لا تُطبع ورقة فارغة: الملاحظات تظهر فقط عند وجود محتوى */
-  #notesArea:empty { display: none !important; }
-
-  /* عنوان التقرير */
-  #printSection > h3, #notesArea > h3 {
-    margin: 0 0 6mm;
-    padding: 0 0 3mm;
-    font-size: 12.5pt;
+  /* عنوان التقرير وشريط علوي */
+  #printSection::before {
+    content: "بيست سويت";
+    display: block;
+    font-size: 9pt;
     font-weight: 800;
-    text-align: center;
-    color: #111 !important;
-    border-bottom: 2.2pt solid #c99534;
-    line-height: 1.5;
+    letter-spacing: 1.5pt;
+    color: #8a5a00 !important;
+    text-align: left;
+    margin-bottom: 2mm;
   }
-  #printSection span[style*="color"] { color: #8a5a00 !important; font-weight: 800; }
+  #printSection > h3 {
+    display: block !important;
+    margin: 0 0 4mm !important;
+    padding: 0 0 3mm !important;
+    font-size: 13pt !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    line-height: 1.6 !important;
+    border-bottom: 2pt solid #c99534 !important;
+  }
+  #printSection > h3 span { color: #8a5a00 !important; font-weight: 800; }
 
   /* الجدول */
-  #printSection table, #notesArea table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    table-layout: auto;
-    font-size: 8.5pt;
-    margin-top: 1.5mm;
+  #printSection table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    font-size: 9pt !important;
+    margin: 0 !important;
   }
-  #printSection thead { display: table-header-group; }
-  #printSection tfoot { display: table-footer-group; }
-  #printSection tr { break-inside: avoid; page-break-inside: avoid; }
-  #printSection th, #printSection td, #notesArea th, #notesArea td {
-    border: 0.6pt solid #8c8c8c !important;
-    padding: 1.2mm 1.4mm;
-    text-align: center;
-    vertical-align: middle;
-    color: #111 !important;
-    background: #fff !important;
-    line-height: 1.35;
+  #printSection thead { display: table-header-group !important; }
+  #printSection tbody { display: table-row-group !important; }
+  #printSection tr { display: table-row !important; break-inside: avoid; page-break-inside: avoid; }
+  #printSection th, #printSection td {
+    display: table-cell !important;
+    border: 0.5pt solid #7d7d7d !important;
+    padding: 1.8mm 1.5mm !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    line-height: 1.3 !important;
+    white-space: nowrap;
   }
-  #printSection thead th, #notesArea thead th {
-    background: #f3e7c9 !important;
-    font-weight: 800;
-    font-size: 8.5pt;
+  #printSection thead th {
+    background-color: #f1e3bf !important;
+    font-weight: 800 !important;
+    font-size: 8.5pt !important;
     border-color: #6b5314 !important;
   }
-  #printSection tbody tr:nth-child(even) td { background: #fbf8f1 !important; }
-  #printSection td.col-name, #printSection th.col-name { text-align: right; min-width: 40mm; white-space: normal; }
-  #printSection td.col-code { font-family: "Courier New", monospace; font-size: 8pt; direction: ltr; white-space: nowrap; }
-  #printSection td.col-total, #printSection th.col-total { font-weight: 800; background: #f7f0de !important; }
-  #printSection tbody tr:last-child td { border-top: 1pt solid #111 !important; font-weight: 800; }
+  #printSection tbody tr:nth-child(even) td { background-color: #faf6ec !important; }
+  #printSection td.col-name, #printSection th.col-name { text-align: right !important; white-space: normal !important; width: 34%; }
+  #printSection td.col-code { font-family: "Courier New", monospace !important; font-size: 8pt !important; direction: ltr; }
+  #printSection td.col-total, #printSection th.col-total { font-weight: 800 !important; background-color: #f5ecd6 !important; }
+  #printSection tbody tr:last-child td { border-top: 1.2pt solid #111 !important; font-weight: 800 !important; }
 
-  /* الملاحظات */
-  #notesArea { white-space: pre-wrap; line-height: 1.7; }
-  #notesArea p, #notesArea div { margin: 0 0 2mm; }
-  #notesArea strong { font-weight: 800; }
+  #notesArea:not(:empty) strong { font-weight: 800; }
 }
