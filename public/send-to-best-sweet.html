@@ -561,6 +561,25 @@ function selectCatalogItem(code, name, codeInputId, nameInputId){
 }
 function closeCatalogModal(){ document.getElementById('catalogModal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; }
 
+// فحص سلامة بنود الفاتورة قبل الحفظ: يمنع السالب، والصنف بلا كود أو اسم، والصنف المكرر
+function checkInvoiceRows(list){
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const errs = [];
+  const seen = {};
+  list.forEach((p, i) => {
+    const n = i + 1;
+    const req = Number(p.requestedQuantity) || 0, snt = Number(p.sentQuantity) || 0;
+    if (!(p.code || p.name) && (req !== 0 || snt !== 0)) errs.push(`السطر ${n}: أدخل كود الصنف أو اسمه`);
+    if (req < 0 || snt < 0) errs.push(`السطر ${n}: لا تُقبل كميات سالبة`);
+    const key = String(p.code || p.name || '').trim().toLowerCase();
+    if (key) {
+      if (seen[key]) errs.push(`الصنف «${esc(p.code || p.name)}» مكرر في السطرين ${seen[key]} و${n}`);
+      else seen[key] = n;
+    }
+  });
+  return errs.slice(0, 6).join('<br>');
+}
+
 // إرسال الكميات => حفظ/تعديل فاتورة في مجموعة invoices
 async function sendQuantities(){
   if(!db){ Swal.fire('خطأ','قاعدة البيانات غير متاحة','error'); return; }
@@ -568,7 +587,7 @@ async function sendQuantities(){
   if(!branch || !orderDate || !section){ Swal.fire('خطأ','اختر الفرع والتاريخ والقسم','error'); return; }
   const rows = dataRows(orderDataBody);
   if(rows.length===0){ Swal.fire('تنبيه','لا توجد أصناف','warning'); return; }
-  const products = rows.map(row=>{
+  const allProducts = rows.map(row=>{
     const cells = row.querySelectorAll('td');
     const read = idx => {
       const c = cells[idx];
@@ -580,7 +599,10 @@ async function sendQuantities(){
     const requestedQuantity = Number(read(2)||0) || 0;
     const sentQuantity = Number(read(3) ? row.querySelector('.sent-qty')?.value || 0 : 0) || 0;
     return { code, name, requestedQuantity, sentQuantity };
-  }).filter(p=>p.code||p.name);
+  });
+  const products = allProducts.filter(p=>p.code||p.name);
+  const __guardErr = checkInvoiceRows(allProducts);
+  if (__guardErr) { Swal.fire({ icon: 'warning', title: 'تعذر الحفظ', html: __guardErr }); return; }
   if(products.length===0){ Swal.fire('تنبيه','لا توجد بيانات صالحة','warning'); return; }
 
   // compute shortages/excesses and attach to invoice document

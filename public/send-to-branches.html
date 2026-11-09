@@ -935,6 +935,25 @@ function showToast(message, type = 'info', duration = 3000) {
    }
 
    // استبدال دالة sendQuantities بأخرى تتحقق من الوجود وتعرض خيارات تعديل / حفظ جديد / إلغاء
+// فحص سلامة بنود الفاتورة قبل الحفظ: يمنع السالب، والصنف بلا كود أو اسم، والصنف المكرر
+function checkInvoiceRows(list){
+  const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const errs = [];
+  const seen = {};
+  list.forEach((p, i) => {
+    const n = i + 1;
+    const req = Number(p.requestedQuantity) || 0, snt = Number(p.sentQuantity) || 0;
+    if (!(p.code || p.name) && (req !== 0 || snt !== 0)) errs.push(`السطر ${n}: أدخل كود الصنف أو اسمه`);
+    if (req < 0 || snt < 0) errs.push(`السطر ${n}: لا تُقبل كميات سالبة`);
+    const key = String(p.code || p.name || '').trim().toLowerCase();
+    if (key) {
+      if (seen[key]) errs.push(`الصنف «${esc(p.code || p.name)}» مكرر في السطرين ${seen[key]} و${n}`);
+      else seen[key] = n;
+    }
+  });
+  return errs.slice(0, 6).join('<br>');
+}
+
   async function sendQuantities() {
     const branch = document.getElementById('branch').value;
     const orderDate = document.getElementById('orderDate').value;
@@ -975,6 +994,8 @@ function showToast(message, type = 'info', duration = 3000) {
     });
 
     const validProducts = products.filter(p => p.code || p.name);
+    const __guardErr = checkInvoiceRows(products);
+    if (__guardErr) { Swal.fire({ icon: 'warning', title: 'تعذر الحفظ', html: __guardErr }); return; }
     if (validProducts.length === 0) {
       Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'لا توجد بيانات صالحة للأصناف.' });
       return;
@@ -1230,8 +1251,8 @@ function showToast(message, type = 'info', duration = 3000) {
               products = products.concat(data.products);
             }
           }
-          const allDocId = _buildDraftDocId(branch, orderDate, 'all');
-          const allSnap = await db.collection('drafts').doc(allDocId).get();
+          const allDocId = null; // المسودة الشاملة لا تُدمج مع قسم محدد لمنع تداخل الأصناف
+          const allSnap = allDocId ? await db.collection('drafts').doc(allDocId).get() : { exists: false };
           if (allSnap.exists) {
             const allData = allSnap.data();
             if (allData && Array.isArray(allData.products)) {
