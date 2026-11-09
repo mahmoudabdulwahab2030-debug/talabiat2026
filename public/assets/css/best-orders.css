@@ -330,6 +330,69 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+/* ---------- سطر التدوين على الشاشة: بطاقة مثل ورقة الطباعة ---------- */
+.by-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 18px 0 6px;
+  padding: 14px 18px 14px 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(245, 194, 107, 0.14), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(245, 194, 107, 0.32);
+  border-inline-start: 4px solid var(--gold);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  color: var(--muted);
+  text-align: right;
+  animation: byRise 0.5s var(--ease) both;
+}
+.by-card::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -4px;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ffe09a, var(--gold-2));
+  display: none;
+}
+.by-ico {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(245, 194, 107, 0.16);
+  border: 1px solid rgba(245, 194, 107, 0.35);
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+.by-label {
+  font-weight: 700;
+  color: #e9d6a6;
+  letter-spacing: 0.2px;
+  margin-inline-end: 4px;
+}
+.by-names {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text);
+  background: linear-gradient(90deg, var(--gold), #ffd98a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding-inline-start: 2px;
+}
+@keyframes byRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 480px) {
+  .by-card { padding: 12px 14px; gap: 8px; }
+  .by-names { font-size: 14px; }
+}
+
 /* ---------- الطباعة: قالب تقرير رسمي (A4 عمودي) ---------- */
 @media print {
   @page {

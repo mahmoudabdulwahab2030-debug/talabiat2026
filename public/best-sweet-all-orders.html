@@ -455,9 +455,7 @@ const firebaseConfig = {
 
       html += `</tbody></table>
         <p style="margin-top:10px; font-size:13px; color:gray;">✅ = تم إرسال الصنف من صفحة الحجز</p>
-        <div style="margin-top:18px; font-size:13px; color:var(--muted); text-align:right;">
-          تم تجميع الطلبيه بواسطة "<span id=\"reportGeneratedBy\"></span>"
-        </div>
+        <div class="by-card"><span class="by-ico">🧾</span><span class="by-label">تم تجميع الطلبية بواسطة</span><span class="by-names" id="reportGeneratedBy"></span></div>
       </div>`;
       return html;
     }
@@ -536,9 +534,7 @@ const firebaseConfig = {
 
         html += `</tbody></table>
           <p style="margin-top:10px; font-size:13px; color:gray;">✅ = تم إرسال الصنف من صفحة الحجز</p>
-          <div style="margin-top:18px; font-size:13px; color:var(--muted); text-align:right;">
-            تم تجميع الطلبيه بواسطة "<span id=\"reportGeneratedBy\"></span>"
-          </div>
+          <div class="by-card"><span class="by-ico">🧾</span><span class="by-label">تم تجميع الطلبية بواسطة</span><span class="by-names" id="reportGeneratedBy"></span></div>
         </div>`;
       } else {
         html = renderSingleSection(sheet, date, filtered);
@@ -554,7 +550,7 @@ const firebaseConfig = {
         if (el) {
           // سطر التدوين على الشاشة مطابق لسطر الطباعة تماماً
           const b = window.computeByline ? window.computeByline() : null;
-          el.textContent = b ? (b.main + (b.printerPart ? '، طُبعت بواسطة ' + b.printerPart : '')) : by;
+          el.textContent = b ? (b.main + (b.printerPart ? '  ·  طُبعت بواسطة ' + b.printerPart : '')) : by;
         }
       }catch(e){ }
       try{
