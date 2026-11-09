@@ -207,6 +207,28 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
   </style>
   <link href="/assets/css/db-storage.css" rel="stylesheet" />
   <script src="/assets/js/app-dialogs.js"></script>
+  <style id="pkAdminStyle">
+    #pkOverlay{position:fixed;inset:0;background:rgba(4,6,9,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;z-index:9000;align-items:center;justify-content:center;padding:14px;font-family:Cairo,Segoe UI,Tahoma,sans-serif}
+    #pkOverlay.open{display:flex}
+    #pkBox{width:min(640px,96vw);max-height:90vh;overflow:auto;border-radius:22px;padding:20px;background:rgba(20,24,30,.96);color:#f4f6f9;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 80px rgba(0,0,0,.6);direction:rtl}
+    #pkBox h3{margin:0 0 12px;color:#e8b44a}
+    .pk-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:8px}
+    .pk-tab{background:transparent;border:1px solid transparent;color:#9aa3ad;padding:8px 14px;border-radius:12px;cursor:pointer;font:inherit;font-weight:700}
+    .pk-tab.on{background:linear-gradient(180deg,#f0c25e,#c99534);color:#14110a}
+    .pk-pane{display:none}.pk-pane.on{display:block}
+    .pk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);margin-bottom:8px}
+    .pk-row label{font-size:14px}
+    .pk-field{display:grid;gap:6px;margin-bottom:12px}
+    .pk-field span{font-size:13px;color:#9aa3ad}
+    .pk-field textarea,.pk-field input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#f4f6f9;font:inherit;box-sizing:border-box}
+    .pk-field textarea{min-height:64px;resize:vertical}
+    .pk-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+    .pk-actions button{padding:10px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#f4f6f9;font:inherit;font-weight:700;cursor:pointer}
+    .pk-actions .pri{background:linear-gradient(180deg,#f0c25e,#c99534);color:#14110a;border-color:transparent}
+    .pk-preview{padding:14px;border-radius:14px;background:#0b0d10;border:1px dashed rgba(255,255,255,.2);text-align:center}
+    .pk-preview button{width:100%;padding:12px;border-radius:12px;border:1px solid currentColor;background:transparent;color:#f4f6f9;font:inherit;font-weight:700}
+    .pk-status{font-size:13px;color:#9aa3ad;margin-top:8px;min-height:18px}
+  </style>
 </head>
 <body>
   <h2>🧑‍💼 لوحة التحكم | إدارة المستخدمين</h2>
@@ -220,6 +242,7 @@ button:focus, input:focus, select:focus { box-shadow: var(--focus-ring) }
     <button class="primary" onclick="GuideAdmin.open()">📘 إعدادات شرح الصفحات</button>
     <button class="primary" onclick="BranchAdmin.open()">🏬 إدارة الفروع / إنشاء فرع جديد</button>
     <button class="ghost" id="toggleUsersBtn">👥 عرض المستخدمين</button>
+    <button class="ghost" id="passkeyAdminBtn" type="button">🔐 إدارة الدخول بالبصمة</button>
     <button class="ghost" id="sliderToggleBtn">👁️ إخفاء/عرض السلايدر</button>
     <button class="ghost" id="openColumnSettingsBtn" onclick="openGlobalColumnSettings()">⚙️ إعدادات أعمدة التجميع</button>
      <button onclick="location.href='suggestions.html'"> المقترحات</button>
@@ -1180,6 +1203,117 @@ async function modalComplete() {
 
     document.getElementById("dbRefresh").addEventListener("click", loadDb);
     loadDb();
+  })();
+  </script>
+  <div id="pkOverlay" aria-hidden="true">
+    <div id="pkBox" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
+      <h3 id="pkTitle">🔐 إدارة الدخول بالبصمة</h3>
+      <div class="pk-tabs">
+        <button class="pk-tab on" data-pk="general" type="button">⚙️ الإظهار والتحكم</button>
+        <button class="pk-tab" data-pk="texts" type="button">✏️ الرسائل والنصوص</button>
+        <button class="pk-tab" data-pk="preview" type="button">👁️ معاينة</button>
+      </div>
+
+      <div class="pk-pane on" id="pk-general">
+        <div class="pk-row"><label for="pkButtonVisible">إظهار زر البصمة في صفحة الدخول</label><input type="checkbox" id="pkButtonVisible" /></div>
+        <div class="pk-row"><label for="pkMobileOnly">إظهار الزر على الموبايل فقط</label><input type="checkbox" id="pkMobileOnly" /></div>
+        <div class="pk-row"><label for="pkEnrollEnabled">عرض سؤال تفعيل البصمة بعد الدخول بكلمة المرور</label><input type="checkbox" id="pkEnrollEnabled" /></div>
+        <p class="pk-status" id="pkStatus"></p>
+      </div>
+
+      <div class="pk-pane" id="pk-texts">
+        <div class="pk-field"><span>نص زر البصمة</span><input id="pkButtonText" type="text" /></div>
+        <div class="pk-field"><span>سؤال تفعيل البصمة</span><textarea id="pkEnrollQuestion"></textarea></div>
+        <div class="pk-field"><span>رسالة نجاح التفعيل</span><textarea id="pkEnrollSuccess"></textarea></div>
+        <div class="pk-field"><span>رسالة: المتصفح لا يدعم البصمة</span><textarea id="pkUnsupportedMsg"></textarea></div>
+        <div class="pk-field"><span>رسالة: لا توجد بصمة مفعّلة على الجهاز</span><textarea id="pkNoBiometricMsg"></textarea></div>
+        <div class="pk-field"><span>رسالة: المعاينة داخل المحرر</span><textarea id="pkFramedMsg"></textarea></div>
+        <div class="pk-field"><span>رسالة: تم إلغاء التحقق</span><textarea id="pkCancelMsg"></textarea></div>
+        <div class="pk-field"><span>رسالة: تعذر الدخول بالبصمة</span><textarea id="pkErrorMsg"></textarea></div>
+        <div class="pk-field"><span>بادئة رسالة خطأ التفعيل</span><input id="pkEnrollErrorMsg" type="text" /></div>
+      </div>
+
+      <div class="pk-pane" id="pk-preview">
+        <div class="pk-preview"><button type="button" id="pkPreviewBtn"></button></div>
+        <p class="pk-status">هكذا سيظهر الزر في صفحة الدخول على الموبايل.</p>
+      </div>
+
+      <div class="pk-actions">
+        <button type="button" id="pkReset">↺ استعادة الافتراضي</button>
+        <button type="button" id="pkClose">إغلاق</button>
+        <button type="button" class="pri" id="pkSave">💾 حفظ</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var DEFAULTS = {
+      buttonVisible: true, mobileOnly: true, enrollEnabled: true,
+      buttonText: "🔐 الدخول بالبصمة / Face ID",
+      enrollQuestion: "تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.",
+      enrollSuccess: "✅ تم تفعيل الدخول بالبصمة على هذا الجهاز",
+      unsupportedMsg: "⚠️ هذا المتصفح لا يدعم الدخول بالبصمة. استخدم كلمة المرور.",
+      noBiometricMsg: "ℹ️ لا توجد بصمة أو Face ID مفعّلة على هذا الجهاز",
+      framedMsg: "ℹ️ البصمة تُفعَّل من الرابط الحي للموقع مباشرة وليس من المعاينة",
+      cancelMsg: "تم إلغاء التحقق من البصمة",
+      errorMsg: "❌ تعذر الدخول بالبصمة",
+      enrollErrorMsg: "⚠️ تعذر تفعيل البصمة: "
+    };
+    var TEXT_FIELDS = ["buttonText","enrollQuestion","enrollSuccess","unsupportedMsg","noBiometricMsg","framedMsg","cancelMsg","errorMsg","enrollErrorMsg"];
+    var BOOL_FIELDS = ["buttonVisible","mobileOnly","enrollEnabled"];
+    var ref = firebase.firestore().collection("settings").doc("passkey_config");
+    var $ = function (id) { return document.getElementById(id); };
+
+    function fill(c) {
+      BOOL_FIELDS.forEach(function (k) { $("pk" + k[0].toUpperCase() + k.slice(1)).checked = !!c[k]; });
+      TEXT_FIELDS.forEach(function (k) { $("pk" + k[0].toUpperCase() + k.slice(1)).value = c[k] || ""; });
+      $("pkPreviewBtn").textContent = c.buttonText || DEFAULTS.buttonText;
+    }
+    function read() {
+      var c = {};
+      BOOL_FIELDS.forEach(function (k) { c[k] = !!$("pk" + k[0].toUpperCase() + k.slice(1)).checked; });
+      TEXT_FIELDS.forEach(function (k) { c[k] = $("pk" + k[0].toUpperCase() + k.slice(1)).value; });
+      return c;
+    }
+    function status(t, ok) { var s = $("pkStatus"); s.textContent = t; s.style.color = ok ? "#3ecf8e" : "#ff8a8a"; }
+
+    async function load() {
+      try {
+        var snap = await ref.get();
+        fill(Object.assign({}, DEFAULTS, snap && snap.exists ? snap.data() : {}));
+      } catch (e) { fill(DEFAULTS); status("تعذر تحميل الإعدادات", false); }
+    }
+    async function save() {
+      var c = read();
+      if (!c.buttonText.trim()) { appAlert("⚠️ نص زر البصمة مطلوب"); return; }
+      try {
+        await ref.set(c, { merge: true });
+        $("pkPreviewBtn").textContent = c.buttonText;
+        status("✅ تم الحفظ، ستظهر التغييرات في صفحة الدخول فوراً", true);
+      } catch (e) { status("❌ تعذر الحفظ، تحقق من الاتصال", false); }
+    }
+    async function reset() {
+      var ok = await appConfirm("استعادة كل الإعدادات والنصوص الافتراضية؟", { danger: true });
+      if (!ok) return;
+      fill(DEFAULTS);
+      await save();
+    }
+
+    function open() { $("pkOverlay").classList.add("open"); $("pkOverlay").setAttribute("aria-hidden", "false"); load(); }
+    function close() { $("pkOverlay").classList.remove("open"); $("pkOverlay").setAttribute("aria-hidden", "true"); }
+
+    document.querySelectorAll(".pk-tab").forEach(function (t) {
+      t.addEventListener("click", function () {
+        document.querySelectorAll(".pk-tab").forEach(function (x) { x.classList.toggle("on", x === t); });
+        document.querySelectorAll(".pk-pane").forEach(function (p) { p.classList.toggle("on", p.id === "pk-" + t.dataset.pk); });
+      });
+    });
+    $("passkeyAdminBtn").addEventListener("click", open);
+    $("pkClose").addEventListener("click", close);
+    $("pkOverlay").addEventListener("click", function (e) { if (e.target === $("pkOverlay")) close(); });
+    $("pkSave").addEventListener("click", save);
+    $("pkReset").addEventListener("click", reset);
+    $("pkButtonText").addEventListener("input", function () { $("pkPreviewBtn").textContent = $("pkButtonText").value; });
   })();
   </script>
 </body>

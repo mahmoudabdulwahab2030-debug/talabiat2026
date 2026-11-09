@@ -3,6 +3,29 @@
   var API = "https://hhsavgucqgzehardjzdc.supabase.co/functions/v1/passkey";
   var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  // الإعدادات الافتراضية - تُستبدل بما يحفظه المدير من لوحة الإدارة (settings/passkey_config)
+  var CFG = {
+    buttonVisible: true,
+    mobileOnly: true,
+    enrollEnabled: true,
+    buttonText: "🔐 الدخول بالبصمة / Face ID",
+    enrollQuestion: "تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.",
+    enrollSuccess: "✅ تم تفعيل الدخول بالبصمة على هذا الجهاز",
+    unsupportedMsg: "⚠️ هذا المتصفح لا يدعم الدخول بالبصمة. استخدم كلمة المرور.",
+    noBiometricMsg: "ℹ️ لا توجد بصمة أو Face ID مفعّلة على هذا الجهاز",
+    framedMsg: "ℹ️ البصمة تُفعَّل من الرابط الحي للموقع مباشرة وليس من المعاينة",
+    cancelMsg: "تم إلغاء التحقق من البصمة",
+    errorMsg: "❌ تعذر الدخول بالبصمة",
+    enrollErrorMsg: "⚠️ تعذر تفعيل البصمة: "
+  };
+  async function loadConfig() {
+    try {
+      if (!window.firebase || !firebase.firestore) return;
+      var snap = await firebase.firestore().collection("settings").doc("passkey_config").get();
+      if (snap && snap.exists) Object.keys(snap.data() || {}).forEach(function (k) { if (k in CFG) CFG[k] = snap.data()[k]; });
+    } catch (e) { /* نستخدم الافتراضي */ }
+  }
+
   function b64uToBuf(s) {
     var b = String(s).replace(/-/g, "+").replace(/_/g, "/");
     while (b.length % 4) b += "=";
@@ -74,26 +97,27 @@
   }
   async function offerEnrollAfterPassword(code, password) {
     try {
+      if (!CFG.enrollEnabled) return;                 // التفعيل معطّل من لوحة الإدارة
       if (!isMobile) return;                          // الكمبيوتر: كلمة المرور فقط
-      if (!supportedHere()) { note("ℹ️ المتصفح لا يدعم الدخول بالبصمة", "lightgray"); await pause(); return; }
-      if (inFrame()) { note("ℹ️ البصمة تُفعَّل من الرابط الحي للموقع مباشرة وليس من المعاينة", "lightgray"); await pause(); return; }
+      if (!supportedHere()) { note(CFG.unsupportedMsg, "lightgray"); await pause(); return; }
+      if (inFrame()) { note(CFG.framedMsg, "lightgray"); await pause(); return; }
       var avail = false;
       try { avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) {}
-      if (!avail) { note("ℹ️ لا توجد بصمة أو Face ID مفعّلة على هذا الجهاز", "lightgray"); await pause(); return; }
+      if (!avail) { note(CFG.noBiometricMsg, "lightgray"); await pause(); return; }
       if (localStorage.getItem("passkeyEnrolled_" + code)) return;   // مفعّلة على هذا الجهاز
       if (sessionStorage.getItem("passkeyDeclined_" + code)) return; // رفض في هذه الجلسة فقط
 
-      var ok = await appConfirm("تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.");
+      var ok = await appConfirm(CFG.enrollQuestion);
       if (!ok) { sessionStorage.setItem("passkeyDeclined_" + code, "1"); return; }
 
       var o = await post({ action: "reg-options", userCode: code, password: password });
       var cred = await navigator.credentials.create({ publicKey: prep(o.options) });
       await post({ action: "reg-verify", userCode: code, password: password, challengeId: o.challengeId, response: serializeAtt(cred) });
       try { localStorage.setItem("passkeyEnrolled_" + code, "1"); } catch (e) {}
-      await appAlert("✅ تم تفعيل الدخول بالبصمة على هذا الجهاز");
+      await appAlert(CFG.enrollSuccess);
     } catch (e) {
       console.warn("passkey enrollment", e);
-      if (!e || e.name !== "NotAllowedError") note("⚠️ تعذر تفعيل البصمة: " + ((e && e.message) || ""), "orange");
+      if (!e || e.name !== "NotAllowedError") note(CFG.enrollErrorMsg + ((e && e.message) || ""), "orange");
       await pause();
     }
   }
@@ -112,15 +136,19 @@
       saveSessionAndGo(r);
     } catch (e) {
       if (msg) {
-        msg.textContent = e && e.name === "NotAllowedError" ? "تم إلغاء التحقق من البصمة" : "❌ " + (e.message || "تعذر الدخول بالبصمة");
+        msg.textContent = e && e.name === "NotAllowedError" ? CFG.cancelMsg : (CFG.errorMsg + " " + (e.message || ""));
         msg.style.color = "orange";
       }
     }
   }
 
   document.addEventListener("DOMContentLoaded", async function () {
+    await loadConfig();
     var btn = document.getElementById("passkeyBtn");
-    if (btn && isMobile && supportedHere()) btn.style.display = "";
+    if (btn) btn.textContent = CFG.buttonText;
+    var show = CFG.buttonVisible && (CFG.mobileOnly ? isMobile : true) && supportedHere();
+    if (btn && show) btn.style.display = "";
+    if (btn && !show) btn.style.display = "none";
   });
 
   global.PasskeyAuth = { canUse: canUse, loginWithPasskey: loginWithPasskey, offerEnrollAfterPassword: offerEnrollAfterPassword };
