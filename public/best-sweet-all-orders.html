@@ -545,6 +545,8 @@ const firebaseConfig = {
       }
 
       document.getElementById("resultArea").innerHTML = html;
+      // تسجيل المستخدمين الذين رفعوا بيانات هذا العرض (لتدوينهم في الطباعة)
+      window.__uploaders = { key: date + '|' + sheet, names: Array.from(new Set(filtered.map(d => String(d.uploadedBy || '').trim()).filter(Boolean))) };
       applyGlobalColumnSettings();
       try{
         const by = (localStorage.getItem('username') || localStorage.getItem('userCode') || localStorage.getItem('userUid') || 'نظام');

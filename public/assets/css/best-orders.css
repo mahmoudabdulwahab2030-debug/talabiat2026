@@ -398,3 +398,12 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   #notesArea:not(:empty) { display: block !important; width: 100% !important; margin: 5mm 0 0 !important; padding: 0 !important; background: #fff !important; font-size: 8.8pt; line-height: 1.7; }
   #notesArea:not(:empty) * { display: revert !important; }
 }
+
+  /* سطر التدوين أسفل الجدول مباشرة */
+  .pr-byline { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4mm; margin-top: 3mm !important; padding: 2.4mm 3.5mm !important; border: 0.8pt solid #c9b27a !important; border-inline-start: 3mm solid #c99534 !important; border-radius: 2mm; background: #fcf8ec !important; break-inside: avoid; }
+  .pr-by-main { display: flex !important; align-items: baseline; gap: 2.5mm; flex-wrap: wrap; font-size: 9pt; }
+  .pr-by-label { font-weight: 700; color: #6d5a2a !important; }
+  .pr-by-names { font-weight: 800; font-size: 9.5pt; color: #111 !important; }
+  .pr-by-print { display: flex !important; align-items: baseline; gap: 2mm; font-size: 8.5pt; white-space: nowrap; padding-inline-start: 4mm; border-inline-start: 0.6pt solid #c9b27a !important; }
+  .pr-by-print span { color: #6d5a2a !important; font-weight: 700; }
+  .pr-by-print b { font-weight: 800; color: #111 !important; }
