@@ -74,7 +74,7 @@
       var key = "passkeyDeclined_" + code;
       var last = Number(localStorage.getItem(key) || 0);
       if (Date.now() - last < DECLINE_DAYS * 864e5) return;
-      if (!confirm("تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.")) {
+      if (!await appConfirm("تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.")) {
         localStorage.setItem(key, String(Date.now()));
         return;
       }

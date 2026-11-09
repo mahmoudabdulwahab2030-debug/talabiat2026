@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewBtn) viewBtn.addEventListener('click', () => openDocModal(d.id, d));
         const delBtn = tr.querySelector('.delete-doc');
         if (delBtn) delBtn.addEventListener('click', async () => {
-          if (!confirm('هل أنت متأكد من حذف هذا المستند نهائياً؟')) return;
+          if (!await appConfirm('هل أنت متأكد من حذف هذا المستند نهائياً؟')) return;
           try { await window.firebaseHelpers.deleteDocument(activeCollection, d.id); showAlert('تم الحذف', 'success'); loadCollection(activeCollection); } catch (err) { console.error(err); showAlert('خطأ أثناء الحذف', 'danger'); }
         });
 
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
   deleteDocBtn.addEventListener('click', async () => {
     const id = docIdEl.innerText;
     if (!id || id === 'new') { showAlert('لا يوجد مستند للحذف', 'warning'); return; }
-    if (!confirm('هل أنت متأكد من حذف هذا المستند نهائياً؟')) return;
+    if (!await appConfirm('هل أنت متأكد من حذف هذا المستند نهائياً؟')) return;
     try { await window.firebaseHelpers.deleteDocument(activeCollection, id); showAlert('تم الحذف', 'success'); if (docModal) docModal.hide(); loadCollection(activeCollection); } catch (err) { console.error(err); showAlert('خطأ أثناء الحذف', 'danger'); }
   });
 
@@ -327,12 +327,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const key = localStorage.key(i); const val = localStorage.getItem(key);
       const div = document.createElement('div'); div.className = 'd-flex justify-content-between align-items-start mb-2';
       div.innerHTML = `<div><strong>${key}</strong><div class="text-muted small">${val && val.length>200 ? val.slice(0,200)+ '...' : val}</div></div><div><button class="btn btn-sm btn-outline-primary edit-ls me-1">تعديل</button><button class="btn btn-sm btn-outline-danger del-ls">حذف</button></div>`;
-      div.querySelector('.edit-ls').addEventListener('click', () => {
-        const newVal = prompt('قيمة جديدة للمفتاح: ' + key, val);
+      div.querySelector('.edit-ls').addEventListener('click', async () => {
+        const newVal = await appPrompt('قيمة جديدة للمفتاح: ' + key, val);
         if (newVal === null) return; localStorage.setItem(key, newVal); renderLocalStorage(); showAlert('تم التحديث','success');
       });
-      div.querySelector('.del-ls').addEventListener('click', () => {
-        if (!confirm('هل تريد حذف المفتاح: '+key+' ؟')) return; localStorage.removeItem(key); renderLocalStorage(); showAlert('تم الحذف','success');
+      div.querySelector('.del-ls').addEventListener('click', async () => {
+        if (!await appConfirm('هل تريد حذف المفتاح: '+key+' ؟')) return; localStorage.removeItem(key); renderLocalStorage(); showAlert('تم الحذف','success');
       });
       // add quick helper to show parsed JSON nicely
       const preview = div.querySelector('.text-muted small');

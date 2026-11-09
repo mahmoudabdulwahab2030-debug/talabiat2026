@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function deleteSingle(id) {
-    if (!confirm('هل أنت متأكد من الحذف؟')) return;
+    if (!await appConfirm('هل أنت متأكد من الحذف؟')) return;
     try {
       await window.firebaseHelpers.deleteDocument(currentCollection, id);
       // remove from view
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function deleteSelected() {
     const checks = Array.from(manageTbody.querySelectorAll('.row-check:checked'));
     if (!checks.length) return alert('لا يوجد عناصر محددة');
-    if (!confirm(`هل تريد حذف ${checks.length} عنصر؟`)) return;
+    if (!await appConfirm(`هل تريد حذف ${checks.length} عنصر؟`)) return;
     try {
       for (const cb of checks) {
         await window.firebaseHelpers.deleteDocument(currentCollection, cb.dataset.id);
@@ -553,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
       Array.from(tbody.querySelectorAll('.delete-user-btn')).forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.dataset.id;
-          if (!confirm('هل تريد حذف هذا المستخدم؟')) return;
+          if (!await appConfirm('هل تريد حذف هذا المستخدم؟')) return;
           try {
             await window.firebaseHelpers.deleteDocument('users', id);
             loadUsersList(document.getElementById('usersSearch') ? document.getElementById('usersSearch').value.trim() : '');
@@ -654,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('adminRecentDeleteSelected').onclick = async () => {
         const ids = await getSelectedIds();
         if (!ids.length) return alert('لا يوجد عناصر محددة');
-        if (!confirm(`هل تريد حذف ${ids.length} عنصر؟`)) return;
+        if (!await appConfirm(`هل تريد حذف ${ids.length} عنصر؟`)) return;
         try {
           await Promise.all(ids.map(id => window.firebaseHelpers.deleteDocument('movements', id)));
           // refresh

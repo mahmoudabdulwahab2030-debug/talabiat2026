@@ -822,6 +822,7 @@
       }
     }
   </style>
+  <script src="/assets/js/app-dialogs.js"></script>
 </head>
 <body>
   <div class="page-card">
@@ -1819,10 +1820,10 @@
 
       // إضافة event listeners للأزرار
       document.querySelectorAll('.delete-item-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           e.preventDefault();
           const itemName = btn.dataset.itemName;
-          if (confirm(`هل تريد حذف الصنف "${itemName}"؟`)) {
+          if (await appConfirm(`هل تريد حذف الصنف "${itemName}"؟`)) {
             deleteItem(itemName, section);
           }
         });

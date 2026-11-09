@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = e.target.closest('tr');
       const code = tr.dataset.code || '';
       if (!code) return alert('لا يمكن حذف قسم غير معروف');
-      if (!confirm('هل تريد حذف هذا القسم؟')) return;
+      if (!await appConfirm('هل تريد حذف هذا القسم؟')) return;
       try {
         await window.firebaseHelpers.deleteDocument('sections', code);
         showAlert && showAlert('تم الحذف','secondary');
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoBtn = document.getElementById('autoCreateSections');
   async function slugifyName(n) { return (n||'').toString().toLowerCase().trim().replace(/\s+/g,'_').replace(/[^a-z0-9_\-]/g,'').slice(0,50) || ('s'+Date.now()); }
   if (autoBtn) autoBtn.addEventListener('click', async () => {
-    if (!confirm('هل تريد إنشاء أقسام مفقودة تلقائياً اعتماداً على حقول `section` في المستندات؟')) return;
+    if (!await appConfirm('هل تريد إنشاء أقسام مفقودة تلقائياً اعتماداً على حقول `section` في المستندات؟')) return;
     try {
       const prods = await window.firebaseHelpers.getAll('products');
       const names = new Set();

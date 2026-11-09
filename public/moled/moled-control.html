@@ -361,6 +361,7 @@
       .panel-controls select, .panel-controls input { min-width: 100%; }
     }
   </style>
+  <script src="/assets/js/app-dialogs.js"></script>
 </head>
 <body>
   <div class="page-shell">
@@ -745,13 +746,13 @@
     }
 
     async function deleteItem(id) {
-      if (!confirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
+      if (!await appConfirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
       await itemsCollection.doc(id).delete();
       await loadItems();
     }
 
     async function deleteInvoice(id) {
-      if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return;
+      if (!await appConfirm('هل أنت متأكد من حذف هذه الفاتورة؟')) return;
       await invoicesCollection.doc(id).delete();
       await loadInvoices();
     }

@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     delBtn.addEventListener('click', async () => {
       if (!tr.dataset.id) { tr.remove(); return; }
-      if (!confirm('هل تريد حذف هذا المورد؟')) return;
+      if (!await appConfirm('هل تريد حذف هذا المورد؟')) return;
       try {
         await window.firebaseHelpers.deleteDocument('suppliers', tr.dataset.id);
         showAlert('تم الحذف','secondary');

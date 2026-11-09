@@ -61,7 +61,7 @@
       var data={page:page.toLowerCase(),title:g.title||'',enabled:g.enabled!==false,autoShow:g.autoShow!==false,steps:steps,version:(+g.version||0)+1,updatedBy:localStorage.getItem('username')||'',updatedAt:new Date().toISOString()};
       db.collection('settings').doc('guide__'+data.page).set(data).then(function(){g=data;render();if(window.Swal)Swal.fire({icon:'success',title:'تم الحفظ',text:'سيظهر الشرح للمستخدمين عند فتح الصفحة',timer:1800,showConfirmButton:false});}).catch(function(e){alert('تعذر الحفظ: '+e.message);});
     },
-    wipe:function(){ if(!confirm('حذف شرح هذه الصفحة نهائياً؟'))return; db.collection('settings').doc('guide__'+page.toLowerCase()).delete().then(loadPage); }
+    wipe:async function(){ if(!await appConfirm('حذف شرح هذه الصفحة نهائياً؟'))return; db.collection('settings').doc('guide__'+page.toLowerCase()).delete().then(loadPage); }
   };
   window.GuideAdmin={open:open};
 })();

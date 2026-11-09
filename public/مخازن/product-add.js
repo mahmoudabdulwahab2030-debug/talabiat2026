@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (deleteBtn) deleteBtn.addEventListener('click', async () => {
     if (!selectedProductId) return showAlert('لم يتم اختيار صنف للحذف', 'warning');
-    if (!confirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
+    if (!await appConfirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
     try {
       await window.firebaseHelpers.deleteDocument('products', selectedProductId);
       showAlert('تم الحذف', 'secondary');

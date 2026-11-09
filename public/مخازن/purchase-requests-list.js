@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let payload = { status: action, statusUpdatedAt: new Date().toISOString() };
         if (action === 'scheduled') {
-          const date = prompt('حدد تاريخ التوفير المتوقع (YYYY-MM-DD):', '');
+          const date = await appPrompt('حدد تاريخ التوفير المتوقع (YYYY-MM-DD):', '');
           if (!date) { showAlert('لم يتم تحديد تاريخ', 'warning'); return; }
           payload.expectedDate = date; payload.status = 'scheduled';
         }

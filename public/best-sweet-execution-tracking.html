@@ -125,6 +125,7 @@ tr.has-miss{background:rgba(239,71,111,.06)!important}
 .paper .br-h{background:#222;color:#fff;padding:6px 10px;border-radius:4px;margin:16px 0 6px;font-size:15px}
 .paper .sec-h{margin:8px 0 4px;font-size:13px;border-bottom:1px solid #999;padding-bottom:2px}
 </style>
+  <script src="/assets/js/app-dialogs.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -240,7 +241,7 @@ async function init(){
 async function load(){
   const date=$('dateSel').value, sheet=$('sheetSel').value;
   if(!date||!sheet) return status('⚠️ اختر التاريخ والقسم.');
-  if(dirty && !confirm('هناك تغييرات غير محفوظة، هل تريد المتابعة؟')) return;
+  if(dirty && !await appConfirm('هناك تغييرات غير محفوظة، هل تريد المتابعة؟')) return;
   status('⏳ جاري التحميل…');
   const items={};
   allOrders.filter(d=>d.sheet===sheet&&(d.orderDate===date||d.deliveryDate===date)).forEach(d=>{
@@ -325,7 +326,7 @@ $('mainTable').addEventListener('change',e=>{
   else if(e.target.classList.contains('nt')) b.note=e.target.value;
   renderKpis(); setDirty(true);
 });
-$('mainTable').addEventListener('click',e=>{ const dk=e.target.closest('[data-del]')?.dataset.del; if(dk){ if(confirm('حذف هذا الصنف الإضافي؟')){ delete current.items[dk]; render(); setDirty(true);} return; } const k=e.target.closest('[data-row]')?.dataset.row; if(!k) return;
+$('mainTable').addEventListener('click',async e=>{ const dk=e.target.closest('[data-del]')?.dataset.del; if(dk){ if(await appConfirm('حذف هذا الصنف الإضافي؟')){ delete current.items[dk]; render(); setDirty(true);} return; } const k=e.target.closest('[data-row]')?.dataset.row; if(!k) return;
   Object.values(current.items[k].branches).forEach(b=>{b.done=true;b.reason='';b.note='';b.actual='';}); render(); setDirty(true); });
 $('repNotes').addEventListener('input',()=>{ if(current) setDirty(true); });
 $('addExtraBtn').onclick=()=>{ ['exCode','exName',...BRANCHES.map(b=>'exQ_'+b.k)].forEach(i=>$(i).value=''); $('exStatus').textContent=''; $('exModal').classList.add('show'); setTimeout(()=>$('exName').focus(),50); };
@@ -349,7 +350,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement.
 
 async function save(){
   const s=stats();
-  if(s.noReason && !confirm(`يوجد ${s.noReason} بند غير منفذ بدون سبب. حفظ على أي حال؟`)) return;
+  if(s.noReason && !await appConfirm(`يوجد ${s.noReason} بند غير منفذ بدون سبب. حفظ على أي حال؟`)) return;
   const items={}; Object.entries(current.items).forEach(([k,it])=>{ items[k]={code:it.code,name:it.name,extra:!!it.extra,branches:{}}; Object.entries(it.branches).forEach(([bk,b])=>items[k].branches[bk]={qty:b.qty,done:b.done,reason:b.reason,note:b.note,actual:b.actual===''?'':Number(b.actual)}); });
   const savedAt=new Date().toISOString();
   $('saveBtn').disabled=true; status('⏳ جاري الحفظ…');
