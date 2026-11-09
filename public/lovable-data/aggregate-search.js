@@ -17,7 +17,20 @@ tr.as-hit td{background:rgba(201,166,70,.22)!important}\
     var area = document.getElementById('resultArea'); if (!area) return;
     var w = document.createElement('div'); w.id = 'aggSearch';
     w.innerHTML = '<button class="as-btn" type="button" title="بحث" aria-label="بحث في الجدول">🔍</button><div class="as-box"><input type="search" placeholder="اسم الصنف أو الكود..." aria-label="بحث"><span class="as-count"></span><button class="as-x" type="button" aria-label="مسح">✕</button></div>';
-    document.body.appendChild(w);
+    var bar = document.getElementById('fabActions');
+    if (bar) {
+      // نفس شريط الأزرار العائمة: يُوضع داخله، والحقل يظهر كنافذة صغيرة فوقه
+      var st2 = document.createElement('style');
+      st2.textContent = '#fabActions #aggSearch{position:relative;top:auto;left:auto;z-index:auto;display:flex;align-items:center;justify-content:center}' +
+        '#fabActions #aggSearch .as-btn{width:46px;height:46px;font-size:19px;border-radius:50%;flex:0 0 auto}' +
+        '#fabActions #aggSearch .as-box{position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);margin:0;max-width:92vw;z-index:20}' +
+        '#fabActions #aggSearch.open .as-box{width:min(320px,calc(100vw - 32px))}' +
+        '@media (min-width:720px){#fabActions #aggSearch .as-box{bottom:0;left:auto;right:calc(100% + 12px);transform:none}}';
+      document.head.appendChild(st2);
+      bar.insertBefore(w, bar.firstChild);
+    } else {
+      document.body.appendChild(w);
+    }
     var btn = w.querySelector('.as-btn'), input = w.querySelector('input'), cnt = w.querySelector('.as-count'), x = w.querySelector('.as-x');
     var norm = function (s) { return (s || '').toString().toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim(); };
     function apply() {
