@@ -16,6 +16,13 @@
     for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
     return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
+  function supportedHere() {
+    return !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext);
+  }
+  // المعاينة داخل المحرر تُعرض داخل إطار (iframe) وتمنع البصمة في الغالب
+  function inFrame() {
+    try { return window.self !== window.top; } catch (e) { return true; }
+  }
   async function canUse() {
     if (!isMobile || !window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) return false;
     try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) { return false; }
@@ -81,8 +88,14 @@
     }
   }
 
+  function showMsg(text, color) {
+    var msg = document.getElementById("message");
+    if (msg) { msg.textContent = text; msg.style.color = color; }
+  }
   async function loginWithPasskey() {
     var msg = document.getElementById("message");
+    if (!supportedHere()) { showMsg("⚠️ هذا المتصفح لا يدعم الدخول بالبصمة. استخدم كلمة المرور.", "orange"); return; }
+    if (inFrame()) { showMsg("⚠️ الدخول بالبصمة يعمل من الرابط الحي للموقع مباشرة، وليس من داخل المعاينة.", "orange"); return; }
     try {
       if (msg) { msg.textContent = "⏳ جاري التحقق من البصمة..."; msg.style.color = "lightgray"; }
       var o = await post({ action: "login-options" });
@@ -100,7 +113,7 @@
 
   document.addEventListener("DOMContentLoaded", async function () {
     var btn = document.getElementById("passkeyBtn");
-    if (btn && (await canUse())) btn.style.display = "";
+    if (btn && isMobile && supportedHere()) btn.style.display = "";
   });
 
   global.PasskeyAuth = { canUse: canUse, loginWithPasskey: loginWithPasskey, offerEnrollAfterPassword: offerEnrollAfterPassword };
