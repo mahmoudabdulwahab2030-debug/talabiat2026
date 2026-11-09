@@ -302,6 +302,7 @@
       <input type="password" id="password" placeholder="كلمة المرور" />
     </div>
     <button onclick="login()">دخول</button>
+    <button type="button" id="passkeyBtn" style="display:none;margin-top:10px;background:transparent;border:1px solid currentColor;" onclick="PasskeyAuth.loginWithPasskey()">🔐 الدخول بالبصمة / Face ID</button>
     <div id="message"></div>
   </div>
 
@@ -415,6 +416,7 @@
 
         try{ if (window.activityLogger) activityLogger.logActivity('login', '/index.html', { code }); } catch(e){}
 
+        if (window.PasskeyAuth) { await PasskeyAuth.offerEnrollAfterPassword(code, password); }
         setTimeout(() => {
           const redirect = new URLSearchParams(location.search).get("redirect");
           window.location.href = redirect 
@@ -517,5 +519,6 @@
     })();
   </script>
   <script src="activity-logger.js"></script>
+  <script src="/assets/js/passkey.js"></script>
 </body>
 </html>

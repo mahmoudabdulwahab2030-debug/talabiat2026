@@ -4,3 +4,6 @@ verify_jwt = false
 
 [functions.db-stats]
 verify_jwt = false
+
+[functions.passkey]
+verify_jwt = false
