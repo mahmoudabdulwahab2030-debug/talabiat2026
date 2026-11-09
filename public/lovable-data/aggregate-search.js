@@ -17,7 +17,8 @@ tr.as-hit td{background:rgba(201,166,70,.22)!important}\
     var area = document.getElementById('resultArea'); if (!area) return;
     var w = document.createElement('div'); w.id = 'aggSearch';
     w.innerHTML = '<button class="as-btn" type="button" title="بحث" aria-label="بحث في الجدول">🔍</button><div class="as-box"><input type="search" placeholder="اسم الصنف أو الكود..." aria-label="بحث"><span class="as-count"></span><button class="as-x" type="button" aria-label="مسح">✕</button></div>';
-    var bar = document.getElementById('fabActions');
+    // هذه الصفحة تحتفظ بمكان الزر القديم (أعلى يسار)
+    var bar = /best-sweet-all-orders/.test(location.pathname) ? null : document.getElementById('fabActions');
     if (bar) {
       // نفس شريط الأزرار العائمة: يُوضع داخله، والحقل يظهر كنافذة صغيرة فوقه
       var st2 = document.createElement('style');
