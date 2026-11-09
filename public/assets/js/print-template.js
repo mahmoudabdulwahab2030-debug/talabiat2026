@@ -7,31 +7,30 @@
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
 
 
-  // سطر التدوين أسفل الجدول: من رفع البيانات، ومن قام بالطباعة (دون تكرار الأسماء)
-  function byline(ps) {
+  // منطق سطر التدوين: من رفع البيانات، ومن طبع (دون تكرار الأسماء)
+  function computeByline() {
     var printer = (localStorage.getItem("username") || localStorage.getItem("userCode") || localStorage.getItem("userUid") || "").toString().trim();
     var dateSel = (document.getElementById("dateSelector") || {}).value || "";
     var sheetSel = (document.getElementById("sheetSelector") || {}).value || "";
     var u = window.__uploaders || {};
     var names = (u.key === dateSel + "|" + sheetSel && Array.isArray(u.names)) ? u.names.filter(Boolean) : [];
     var seen = {}; names = names.filter(function (n) { if (seen[n]) return false; seen[n] = true; return true; });
+    if (names.length === 0) return { main: printer || "غير معروف", printerPart: null };
+    if (names.length === 1 && names[0] === printer) return { main: names[0], printerPart: null };
+    return { main: names.join("، "), printerPart: (printer && names.indexOf(printer) === -1) ? printer : null };
+  }
+  window.computeByline = computeByline;
 
-    var main, printerPart = null;
-    if (names.length === 0) { main = printer || "غير معروف"; }
-    else if (names.length === 1 && names[0] === printer) { main = names[0]; }
-    else {
-      main = names.join("، ");
-      if (printer && names.indexOf(printer) === -1) printerPart = printer;
-    }
+  function byline(ps) {
+    var r = computeByline();
     var bar = el("div", "pr-byline",
       '<div class="pr-by-main"><span class="pr-by-label">تم تجميع الطلبية بواسطة</span><span class="pr-by-names"></span></div>' +
-      (printerPart ? '<div class="pr-by-print"><span>طُبعت بواسطة</span><b></b></div>' : ""));
-    bar.querySelector(".pr-by-names").textContent = main;
-    if (printerPart) bar.querySelector(".pr-by-print b").textContent = printerPart;
+      (r.printerPart ? '<div class="pr-by-print"><span>طُبعت بواسطة</span><b></b></div>' : ""));
+    bar.querySelector(".pr-by-names").textContent = r.main;
+    if (r.printerPart) bar.querySelector(".pr-by-print b").textContent = r.printerPart;
     ps.appendChild(bar);
     added.push(bar);
 
-    // إخفاء سطر التدوين القديم داخل الجدول حتى لا يتكرر
     var old = ps.querySelector("#reportGeneratedBy");
     if (old) {
       var holder = old.closest("p, div") || old;

@@ -551,7 +551,11 @@ const firebaseConfig = {
       try{
         const by = (localStorage.getItem('username') || localStorage.getItem('userCode') || localStorage.getItem('userUid') || 'نظام');
         const el = document.getElementById('reportGeneratedBy');
-        if (el) el.textContent = by;
+        if (el) {
+          // سطر التدوين على الشاشة مطابق لسطر الطباعة تماماً
+          const b = window.computeByline ? window.computeByline() : null;
+          el.textContent = b ? (b.main + (b.printerPart ? '، طُبعت بواسطة ' + b.printerPart : '')) : by;
+        }
       }catch(e){ }
       try{
         const raw = (localStorage.getItem('username') || localStorage.getItem('userCode') || localStorage.getItem('userUid') || '').toString().trim();
