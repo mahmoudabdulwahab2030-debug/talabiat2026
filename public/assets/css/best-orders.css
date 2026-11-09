@@ -393,6 +393,21 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   .by-names { font-size: 14px; }
 }
 
+/* ---------- تصغير الشاشة على الموبايل: المحتوى يتكيّف مع عرض الجهاز ---------- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { min-width: 0; }
+.container, .controls, .table-container, #resultArea, #notesArea { max-width: 100%; min-width: 0; }
+#resultArea table { min-width: 0; }
+@media (max-width: 720px) {
+  body { font-size: 14px; }
+  .btn-row { flex-wrap: wrap; overflow: visible; }
+  .field { flex-basis: 100%; }
+}
+@media (max-width: 380px) {
+  body { font-size: 13px; }
+  thead th, tbody td { font-size: 11px !important; }
+}
+
 /* ---------- الطباعة: قالب تقرير رسمي (A4 عمودي) ---------- */
 @media print {
   @page {
