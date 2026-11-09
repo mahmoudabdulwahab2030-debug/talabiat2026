@@ -47,11 +47,10 @@ body::before, body::after {
   width: 55vmax;
   height: 55vmax;
   border-radius: 50%;
-  filter: blur(95px);
   opacity: 0.38;
   pointer-events: none;
   z-index: -1;
-  animation: aurora 24s var(--ease) infinite alternate;
+  animation: aurora 30s linear infinite alternate;
 }
 body::before { background: radial-gradient(circle, rgba(255, 107, 122, 0.55), transparent 68%); top: -22vmax; right: -14vmax; }
 body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), transparent 68%); bottom: -24vmax; left: -16vmax; animation-delay: -11s; }
@@ -73,7 +72,7 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: titleShine 6s linear infinite, rise 0.7s var(--ease) both;
+  animation: rise 0.7s var(--ease) both;
 }
 @keyframes titleShine { from { background-position: 0% 50%; } to { background-position: 300% 50%; } }
 
@@ -139,8 +138,6 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.45s var(--spring), box-shadow 0.45s var(--ease), border-color 0.35s var(--ease), background 0.35s var(--ease);
@@ -156,28 +153,18 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
 .icon-grid > :nth-child(n+11) { --n: 11; }
 
 /* وهج يتبع الإضاءة عند المرور */
-.icon-card::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  z-index: -1;
-  border-radius: inherit;
-  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 107, 122, 0.22), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.35s var(--ease);
-}
 /* شريط لامع يمر عند التحويم */
 .icon-card::after {
   content: "";
   position: absolute;
   top: 0;
   bottom: 0;
-  inset-inline-start: -60%;
-  width: 45%;
+  inset-inline-start: 0;
+  width: 40%;
   z-index: -1;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent);
-  transform: skewX(-18deg);
-  transition: inset-inline-start 0.9s var(--ease);
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  transform: translateX(-160%) skewX(-16deg);
+  transition: transform 0.9s var(--ease);
 }
 .icon-card:hover {
   transform: translateY(-5px);
@@ -185,8 +172,7 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
   background: linear-gradient(160deg, var(--glass-hi), rgba(255, 255, 255, 0.04));
   box-shadow: 0 26px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 107, 122, 0.12), 0 0 40px rgba(255, 107, 122, 0.14);
 }
-.icon-card:hover::before { opacity: 1; }
-.icon-card:hover::after { inset-inline-start: 130%; }
+.icon-card:hover::after { transform: translateX(260%) skewX(-16deg); }
 .icon-card:active { transform: scale(0.965); transition-duration: 0.14s; }
 .icon-card:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(255, 107, 122, 0.35); }
 
@@ -199,9 +185,8 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
   background: radial-gradient(circle at 30% 25%, rgba(255, 212, 166, 0.22), rgba(255, 107, 122, 0.06));
   border: 1px solid rgba(255, 212, 166, 0.18);
   box-shadow: inset 0 0 18px rgba(255, 212, 166, 0.06), 0 8px 22px rgba(255, 107, 122, 0.12);
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
   transition: transform 0.6s var(--spring), box-shadow 0.4s var(--ease);
-  animation: float 7s ease-in-out infinite;
+  animation: float 9s ease-in-out infinite;
   animation-delay: calc(var(--n, 0) * -0.6s);
 }
 .icon-card:hover .icon-svg { transform: translateY(-3px) scale(1.08) rotate(-3deg); box-shadow: inset 0 0 22px rgba(255, 212, 166, 0.12), 0 12px 28px rgba(255, 107, 122, 0.25); }
@@ -239,7 +224,6 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
   border-radius: inherit;
   background: linear-gradient(90deg, var(--rose), var(--gold), var(--peach), var(--rose));
   background-size: 300% 100%;
-  animation: flow 3.2s linear infinite;
   transform-origin: right center;
   animation-delay: calc(var(--n, 0) * -0.4s);
   opacity: 0.85;
@@ -272,8 +256,6 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
   background: linear-gradient(160deg, rgba(24, 28, 33, 0.85), rgba(14, 17, 21, 0.85));
   border: 1px solid var(--line);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
   color: var(--peach);
   font-weight: 700;
   font-size: 14px;
@@ -504,9 +486,47 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
 .show { display: flex; }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
-  to { opacity: 1; transform: none; filter: blur(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }
+
+/* ---------- الأزرار العائمة السفلية: المحادثات والاقتراحات ---------- */
+.fab {
+  position: fixed;
+  bottom: 18px;
+  z-index: 1150;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.35s var(--spring), box-shadow 0.35s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.fab svg { width: 22px; height: 22px; }
+.fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45); }
+.fab:active { transform: scale(0.94); }
+.fab:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(255, 107, 122, 0.35); }
+#suggestBtn.fab-suggest { left: 16px; background: linear-gradient(135deg, var(--rose), var(--rose-2)); }
+#chatBtn.fab-chat { left: 78px; background: linear-gradient(135deg, #ffd98a, #e0a040); color: #1a1208; }
+.fab .unread-count {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 11px;
+  border: 2px solid var(--bg);
+  display: none;
+}
+.fab.has-unread .unread-count { display: inline-flex; }
+.fab.has-unread { animation: pulse 2.4s infinite; }
 
 /* ---------- الكمبيوتر ---------- */
 @media (min-width: 640px) {
@@ -523,6 +543,9 @@ body::after { background: radial-gradient(circle, rgba(245, 194, 107, 0.35), tra
 
 /* ---------- الموبايل: الأدوات السفلية في المنتصف ---------- */
 @media (max-width: 600px) {
+  .fab { bottom: 84px; width: 48px; height: 48px; }
+  #suggestBtn.fab-suggest { left: 12px; }
+  #chatBtn.fab-chat { left: 70px; }
   .top-right-widgets { left: 50%; right: auto; transform: translateX(-50%); bottom: 12px; width: max-content; max-width: 96vw; }
   .floating-user-card { min-width: 0; font-size: 13px; padding: 8px 14px 8px 11px; }
   .suggest-floating-btn { bottom: 12px; left: 12px; padding: 10px 13px; font-size: 13px; }
