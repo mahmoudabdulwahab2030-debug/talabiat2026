@@ -11,6 +11,7 @@
   <script src="/lovable-data/branches-registry.js"></script>
   <script src="/assets/js/invoice-print.js"></script>
   <link href="/fonts/fonts.css" rel="stylesheet" />
+  <script src="/assets/js/invoice-save.js"></script>
 </head>
 <body>
 <div class="so-shell">
@@ -155,6 +156,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/lovable-data/firestore-compat.js"></script>
   <script>
+// حماية الوصول للصفحة حسب الصلاحيات المحفوظة (all أو المفتاح المطلوب)
+(function pageAccessGate(required) {
+  var q = new URLSearchParams(location.search).get('roles');
+  if (q) { try { localStorage.setItem('roles', q); } catch (e) {} }
+  var roles = (localStorage.getItem('roles') || '').split(',').map(function (r) { return r.trim(); });
+  if (roles.indexOf('all') !== -1 || roles.indexOf(required) !== -1) return;
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.innerHTML = '<div dir="rtl" style="font-family:Cairo,Segoe UI,sans-serif;text-align:center;padding:90px 20px;color:#eee;background:#0b0d10;min-height:100vh"><div style="font-size:48px">🔒</div><h2>لا تملك صلاحية الوصول لهذه الصفحة</h2><p style="opacity:.7">تواصل مع الإدارة لطلب الصلاحية.</p></div>';
+  });
+  throw new Error('access denied');
+})('best_sweet_page');
+
 // ربط قائمة الفروع بسجل الفروع المركزي (الأصلية + المضافة من لوحة الإدارة)
 (function fillBranchSelectFromRegistry(brand) {
   var sel = document.getElementById('branch');
@@ -581,91 +594,34 @@ function checkInvoiceRows(list){
 }
 
 // إرسال الكميات => حفظ/تعديل فاتورة في مجموعة invoices
+function confirmOverwrite(list){
+  return Swal.fire({ icon:'question', title:'فواتير محفوظة مسبقاً',
+    html:'سيتم تحديث الفواتير التالية بنفس أرقامها:<br>' + list.map(s => '• ' + String(s).replace(/</g,'&lt;')).join('<br>'),
+    showCancelButton:true, confirmButtonText:'تحديث', cancelButtonText:'إلغاء' }).then(r => r.isConfirmed);
+}
 async function sendQuantities(){
   if(!db){ Swal.fire('خطأ','قاعدة البيانات غير متاحة','error'); return; }
   const branch = branchSelect.value, orderDate = orderDateInput.value, section = sectionSelect.value;
   if(!branch || !orderDate || !section){ Swal.fire('خطأ','اختر الفرع والتاريخ والقسم','error'); return; }
-  const rows = dataRows(orderDataBody);
-  if(rows.length===0){ Swal.fire('تنبيه','لا توجد أصناف','warning'); return; }
-  const allProducts = rows.map(row=>{
-    const cells = row.querySelectorAll('td');
-    const read = idx => {
-      const c = cells[idx];
-      if(!c) return '';
-      const f = c.querySelector('input,select,textarea');
-      return f ? f.value.trim() : c.textContent.trim();
-    };
-    const code = read(0), name = read(1);
-    const requestedQuantity = Number(read(2)||0) || 0;
-    const sentQuantity = Number(read(3) ? row.querySelector('.sent-qty')?.value || 0 : 0) || 0;
-    return { code, name, requestedQuantity, sentQuantity };
-  });
-  const products = allProducts.filter(p=>p.code||p.name);
-  const __guardErr = checkInvoiceRows(allProducts);
-  if (__guardErr) { Swal.fire({ icon: 'warning', title: 'تعذر الحفظ', html: __guardErr }); return; }
-  if(products.length===0){ Swal.fire('تنبيه','لا توجد بيانات صالحة','warning'); return; }
-
-  // compute shortages/excesses and attach to invoice document
-  const shortages = [];
-  const excesses = [];
-  products.forEach(p => {
-    const diff = (Number(p.sentQuantity)||0) - (Number(p.requestedQuantity)||0);
-    if(diff < 0) shortages.push({ code: p.code, name: p.name, qty: Math.abs(diff) });
-    else if(diff > 0) excesses.push({ code: p.code, name: p.name, qty: diff });
-  });
-  const invoice = { branch, orderDate, section, products, shortages, excesses, createdAt: new Date().toISOString() };
-  await fetchLastInvoiceNumber();
-  const docId = `${branch}_${orderDate}_${section}`;
-  const ref = db.collection('invoices').doc(docId);
-
+  const all = InvoiceSave.readRows(orderDataBody, section);
+  if(all.length === 0){ Swal.fire('تنبيه','لا توجد أصناف','warning'); return; }
+  const guardErr = checkInvoiceRows(all);
+  if(guardErr){ Swal.fire({ icon:'warning', title:'تعذر الحفظ', html: guardErr }); return; }
+  const products = all.filter(p => p.code || p.name);
+  if(products.length === 0){ Swal.fire('تنبيه','لا توجد بيانات صالحة للأصناف','warning'); return; }
   try{
-    const snap = await ref.get();
-    let savedInvoice = null;
-
-    if(snap.exists){
-      const res = await Swal.fire({ title:'تنبيه', text:'تم العثور على فاتورة بنفس المعطيات. اختر:', icon:'warning', showDenyButton:true, showCancelButton:true, confirmButtonText:'تعديل', denyButtonText:'حفظ جديد', cancelButtonText:'إلغاء' });
-      if(res.isConfirmed){
-        const existing = snap.data()||{};
-        const toUpdate = Object.assign({}, invoice, { invoiceNumber: existing.invoiceNumber || nextInvoiceNumber });
-        await ref.update(toUpdate);
-        savedInvoice = Object.assign({}, toUpdate);
-        Swal.fire('تم التعديل','تم تعديل الفاتورة','success');
-        // بعد التعديل أعِد حساب الأرقام المتاحة
-        await fetchLastInvoiceNumber();
-      } else if(res.isDenied){
-        const toSave = Object.assign({}, invoice, { invoiceNumber: nextInvoiceNumber });
-        const docRef = await db.collection('invoices').add(toSave);
-        savedInvoice = Object.assign({}, toSave, { id: docRef.id });
-        Swal.fire('تم الحفظ','حفظ كفاتورة جديدة','success');
-        // بعد الإضافة أعِد حساب الأرقام المتاحة (سيملأ أي فراغات لاحقاً)
-        await fetchLastInvoiceNumber();
-      } else { return; }
-    } else {
-      const toSave = Object.assign({}, invoice, { invoiceNumber: nextInvoiceNumber });
-      await ref.set(toSave);
-      savedInvoice = Object.assign({}, toSave);
-      Swal.fire('تم','تم إنشاء الفاتورة رقم '+nextInvoiceNumber,'success');
-      // بعد الإنشاء أعِد حساب الأرقام المتاحة
-      await fetchLastInvoiceNumber();
-    }
-
-    // بعد الحفظ/التعديل: اعرض سوِيت ألارِت مع زر طباعة
-    if(savedInvoice){
-      const printConfirm = await Swal.fire({
-        title: 'طباعة الفاتورة',
-        text: 'هل تريد طباعة الفاتورة الآن؟',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'طباعة',
-        cancelButtonText: 'لاحقاً'
-      });
-      if(printConfirm.isConfirmed){
-        printInvoice(savedInvoice);
-      }
-    }
-
-  }catch(e){ console.error('sendQuantities',e); Swal.fire('خطأ','حدث خطأ أثناء حفظ الفاتورة','error'); }
+    const res = await InvoiceSave.send(db, { brandKey: 'bestsweet', branch, orderDate, section, products, confirm: confirmOverwrite });
+    if(!res) return;
+    const inv = res.primary;
+    await Swal.fire({ icon:'success', title:'تم حفظ الفاتورة', timer: 2200, showConfirmButton:false,
+      text: 'رقم الفاتورة ' + inv.invoiceNumber + (section === 'all' ? ' (شاملة لكل الأقسام)' : '') });
+    printInvoice(inv);
+  }catch(e){
+    console.error('sendQuantities', e);
+    Swal.fire('خطأ','تعذر حفظ الفاتورة، تحقق من الاتصال وحاول مرة أخرى','error');
+  }
 }
+
 
 // طباعة فاتورة: نستخدم نفس مظهر وسلوك الطباعة الموجود في manage-invoices.html
 function printInvoice(invoice) {
@@ -773,26 +729,22 @@ async function saveDraftBest(){
   const orderDate = orderDateInput ? orderDateInput.value : '';
   const section = sectionSelect ? sectionSelect.value : '';
   if(!branch || !orderDate || !section){ showToast('اختر الفرع والتاريخ والقسم ثم اضغط حفظ مؤقت','warning',3000); return; }
-
-  const rows = dataRows(orderDataBody);
-  const products = rows.map(row => {
-    const code = row.querySelector('.item-code') ? row.querySelector('.item-code').value.trim() : (row.cells[0]?row.cells[0].textContent.trim(): '');
-    const name = row.querySelector('.item-name') ? row.querySelector('.item-name').value.trim() : (row.cells[1]?row.cells[1].textContent.trim(): '');
-    const requested = row.querySelector('.requested-qty') ? Number(row.querySelector('.requested-qty').value || 0) : Number((row.cells[2]?row.cells[2].textContent:0)) || 0;
-    const sentEl = row.querySelector('.sent-qty') ? row.querySelector('.sent-qty') : (row.cells[3]? row.cells[3].querySelector('input') : null);
-    const sent = sentEl ? Number(sentEl.value || 0) : 0;
-    return { code, name, requested, sent, sheet: row.dataset.sheet || section };
-  }).filter(p => p.code || p.name);
-
-  const docId = _buildDraftDocIdBest(branch, orderDate, section);
-  try {
-    await db.collection('drafts').doc(docId).set({ branch, orderDate, section, products, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    showToast('تم حفظ المسودة بنجاح','success',3000);
-  } catch (e) {
-    console.error('saveDraftBest', e);
-    showToast('فشل حفظ المسودة، حاول مرة أخرى','error',3000);
-  }
+  // كل قسم يُحفظ في مسودته المستقلة (لا توجد مسودة شاملة) حتى لا تتداخل الأصناف بين الأقسام
+  const items = InvoiceSave.readRows(orderDataBody, section).filter(p => p.code || p.name)
+    .map(p => ({ code: p.code, name: p.name, requested: p.requestedQuantity, sent: p.sentQuantity, sheet: p.sheet }));
+  const groups = {};
+  items.forEach(p => { const k = p.sheet || section; (groups[k] = groups[k] || []).push(p); });
+  if (section !== 'all' && !groups[section]) groups[section] = [];
+  try{
+    for (const sheet of Object.keys(groups)) {
+      await db.collection('drafts').doc(_buildDraftDocIdBest(branch, orderDate, sheet)).set({
+        branch, orderDate, section: sheet, products: groups[sheet], updatedAt: new Date().toISOString()
+      });
+    }
+    showToast('تم حفظ المسودة على الخادم', 'success', 2800);
+  }catch(e){ console.error('saveDraftBest', e); showToast('فشل حفظ المسودة على الخادم', 'error', 3800); }
 }
+
 
 async function loadDraftBest(branch, orderDate, section){
   const b = branch || (branchSelect ? branchSelect.value : '');
@@ -822,7 +774,7 @@ async function loadDraftBest(branch, orderDate, section){
         }
       }
       const allDocId = _buildDraftDocIdBest(b, od, 'all');
-      const allSnap = await db.collection('drafts').doc(allDocId).get();
+      const allSnap = { exists: false }; // المسودة الشاملة لا تُدمج مع قسم محدد
       if (allSnap.exists) {
         const allData = allSnap.data();
         if (allData && Array.isArray(allData.products)) {

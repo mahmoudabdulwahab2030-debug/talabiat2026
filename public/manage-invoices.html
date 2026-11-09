@@ -11,6 +11,7 @@
   <script src="/lovable-data/firestore-compat.js"></script>
   <script src="/lovable-data/branches-registry.js"></script>
   <script src="/assets/js/invoice-print.js"></script>
+  <script src="/assets/js/invoice-save.js"></script>
   <link href="/assets/css/send-orders.css" rel="stylesheet" />
   <link href="/assets/css/manage-invoices.css" rel="stylesheet" />
 </head>
@@ -131,6 +132,17 @@
   });
   const db = firebase.firestore();
 
+  (function pageAccessGate(required) {
+    var q = new URLSearchParams(location.search).get('roles');
+    if (q) { try { localStorage.setItem('roles', q); } catch (e) {} }
+    var roles = (localStorage.getItem('roles') || '').split(',').map(function (r) { return r.trim(); });
+    if (roles.indexOf('all') !== -1 || roles.indexOf(required) !== -1) return;
+    document.addEventListener('DOMContentLoaded', function () {
+      document.body.innerHTML = '<div dir="rtl" style="font-family:Cairo,Segoe UI,sans-serif;text-align:center;padding:90px 20px;color:#eee;background:#0b0d10;min-height:100vh"><div style="font-size:48px">🔒</div><h2>لا تملك صلاحية إدارة الفواتير</h2><p style="opacity:.7">تواصل مع الإدارة لطلب الصلاحية.</p></div>';
+    });
+    throw new Error('access denied');
+  })('manage_invoices_page');
+
   const BRAND_DEFS = {
     all:       { label: "كل البراندات", icon: "🗂️" },
     ledoux:    { label: "ليدو LE DOUX", icon: "🏷️", name: "ليدو", sub: "LE DOUX" },
@@ -213,6 +225,7 @@
     var brand = brandOf(d.branch);
     return Object.assign({}, d, {
       _id: doc.id,
+      _type: d.section === 'all' ? 'all' : 'section',
       _brand: brand,
       _branchLabel: branchLabel(d.branch),
       _sentTotal: products.reduce(function (s, p) { return s + num(p.sentQuantity); }, 0),
@@ -309,7 +322,7 @@
           '<td class="num"><b>#' + esc(i.invoiceNumber != null ? i.invoiceNumber : "—") + '</b></td>' +
           '<td><span class="inv-badge' + (i._brand === "other" ? " other" : "") + '">' + esc(brandNameOf(i._brand)) + '</span></td>' +
           '<td>' + esc(i._branchLabel) + '</td>' +
-          '<td>' + esc(i.section === "all" ? "كل الأقسام" : (i.section || "—")) + '</td>' +
+          '<td>' + (i._type === 'all' ? '<span class="inv-badge">📚 شاملة</span>' : esc(i.section || "—")) + '</td>' +
           '<td>' + esc(fmtDate(i.orderDate)) + '</td>' +
           '<td class="num">' + i._itemsCount + '</td>' +
           '<td><div class="row-actions">' +
@@ -377,10 +390,12 @@
     });
     if (!r.isConfirmed) return;
     try {
+      var wasSection = inv._type === 'section';
       await db.collection("invoices").doc(id).delete();
-      INVOICES = INVOICES.filter(function (i) { return i._id !== id; });
+      // إذا حُذف قسم تُعاد بناء الفاتورة الشاملة لتطابق الأقسام المتبقية
+      if (wasSection) await InvoiceSave.rebuildAggregate(db, inv.branch, inv.orderDate, inv.brandKey || (inv._brand === 'other' ? 'ledoux' : inv._brand));
       if (currentId === id) closeDetails();
-      buildTabs(); fillFilterOptions(); render();
+      await loadAll();
       Swal.fire({ icon: "success", title: "تم الحذف", timer: 1400, showConfirmButton: false });
     } catch (e) {
       console.error(e);
