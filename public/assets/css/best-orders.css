@@ -334,7 +334,7 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
 @media print {
   @page {
     size: A4 landscape;
-    margin: 12mm 10mm 14mm;
+    margin: 8mm 8mm 11mm;
     @bottom-right { content: "صفحة " counter(page) " من " counter(pages); font-family: "Cairo", Arial, sans-serif; font-size: 9pt; color: #555; }
     @bottom-left { content: "بيست سويت - تقرير تجميع الطلبيات"; font-family: "Cairo", Arial, sans-serif; font-size: 9pt; color: #555; }
   }
@@ -364,15 +364,16 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
     background: #fff !important;
     color: #111 !important;
     font-family: "Cairo", Arial, sans-serif;
-    font-size: 10.5pt;
+    font-size: 9.5pt;
   }
-  #notesArea { display: block !important; }
+  /* لا تُطبع ورقة فارغة: الملاحظات تظهر فقط عند وجود محتوى */
+  #notesArea:empty { display: none !important; }
 
   /* عنوان التقرير */
   #printSection > h3, #notesArea > h3 {
     margin: 0 0 6mm;
     padding: 0 0 3mm;
-    font-size: 15pt;
+    font-size: 12.5pt;
     font-weight: 800;
     text-align: center;
     color: #111 !important;
@@ -387,15 +388,15 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
     border-collapse: collapse;
     border-spacing: 0;
     table-layout: auto;
-    font-size: 10pt;
-    margin-top: 2mm;
+    font-size: 8.5pt;
+    margin-top: 1.5mm;
   }
   #printSection thead { display: table-header-group; }
   #printSection tfoot { display: table-footer-group; }
   #printSection tr { break-inside: avoid; page-break-inside: avoid; }
   #printSection th, #printSection td, #notesArea th, #notesArea td {
     border: 0.6pt solid #8c8c8c !important;
-    padding: 2.2mm 2mm;
+    padding: 1.2mm 1.4mm;
     text-align: center;
     vertical-align: middle;
     color: #111 !important;
@@ -405,14 +406,14 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   #printSection thead th, #notesArea thead th {
     background: #f3e7c9 !important;
     font-weight: 800;
-    font-size: 10pt;
+    font-size: 8.5pt;
     border-color: #6b5314 !important;
   }
   #printSection tbody tr:nth-child(even) td { background: #fbf8f1 !important; }
   #printSection td.col-name, #printSection th.col-name { text-align: right; min-width: 40mm; white-space: normal; }
-  #printSection td.col-code { font-family: "Courier New", monospace; font-size: 9.5pt; direction: ltr; white-space: nowrap; }
+  #printSection td.col-code { font-family: "Courier New", monospace; font-size: 8pt; direction: ltr; white-space: nowrap; }
   #printSection td.col-total, #printSection th.col-total { font-weight: 800; background: #f7f0de !important; }
-  #printSection tr:last-child td { border-top: 1.2pt solid #111 !important; font-weight: 800; }
+  #printSection tbody tr:last-child td { border-top: 1pt solid #111 !important; font-weight: 800; }
 
   /* الملاحظات */
   #notesArea { white-space: pre-wrap; line-height: 1.7; }
