@@ -355,7 +355,7 @@ td.col-total.negative, .diff-cell.negative { color: var(--rose-2); }
   .pr-brand b { font-size: 15pt; font-weight: 800; color: #111 !important; }
   .pr-brand span { font-size: 7.5pt; letter-spacing: 1.6pt; color: #8a5a00 !important; text-transform: uppercase; margin-top: 1mm; }
   .pr-title { flex: 1; text-align: center; font-size: 12.5pt; font-weight: 800; line-height: 1.5; color: #111 !important; }
-  .pr-chip { min-width: 26mm; text-align: center; font-size: 7.5pt; font-weight: 700; padding: 1.2mm 2.5mm; border-radius: 99px; border: 0.8pt solid #8a5a00; color: #8a5a00 !important; }
+  .pr-chip-unused { min-width: 26mm; text-align: center; font-size: 7.5pt; font-weight: 700; padding: 1.2mm 2.5mm; border-radius: 99px; border: 0.8pt solid #8a5a00; color: #8a5a00 !important; }
 
   /* الجدول: أعمدة ثابتة مع التفاف النص داخل الخلايا */
   #printSection table { display: table !important; width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; border-spacing: 0 !important; font-size: 8.6pt !important; margin: 0 !important; }

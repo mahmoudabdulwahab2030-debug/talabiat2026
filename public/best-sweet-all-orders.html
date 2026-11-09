@@ -173,16 +173,23 @@ const firebaseConfig = {
     const db = firebase.firestore();
     const globalColumnSettingsDoc = db.collection('settings').doc('tableColumnVisibility');
     // فروع بيست سويت
-    const BR = [
+    const BR_ALL = [
       { k:'best_sweet_abbassia', l:'فرع العباسية' },
       { k:'best_sweet_1', l:'جمال' },
       { k:'best_sweet_market_zaytoun', l:'فيصل' },
       { k:'best_sweet_helwan', l:'حلوان' },
       { k:'best_sweet_obour_market', l:'عبور2' },
       { k:'best_sweet_helw_zaytoun', l:'حلو الزيتون' }
-    ].concat((window.BranchRegistry ? BranchRegistry.extra('bestsweet') : []).map(b=>({ k:b.id, l:b.name })));
+    ].map(b => {
+      // الاسم المعدّل من لوحة الإدارة إن وُجد
+      const o = window.BranchRegistry && BranchRegistry.override ? BranchRegistry.override(b.k) : null;
+      return { k:b.k, l:(o && o.name) || b.l };
+    }).concat((window.BranchRegistry ? BranchRegistry.extra('bestsweet') : []).map(b=>({ k:b.id, l:b.name })));
+    // الفروع المخفاة من لوحة الإدارة: لا تظهر أعمدةً ولا تُحتسب في أي إجمالي
+    const HIDDEN_KEYS = BR_ALL.filter(b => window.BranchRegistry && BranchRegistry.isHiddenBuiltin && BranchRegistry.isHiddenBuiltin(b.k)).map(b=>b.k);
+    const BR = BR_ALL.filter(b => !HIDDEN_KEYS.includes(b.k));
     const BR_KEYS = BR.map(b=>b.k);
-    const DISPLAY = Object.assign({ unknown:'غير معروف' }, Object.fromEntries(BR.map(b=>[b.k,b.l])));
+    const DISPLAY = Object.assign({ unknown:'غير معروف' }, Object.fromEntries(BR_ALL.map(b=>[b.k,b.l])));
     const zeroBranches = () => Object.fromEntries(BR_KEYS.map(k=>[k,0]));
     const emptyNotes = () => Object.fromEntries(BR_KEYS.map(k=>[k+'Notes',[]]));
     const sumBr = v => BR_KEYS.reduce((a,k)=>a+(Number(v[k])||0),0);
@@ -341,11 +348,11 @@ const firebaseConfig = {
         if (qty > 0) {
           if (BR_KEYS.includes(branchKey)) {
             item[branchKey] += qty;
-          } else {
+          } else if (!HIDDEN_KEYS.includes(branchKey)) {
             item[BR_KEYS[0]] += qty;
           }
         }
-        if (d.notes && String(d.notes).trim()) {
+        if (!HIDDEN_KEYS.includes(branchKey) && d.notes && String(d.notes).trim()) {
           const noteText = String(d.notes).trim();
           const noteKey = BR_KEYS.includes(branchKey) ? `${branchKey}Notes` : BR_KEYS[0]+'Notes';
           const noteList = item[noteKey];
@@ -396,11 +403,11 @@ const firebaseConfig = {
         if (qty > 0) {
           if (BR_KEYS.includes(branchKey)) {
             grouped[key][branchKey] += qty;
-          } else {
+          } else if (!HIDDEN_KEYS.includes(branchKey)) {
             grouped[key][BR_KEYS[0]] += qty;
           }
         }
-        if (d.notes && String(d.notes).trim()) {
+        if (!HIDDEN_KEYS.includes(branchKey) && d.notes && String(d.notes).trim()) {
           const noteText = String(d.notes).trim();
           const noteKey = BR_KEYS.includes(branchKey) ? `${branchKey}Notes` : BR_KEYS[0]+'Notes';
           const noteList = grouped[key][noteKey];

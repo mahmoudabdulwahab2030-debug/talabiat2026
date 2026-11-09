@@ -37,26 +37,11 @@
     var title = h3 ? h3.textContent.replace(/\s+/g, " ").trim() : "تقرير تجميع الطلبيات";
     var head = el("header", "pr-head",
       '<div class="pr-brand"><b>بيست سويت</b><span>Best Sweet</span></div>' +
-      '<div class="pr-title"></div>' +
-      '<div class="pr-chip">تقرير رسمي</div>');
+      '<div class="pr-title"></div>');
     head.querySelector(".pr-title").textContent = title;
     ps.insertBefore(head, ps.firstChild);
     added.push(head);
     if (h3) { h3.setAttribute("data-pr-hide", "1"); h3.style.display = "none"; }
-
-    var summary = el("section", "pr-summary",
-      '<div class="pr-card"><span>عدد الأصناف</span><b>' + dataRows.length + '</b></div>' +
-      '<div class="pr-card"><span>عدد الفروع</span><b>' + branchCols + '</b></div>' +
-      '<div class="pr-card pr-grand"><span>الإجمالي العام</span><b>' + grand.toLocaleString("ar-EG") + '</b></div>');
-    ps.appendChild(summary);
-    added.push(summary);
-
-    var sign = el("section", "pr-sign",
-      '<div><span>أعدّه</span><i></i></div>' +
-      '<div><span>راجعه</span><i></i></div>' +
-      '<div><span>اعتمده</span><i></i></div>');
-    ps.appendChild(sign);
-    added.push(sign);
 
     ps.setAttribute("data-pr", "1");
   }
