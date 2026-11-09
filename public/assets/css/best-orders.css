@@ -400,8 +400,13 @@ body { min-width: 0; }
 #resultArea table { min-width: 0; }
 @media (max-width: 720px) {
   body { font-size: 14px; }
-  .btn-row { flex-wrap: wrap; overflow: visible; }
+  /* أزرار الأوامر في شريط تمرير أفقي كما كانت على الموبايل */
+  .btn-row { flex-wrap: nowrap !important; overflow-x: auto !important; overflow-y: hidden; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; }
+  .btn-row > * { scroll-snap-align: start; }
   .field { flex-basis: 100%; }
+  /* منع تكبير iPhone التلقائي عند فتح الحقول */
+  input, select, textarea { font-size: 16px !important; }
+  .container { min-height: 100vh; min-height: 100dvh; }
 }
 @media (max-width: 380px) {
   body { font-size: 13px; }
