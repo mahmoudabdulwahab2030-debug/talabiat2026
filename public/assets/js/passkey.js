@@ -67,33 +67,38 @@
   }
 
   // تفعيل البصمة بعد نجاح الدخول بكلمة المرور (يُرسل كلمة المرور للتحقق من الخادم)
+  // كل حالة لها رسالة واضحة داخل صفحة الدخول حتى تعرف السبب إن لم تظهر النافذة
+  function note(text, color) {
+    var msg = document.getElementById("message");
+    if (msg) { msg.textContent = text; msg.style.color = color; }
+  }
   async function offerEnrollAfterPassword(code, password) {
     try {
-      if (!(await canUse())) return;
-      // مفعّلة على هذا الجهاز: لا تسأل مرة أخرى
-      if (localStorage.getItem("passkeyEnrolled_" + code)) return;
-      // رفض في هذه الجلسة فقط: يُسأل مرة أخرى في الجلسة التالية
-      var declinedKey = "passkeyDeclined_" + code;
-      if (sessionStorage.getItem(declinedKey)) return;
-      if (!await appConfirm("تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.")) {
-        sessionStorage.setItem(declinedKey, "1");
-        return;
-      }
+      if (!isMobile) return;                          // الكمبيوتر: كلمة المرور فقط
+      if (!supportedHere()) { note("ℹ️ المتصفح لا يدعم الدخول بالبصمة", "lightgray"); await pause(); return; }
+      if (inFrame()) { note("ℹ️ البصمة تُفعَّل من الرابط الحي للموقع مباشرة وليس من المعاينة", "lightgray"); await pause(); return; }
+      var avail = false;
+      try { avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) {}
+      if (!avail) { note("ℹ️ لا توجد بصمة أو Face ID مفعّلة على هذا الجهاز", "lightgray"); await pause(); return; }
+      if (localStorage.getItem("passkeyEnrolled_" + code)) return;   // مفعّلة على هذا الجهاز
+      if (sessionStorage.getItem("passkeyDeclined_" + code)) return; // رفض في هذه الجلسة فقط
+
+      var ok = await appConfirm("تفعيل الدخول بالبصمة أو Face ID على هذا الجهاز؟\nبعدها تدخل بلمسة واحدة.");
+      if (!ok) { sessionStorage.setItem("passkeyDeclined_" + code, "1"); return; }
+
       var o = await post({ action: "reg-options", userCode: code, password: password });
       var cred = await navigator.credentials.create({ publicKey: prep(o.options) });
       await post({ action: "reg-verify", userCode: code, password: password, challengeId: o.challengeId, response: serializeAtt(cred) });
       try { localStorage.setItem("passkeyEnrolled_" + code, "1"); } catch (e) {}
-      alert("✅ تم تفعيل الدخول بالبصمة على هذا الجهاز");
+      await appAlert("✅ تم تفعيل الدخول بالبصمة على هذا الجهاز");
     } catch (e) {
       console.warn("passkey enrollment", e);
-      if (e && e.name !== "NotAllowedError") alert("تعذر تفعيل البصمة: " + (e.message || ""));
+      if (!e || e.name !== "NotAllowedError") note("⚠️ تعذر تفعيل البصمة: " + ((e && e.message) || ""), "orange");
+      await pause();
     }
   }
+  function pause() { return new Promise(function (r) { setTimeout(r, 1800); }); }
 
-  function showMsg(text, color) {
-    var msg = document.getElementById("message");
-    if (msg) { msg.textContent = text; msg.style.color = color; }
-  }
   async function loginWithPasskey() {
     var msg = document.getElementById("message");
     if (!supportedHere()) { showMsg("⚠️ هذا المتصفح لا يدعم الدخول بالبصمة. استخدم كلمة المرور.", "orange"); return; }
