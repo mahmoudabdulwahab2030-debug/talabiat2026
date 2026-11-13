@@ -722,9 +722,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // save/load helpers for best-sweet page (Firestore-backed drafts)
-function _buildDraftDocIdBest(branch, orderDate, section){
-  return `draft_best_${branch}_${orderDate}_${section}`.replace(/[^a-zA-Z0-9_\-]/g,'_');
-}
+    function _buildDraftDocIdBest(branch, orderDate, section){
+      // ترميز كامل للقسم (العربية تُرمَّز بدل حذفها) حتى لا تتطابق مسودات الأقسام المختلفة
+      const enc = encodeURIComponent(String(section)).replace(/%/g,'p').replace(/[^a-zA-Z0-9_\-]/g,'_');
+      return `draft_${branch}_${orderDate}_${enc}`.replace(/[^a-zA-Z0-9_\-]/g,'_');
+    }
 
 async function saveDraftBest(){
   const branch = branchSelect ? branchSelect.value : '';
@@ -772,7 +774,7 @@ async function loadDraftBest(branch, orderDate, section){
       if (snap.exists) {
         const data = snap.data();
         if (data && Array.isArray(data.products)) {
-          products = products.concat(data.products);
+          products = products.concat(data.products.filter(p => !p.sheet || p.sheet === section || section === 'all'));
         }
       }
       const allDocId = _buildDraftDocIdBest(b, od, 'all');

@@ -1071,8 +1071,9 @@ async function sendQuantities(){
     }
 
     function _buildDraftDocId(branch, orderDate, section){
-      // safe id
-      return `draft_branches_${branch}_${orderDate}_${section}`.replace(/[^a-zA-Z0-9_\-]/g,'_');
+      // ترميز كامل للقسم (العربية تُرمَّز بدل حذفها) حتى لا تتطابق مسودات الأقسام المختلفة
+      const enc = encodeURIComponent(String(section)).replace(/%/g,'p').replace(/[^a-zA-Z0-9_\-]/g,'_');
+      return `draft_${branch}_${orderDate}_${enc}`.replace(/[^a-zA-Z0-9_\-]/g,'_');
     }
 
     async function saveDraftBranches(){
@@ -1147,7 +1148,7 @@ async function sendQuantities(){
           if (snap.exists) {
             const data = snap.data();
             if (data && Array.isArray(data.products)) {
-              products = products.concat(data.products);
+              products = products.concat(data.products.filter(p => !p.sheet || p.sheet === section || section === 'all'));
             }
           }
           const allDocId = null; // المسودة الشاملة لا تُدمج مع قسم محدد لمنع تداخل الأصناف
