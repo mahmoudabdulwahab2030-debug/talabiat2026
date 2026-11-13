@@ -425,3 +425,46 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   width: 0;
   height: 0;
 }
+
+/* ===== الجدول لا يكون داخل صندوق تمرير: نهاية الجدول هي نهاية الشاشة، والتمرير للصفحة كلها ===== */
+.table-wrap,
+.so-main > .table-wrap {
+  max-height: none !important;
+  overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+}
+#orderDataTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  overflow: hidden;
+}
+#orderDataTable th,
+#orderDataTable td {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+#orderDataTable thead th {
+  position: sticky;
+  top: 0;
+}
+#orderDataTable input {
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  #orderDataTable th,
+  #orderDataTable td { padding: 7px 4px; font-size: 12px; }
+  #orderDataTable input.item-code { width: 100%; }
+  #orderDataTable input.item-name { min-width: 0; width: 100%; }
+  #orderDataTable input.requested-qty,
+  #orderDataTable input.sent-qty { width: 100%; padding: 6px 4px; }
+}
