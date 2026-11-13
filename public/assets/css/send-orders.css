@@ -413,3 +413,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   .so-main > .table-wrap { grid-row: 2; }
   .so-main > .analysis-panel { grid-row: 3; }
 }
+
+/* الجدول المعروض بدون أشرطة التمرير (التمرير بالعجلة واللمس يبقى متاحاً) */
+#orderDataTable, .table-wrap {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#orderDataTable::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
